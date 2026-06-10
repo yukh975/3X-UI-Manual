@@ -255,6 +255,15 @@ What the installer does step by step:
 - `1) SQLite` (default, recommended when the number of clients is < 500) — a single file `/etc/x-ui/x-ui.db`, requires no configuration.
 - `2) PostgreSQL` (recommended for a large number of clients or several nodes). PostgreSQL can be installed locally (a dedicated user and a database named `xui` are created) or you can specify a DSN to an existing server. The connection parameters are written to the service environment file (`/etc/default/x-ui`, `/etc/conf.d/x-ui`, or `/etc/sysconfig/x-ui` depending on the distribution) as the `XUI_DB_TYPE` and `XUI_DB_DSN` variables.
 
+**Example: PostgreSQL parameters written to the service environment file.** After choosing PostgreSQL and providing a DSN, the installer adds lines like the following to the environment file:
+
+```bash
+XUI_DB_TYPE=postgres
+XUI_DB_DSN=postgres://xui:S3cretPass@127.0.0.1:5432/xui?sslmode=disable
+```
+
+Here `xui` is the username and database name, `127.0.0.1:5432` is the server address and port, and `sslmode=disable` is fine for a local connection (for a remote server `require` is typically used).
+
 **Installing a specific (older) version.** You can explicitly specify a version tag — the installer will download the corresponding release:
 
 ```bash
@@ -278,6 +287,21 @@ docker compose --profile postgres up -d
 ```
 
 The image includes Fail2ban (active by default) for enforcing per-client IP limits. Fail2ban blocks offenders via `iptables`, which requires the `NET_ADMIN` capability. In `docker-compose.yml` it is already granted via `cap_add`. When running manually via `docker run`, you need to add the capabilities yourself, otherwise blocks will only be logged but not enforced:
+
+**Example: a full `docker run` command.** A minimal variant that publishes the panel port, adds the network capabilities, and mounts a persistent volume for the database:
+
+```bash
+docker run -d \
+  --name 3x-ui \
+  --restart unless-stopped \
+  --cap-add=NET_ADMIN --cap-add=NET_RAW \
+  -v $PWD/db:/etc/x-ui \
+  -v $PWD/cert:/root/cert \
+  -p 2053:2053 \
+  ghcr.io/mhsanaei/3x-ui:latest
+```
+
+The `/etc/x-ui` volume preserves the `x-ui.db` file across container restarts; otherwise settings and accounts would be lost.
 
 ```bash
 docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
@@ -335,6 +359,16 @@ The database directory can be overridden with the `XUI_DB_FOLDER` environment va
 | `XUI_ENABLE_FAIL2BAN` | enable enforcement of IP limits via Fail2ban | `true` |
 | `XUI_LOG_LEVEL` | logging level (`debug`, `info`, `warning`, `error`) | `info` |
 | `XUI_DEBUG` | debug mode | `false` |
+
+**Example: temporarily enable verbose logging.** To diagnose an issue, raise the log level to `debug` and restart the service:
+
+```bash
+echo 'XUI_LOG_LEVEL=debug' >> /etc/default/x-ui
+systemctl restart x-ui
+x-ui log    # view the debug log
+```
+
+After diagnosing, set the value back to `info` so the log does not grow unbounded.
 
 ### 1.6. The `x-ui` management command (script menu)
 
@@ -426,6 +460,14 @@ systemctl restart x-ui
 
 The original SQLite file remains untouched — delete it manually only after verifying that the new backend works.
 
+**Example: verifying the switch to PostgreSQL.** After migration, confirm the panel really runs on the new backend with the settings command — the output should list PostgreSQL (the password in the DSN is masked):
+
+```bash
+x-ui settings | grep -i -E 'db|dsn'
+```
+
+Once the panel opens and the accounts are present, the original `x-ui.db` can be removed.
+
 ---
 
 ## 2. Panel login and access security
@@ -455,9 +497,33 @@ Behavior and messages:
 
 > Note about CSRF: before submitting the form, the client obtains a CSRF token (`GET /csrf-token`); the `/login` and `/logout` requests are protected by a CSRF check.
 
+**Example: logging in via the API.** When 2FA is off, the login and password are enough; when 2FA is on, the `twoFactorCode` field is added:
+
+```bash
+# Without 2FA
+curl -i -X POST https://panel.example.com:2053/my-secret/login \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  --data 'username=admin&password=YourPassword'
+
+# With 2FA enabled — a 6-digit code is added
+curl -i -X POST https://panel.example.com:2053/my-secret/login \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  --data 'username=admin&password=YourPassword&twoFactorCode=123456'
+```
+
+On success the server returns a `Set-Cookie` header with the session cookie — pass it in subsequent requests to `/panel/api/…`.
+
 ### 2.2. Two-factor authentication (2FA / TOTP)
 
 2FA in 3X-UI is implemented according to the **TOTP** standard and is compatible with any authenticator app (Google Authenticator, Aegis, FreeOTP, etc.). The parameters are hard-coded: algorithm **SHA1**, **6** digits, period **30** seconds, issuer `3x-ui`, label `Administrator`.
+
+**Example: the otpauth URI encoded by the QR code.** If the authenticator app cannot use the camera, the token can be added manually via a link like this (substitute your own Base32 secret instead of `JBSWY3DPEHPK3PXP`):
+
+```
+otpauth://totp/3x-ui:Administrator?secret=JBSWY3DPEHPK3PXP&issuer=3x-ui&algorithm=SHA1&digits=6&period=30
+```
+
+The parameters `algorithm=SHA1`, `digits=6`, `period=30` match the panel's hard-coded values — there is no need to change them.
 
 The settings are located in **Settings → Account**, on the **"Two-factor authentication"** tab.
 
@@ -489,6 +555,17 @@ At login, the server takes the stored secret and compares the current TOTP with 
 
 There is **no** separate "recovery codes" mechanism in 3X-UI. If access to the authenticator app is lost, login cannot be recovered through the panel interface. The only way is to disable 2FA directly in the database on the server: reset the `twoFactorEnable` key to `false` (and, if necessary, clear `twoFactorToken`) in the settings table, then restart the panel. For this reason, it is recommended to store the secret (the Base32 token) in a safe place when enabling 2FA.
 
+**Example: emergency 2FA disable on the server.** After getting SSH access to the server, stop the panel, reset the keys in the settings table, and start the panel again:
+
+```bash
+x-ui stop
+sqlite3 /etc/x-ui/x-ui.db "UPDATE settings SET value='false' WHERE key='twoFactorEnable';"
+sqlite3 /etc/x-ui/x-ui.db "UPDATE settings SET value='' WHERE key='twoFactorToken';"
+x-ui start
+```
+
+After this, login works with the username and password only, and 2FA can be set up again if desired.
+
 > Relation to changing credentials: when the login/password is changed (see 2.4), 2FA is **automatically disabled** on the server so that the old secret does not block access under the new account.
 
 ### 2.3. Login attempt limiting (login limiter / brute-force protection)
@@ -510,6 +587,18 @@ How it works:
 
 All attempts are logged. For failed ones, a warning is written to the server log with the username, IP, reason and, on lockout, the `blocked_until` time. If login notifications via the Telegram bot are enabled (`tgNotifyLogin` — "Login notification"), the administrator additionally receives the username, IP, and time of both successful and failed and blocked attempts.
 
+**Example: login notification in Telegram.** With `tgNotifyLogin` enabled, after each attempt the administrator receives a message roughly like this:
+
+```
+Login notification
+User: admin
+IP: 203.0.113.45
+Time: 2026-06-10 14:32:07
+Status: success
+```
+
+For a blocked "IP + login" pair, the status will indicate that the attempt was rejected by the limiter.
+
 ### 2.4. Changing the administrator login and password
 
 The **Settings → Account** section, the **"Administrator credentials"** tab. Fields:
@@ -528,6 +617,17 @@ Server logic and messages:
 - If "Current login" does not match the actual one or "Current password" is incorrect — "An error occurred while changing the administrator credentials." with the explanation "Incorrect username or password".
 - If the new login or new password is empty — the explanation "The new username and new password must not be empty".
 - On success — "You have successfully changed the administrator credentials.". The password is stored as a bcrypt hash.
+
+**Example: changing credentials via the API.** The request requires a valid session cookie (obtained at login) and confirmation of the current login/password:
+
+```bash
+curl -X POST https://panel.example.com:2053/my-secret/panel/setting/updateUser \
+  -b 'session=YOUR_SESSION_COOKIE' \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  --data 'oldUsername=admin&oldPassword=OldPassword&newUsername=root&newPassword=NewStrongPassword'
+```
+
+After success the current session is invalidated — you will need to log in again with the new credentials.
 
 Important effects of changing credentials:
 
@@ -560,6 +660,17 @@ Behavior of the base path (`webBasePath`):
 > - "The default base path \"/\" is widely known — change it to a random one."
 >
 > In other words, for a production server you should set a **non-standard port**, a **non-trivial URI path**, and a **TLS certificate**.
+
+**Example: a "stealth" panel configuration for production.** In the **Settings → Panel** section set roughly these values:
+
+| Field | Value |
+|------|----------|
+| Panel port | `34571` (random, instead of 2053) |
+| URI path | `/aXf9Qm2/` (non-trivial, starts and ends with `/`) |
+| Path to the panel certificate's public key | `/etc/letsencrypt/live/panel.example.com/fullchain.pem` |
+| Path to the panel certificate's private key | `/etc/letsencrypt/live/panel.example.com/privkey.pem` |
+
+After saving and restarting, the panel will be reachable only at `https://panel.example.com:34571/aXf9Qm2/`, and the security warnings will disappear.
 
 ### 2.6. Session lifetime (timeout)
 
@@ -612,6 +723,23 @@ Section fields:
 Specifics of the synchronization flag logic: when reading the flag attribute (`flagField`, default `vless_enabled`), the value is considered "enabled" if it is in the list of truthy values; when inversion is enabled, the result is flipped to the opposite. The user attribute (`userAttr`) is used as the matching key (email/name) — records without a value for this attribute are skipped.
 
 > Security: it is recommended to enable **TLS (LDAPS)** so that bind passwords and verified passwords are not transmitted in plain text, and to use an account with the minimum necessary read permissions for the `Bind DN`.
+
+**Example: a typical LDAP synchronization configuration (Active Directory).** Filling in the section fields for a directory where the access status is stored in a flag attribute and matching is done by email:
+
+| Field | Value |
+|------|----------|
+| LDAP host | `ldap.example.com` |
+| LDAP port | `636` |
+| Use TLS (LDAPS) | enabled |
+| Bind DN | `CN=svc-3xui,OU=Service,DC=example,DC=com` |
+| Base DN | `OU=Users,DC=example,DC=com` |
+| User filter | `(objectClass=person)` |
+| User attribute (username/email) | `mail` |
+| VLESS flag attribute | `vless_enabled` |
+| Truthy values | `true,1,yes,on` |
+| Sync schedule | `@every 5m` |
+
+With this setup, every 5 minutes the panel walks the `OU=Users` subtree, matches clients by `mail`, and enables/disables VLESS access based on the `vless_enabled` value.
 
 ---
 
@@ -727,6 +855,15 @@ The "Version" (*Version*) section lets you switch Xray-core to a different relea
 Tooltips: "Choose the version you want to switch to." (*Choose the version you want to switch to.*) and the warning "Choose carefully, as older versions may not be compatible with current configurations." (*Choose carefully, as older versions may not be compatible with current configurations.*).
 
 Switching: `POST /installXray/:version`. The scenario:
+
+**Example.** Switch to a specific Xray-core version (the session cookie must already be obtained via login):
+
+```bash
+curl -X POST 'https://panel.example.com:2053/xpanel/installXray/v25.6.8' \
+  -b cookie.txt
+```
+
+Here `v25.6.8` is a tag from the list returned by `GET /getXrayVersion`. The version must be present in that list, otherwise the panel responds with a refusal.
 1. The selected version is checked for presence in the current list of releases (otherwise — refusal).
 2. Xray is stopped.
 3. For the current OS and architecture, an archive `Xray-<os>-<arch>.zip` is downloaded from GitHub (amd64/64, arm64-v8a, arm32-v7a/v6/v5, 386/32, s390x are supported; for Windows — `xray.exe`). The size of the archive and of the binary is limited to 200 MB.
@@ -766,6 +903,15 @@ Behavior:
 - The file name is validated: `..`, slashes, and absolute paths are forbidden; only `[a-zA-Z0-9._-]+.dat` is allowed. Files outside the whitelist are not downloaded.
 - A conditional request `If-Modified-Since` is used: if the file has not changed on the source server (HTTP 304), it is not downloaded again, only the timestamp is updated.
 - After downloading, Xray is **restarted** (to pick up the new databases).
+
+**Example.** Update only the Russian geo databases without touching the other files:
+
+```bash
+curl -X POST 'https://panel.example.com:2053/xpanel/updateGeofile/geoip_RU.dat' -b cookie.txt
+curl -X POST 'https://panel.example.com:2053/xpanel/updateGeofile/geosite_RU.dat' -b cookie.txt
+```
+
+To update every file from the whitelist at once, call `POST /updateGeofile` without a file name.
 - Dialogs: "Do you really want to update the geo file?" with "This will update the file #filename#" for a single file, and "This will update all geo files" for the "Update all" button. Success — "Geo files updated successfully".
 
 ### 3.14. Database backup and restore
@@ -802,7 +948,37 @@ The "Download Migration" button (*Download Migration*) calls `GET /getMigration`
 
 - **Online clients indicator.** The dashboard maintains the `online` series (*Online Clients* / "Online Clients") — the number of clients with an active connection. It is computed while Xray is running (0 otherwise) and recorded into the history on the same 2-second tick. The chart is the "Online" tab.
 - **System History (charts).** The "Charts" button/section → "System History" with tabs: "Bandwidth", "Packets", "Disk I/O", "Online", "Load", "Connections", "Disk Usage". The data is pulled via `GET /history/:metric/:bucket`; the allowed aggregation intervals (bucket, sec) are **2, 30, 60, 120, 180, 300**, and up to 60 points arrive per tab. The allowed metrics are: `cpu, mem, swap, netUp, netDown, pktUp, pktDown, diskRead, diskWrite, diskUsage, tcpCount, udpCount, online, load1, load5, load15`. The label "Last 2 minutes" corresponds to bucket = 2 (real-time mode).
+
+**Example.** Fetch the CPU-load series for the last ~2 minutes (bucket = 2 s, up to 60 points) and the same series aggregated over 5 minutes (bucket = 300 s):
+
+  ```bash
+  curl 'https://panel.example.com:2053/xpanel/history/cpu/2' -b cookie.txt
+  curl 'https://panel.example.com:2053/xpanel/history/cpu/300' -b cookie.txt
+  ```
+
+  The metric can be replaced with any allowed one (`mem`, `netUp`, `tcpCount`, `load1`, etc.). A bucket outside the list `2, 30, 60, 120, 180, 300` is rejected.
 - **Xray metrics** — a separate block with Xray's memory consumption and garbage collection (series `xrAlloc, xrSys, xrHeapObjects, xrNumGC, xrPauseNs`) and the "Observatory" (the state of outbound connections). They work only if the `metrics` block is set in the Xray configuration (`listen 127.0.0.1:11111`, tag `metrics_out`); otherwise "Xray metrics endpoint is not configured" is shown.
+
+**Example** of the block that enables the Xray metrics tile. The Xray settings must contain both `metrics` (with a tag) and an inbound that listens on that tag:
+
+  ```json
+  {
+    "metrics": {
+      "tag": "metrics_out"
+    },
+    "inbounds": [
+      {
+        "listen": "127.0.0.1",
+        "port": 11111,
+        "protocol": "dokodemo-door",
+        "settings": { "address": "127.0.0.1" },
+        "tag": "metrics_out"
+      }
+    ]
+  }
+  ```
+
+  The `127.0.0.1:11111` address is intentionally not exposed externally — the panel polls it locally.
 - **Dark theme toggle.** It is located in the common menu/header, not in the dashboard itself. Options: "Theme" (*Theme*) with the options "Dark" and "Ultra Dark" (*Ultra Dark*). This is a purely visual appearance setting; it does not affect the panel's operation.
 - **Other links** in the dashboard's surroundings (from the menu/bottom bar): "Logs", "Config" — viewing the resulting Xray JSON (`GET /getConfigJson`), "Documentation".
 
@@ -872,6 +1048,13 @@ When generating the Xray configuration, an empty value is replaced with `0.0.0.0
 > "You can also specify a Unix socket path (for example, /run/xray/in.sock) to listen on a socket instead of a TCP port — in that case, set the port to 0."
 
 You change this field when you need to restrict the inbound to a single interface (for example, `127.0.0.1` for an inbound that works only as a fallback target behind Nginx), or when the inbound listens on a Unix socket.
+
+**Example.** An inbound that listens only on the local interface (a typical fallback target behind Nginx), and one that listens on a Unix socket:
+
+```
+listen = 127.0.0.1   port = 8443
+listen = /run/xray/in.sock   port = 0
+```
 
 #### Port
 
@@ -950,6 +1133,17 @@ The **Sniffing** tab edits the `sniffing` block of the Xray configuration, which
 | (excluded IPs) | **"Excluded IPs"** | IP addresses excluded from sniffing |
 
 - **`destOverride`** — the set of sniffers: `http` (determines the domain from the HTTP Host header), `tls` (from the SNI), `quic` (from the QUIC ClientHello), `fakedns` (matching against the FakeDNS pool). Usually `http` and `tls` are enabled to determine the domain.
+
+**Example of a `sniffing` block** (determine the domain from HTTP and TLS, use the result for routing only, without rewriting the destination):
+
+```json
+{
+  "enabled": true,
+  "destOverride": ["http", "tls"],
+  "routeOnly": true,
+  "domainsExcluded": ["courier.push.apple.com"]
+}
+```
 - **`metadataOnly`** — when enabled, Xray does not read the contents of the first packet and relies only on metadata; useful to avoid breaking protocols whose data cannot be "peeked" at.
 - **`routeOnly`** — the sniffing result is used only by routing rules; the connection address in the outbound is not rewritten to the recognized domain.
 
@@ -966,6 +1160,20 @@ The `allocate` block in `streamSettings` controls how Xray allocates listening p
 | `concurrency` | How many ports to keep open simultaneously for `random` | an integer (default 3; no more than a third of the width of the port range) |
 
 `strategy: always` keeps the inbound on a single port (the standard mode). `strategy: random` is needed for anti-blocking scenarios, where the inbound periodically "hops" across a port range; in that case `refresh` and `concurrency` make sense. You should change these values only when deliberately using the random-port mode.
+
+**Example of an `allocate` block** in `streamSettings` (random-port mode: keep 3 ports open, change them every 5 minutes):
+
+```json
+{
+  "allocate": {
+    "strategy": "random",
+    "refresh": 5,
+    "concurrency": 3
+  }
+}
+```
+
+For this to work, the inbound's `port` is set as a range (for example, `20000-20100`).
 
 ### 4.4. External Proxy
 
@@ -994,6 +1202,19 @@ The section hint:
 | (order) | by position | The order in which the rules are applied; set with the **Up**/**Down** buttons |
 
 Save logic: the entire fallback list of the master is replaced atomically. A row that has neither a selected child inbound (`childId <= 0`) nor a specified `Dest` is **skipped**. If the selected child inbound equals the id of the master itself, it is zeroed out. When generating the final JSON: if `Dest` is empty, it is computed from the child inbound as `listen:port`, with `0.0.0.0`/`::`/`::0` replaced with `127.0.0.1`; empty `name`/`alpn`/`path` fields do not end up in the output JSON; `xver` is added only if it is greater than 0.
+
+**Example of the resulting `settings.fallbacks`** (traffic with `alpn=h2` goes to a WS target at path `/ws`, everything else to a local Nginx on port 8080):
+
+```json
+{
+  "fallbacks": [
+    { "alpn": "h2", "path": "/ws", "dest": "127.0.0.1:2001", "xver": 1 },
+    { "dest": 8080 }
+  ]
+}
+```
+
+The last row, without `name`/`alpn`/`path`, is the "default" rule that catches everything else.
 
 #### Buttons and hints of the fallbacks section
 
@@ -1029,6 +1250,14 @@ Drop-down list:
 | `monthly` | **"Monthly"** |
 
 For each period a cron job is registered that runs on the corresponding schedule (`@hourly`, `@daily`, `@weekly`, `@monthly`). The job selects all inbounds with the given `trafficReset` and, for each, resets the counters of the inbound itself (`up=0`, `down=0`) **and** the traffic of all its clients. That is, a periodic reset affects both the inbound and its clients.
+
+**Example field value.** To have the counters zeroed on the first day of each month, select **"Monthly"** in the form, which is stored as:
+
+```json
+{ "trafficReset": "monthly" }
+```
+
+The value `never` (the default) disables auto-reset entirely.
 
 ### 4.7. Inbound JSON (advanced)
 
@@ -1180,6 +1409,40 @@ Technically, the buttons call `GET /panel/api/server/getNewVlessEnc` (key genera
 
 When to choose VLESS: this is the recommended default option for a new inbound, especially in combination with REALITY (without your own certificate) or with TLS + XTLS-Vision.
 
+**Example: the `settings` block of a VLESS inbound with one client and XTLS-Vision.** The `flow` field lives on the client; `decryption` stays on the server:
+
+```json
+{
+  "clients": [
+    {
+      "id": "d342d11e-d424-4583-b36e-524ab1f0afa4",
+      "email": "user1",
+      "flow": "xtls-rprx-vision",
+      "limitIp": 2,
+      "totalGB": 0,
+      "expiryTime": 0,
+      "enable": true
+    }
+  ],
+  "decryption": "none"
+}
+```
+
+For a REALITY pairing, the matching `streamSettings` block (the "Transport" tab -> Security: REALITY) looks like this:
+
+```json
+{
+  "network": "tcp",
+  "security": "reality",
+  "realitySettings": {
+    "dest": "www.microsoft.com:443",
+    "serverNames": ["www.microsoft.com"],
+    "privateKey": "<X25519 private key>",
+    "shortIds": ["", "6ba85179e30d4fc2"]
+  }
+}
+```
+
 ---
 
 ### 5.4. VMess
@@ -1233,6 +1496,21 @@ The remaining client fields are common (`limitIp`, `totalGB`, `expiryTime`, `ena
 
 When to choose Trojan: when you need masquerading as HTTPS on port 443, including with fallbacks to a web server (Nginx) for unsolicited connections.
 
+**Example: a Trojan `settings` block with a fallback to a local web server.** Unsolicited connections (without a valid password) are routed to Nginx listening on `127.0.0.1:8080`:
+
+```json
+{
+  "clients": [
+    { "password": "S3cret-Pass-1", "email": "user1" }
+  ],
+  "fallbacks": [
+    { "dest": "127.0.0.1:8080" }
+  ]
+}
+```
+
+Fallbacks require `network = tcp` and Security = TLS or REALITY; otherwise the fallbacks field is unavailable.
+
 ---
 
 ### 5.6. Shadowsocks
@@ -1270,6 +1548,25 @@ The panel's logic by method:
 > Normalization before launching Xray: for legacy ciphers, each client must carry a `method` matching the inbound's method (otherwise Xray fails with "unsupported cipher method:"). For 2022 methods, the opposite — the client's `method` field must be **empty** (otherwise Xray rejects the inbound with "users must have empty method"). The panel brings the data into order itself when the method is switched.
 
 When to choose Shadowsocks: for simple deployments without TLS masquerading; the modern choice is the 2022-blake3 methods.
+
+**Example: a Shadowsocks `settings` block for a 2022-blake3 method (multi-user mode).** The inbound has its own password (a base64 key of the required length), each client has its own password, and the client's `method` field is **empty**:
+
+```json
+{
+  "method": "2022-blake3-aes-256-gcm",
+  "password": "d2hhdGV2ZXItMzItYnl0ZS1iYXNlNjQta2V5LWhlcmU=",
+  "network": "tcp,udp",
+  "clients": [
+    {
+      "email": "user1",
+      "password": "Y2xpZW50LWtleS0zMi1ieXRlcy1iYXNlNjQtaGVyZQ==",
+      "method": ""
+    }
+  ]
+}
+```
+
+For legacy ciphers (`aes-256-gcm`, etc.) it is the opposite: a single password on the inbound, and the client's `method` must match the inbound's method.
 
 ---
 
@@ -1412,6 +1709,18 @@ Consequences:
 
 **How to share it with a user.** For an MTProto inbound, the panel generates an invitation link:
 
+**Example: a FakeTLS secret and a ready-made link.** If the cover domain is `www.cloudflare.com`, the secret is assembled as `ee` + 32 hex characters + the hex code of the domain, for example:
+
+```
+secret = ee1a2b3c4d5e6f70819293a4b5c6d7e8f7777772e636c6f7564666c6172652e636f6d
+```
+
+The resulting invitation link (this and the QR code are sent to the Telegram user):
+
+```
+tg://proxy?server=203.0.113.10&port=443&secret=ee1a2b3c4d5e6f70819293a4b5c6d7e8f7777772e636c6f7564666c6172652e636f6d
+```
+
 ```
 tg://proxy?server=<address>&port=<port>&secret=<secret>
 ```
@@ -1501,6 +1810,35 @@ When HTTP obfuscation is enabled, fields for configuring the simulated request a
 
 The header fields are edited line by line — each line specifies a header name (`Name`) and its value (`Value`). These parameters are used only to disguise the appearance of the traffic; they do not affect cryptography. The default values (`GET / HTTP/1.1`, response `200 OK`) suit most scenarios — change them only if you need to mimic a specific site/service.
 
+**Example `streamSettings` for RAW with HTTP obfuscation:**
+
+```json
+{
+  "network": "tcp",
+  "tcpSettings": {
+    "acceptProxyProtocol": false,
+    "header": {
+      "type": "http",
+      "request": {
+        "version": "1.1",
+        "method": "GET",
+        "path": ["/"],
+        "headers": {
+          "Host": ["www.example.com"]
+        }
+      },
+      "response": {
+        "version": "1.1",
+        "status": "200",
+        "reason": "OK"
+      }
+    }
+  }
+}
+```
+
+Note: on the wire `path` is an array of strings, and each header is an array of values (`Host → ["www.example.com"]`).
+
 ---
 
 ### 6.3. mKCP (`kcpSettings`)
@@ -1543,6 +1881,25 @@ Notes:
 - **Heartbeat period** keeps the connection "alive" when passing through proxies/CDNs that aggressively drop inactive sessions. By default (`0`) heartbeat is off.
 - Unlike RAW, the WebSocket header table uses a "flat" `name → value` format (one value line per header).
 
+**Example `streamSettings` for WebSocket behind a CDN:**
+
+```json
+{
+  "network": "ws",
+  "wsSettings": {
+    "acceptProxyProtocol": false,
+    "host": "cdn.example.com",
+    "path": "/ray",
+    "heartbeatPeriod": 0,
+    "headers": {
+      "User-Agent": "Mozilla/5.0"
+    }
+  }
+}
+```
+
+The `host` and `path` values must match on the client; unlike RAW, the header value here is a plain string, not an array.
+
 ---
 
 ### 6.5. gRPC (`grpcSettings`)
@@ -1559,6 +1916,21 @@ Notes:
 - **Service Name** is the main identifier of the gRPC channel; it must be the same on both sides. An empty value is allowed, but a non-obvious string is usually set for disguise.
 - **Authority** affects which `:authority` is sent in HTTP/2 frames; it is needed primarily when proxying through a CDN.
 - **Multi Mode** allows several logical streams to go through a single physical connection; enable it to improve performance when both the server and the client support it.
+
+**Example `streamSettings` for gRPC:**
+
+```json
+{
+  "network": "grpc",
+  "grpcSettings": {
+    "serviceName": "GunService",
+    "authority": "grpc.example.com",
+    "multiMode": false
+  }
+}
+```
+
+The `serviceName` (here `GunService`) acts as the tunnel "path" and must match on the server and the client.
 
 ---
 
@@ -1646,6 +2018,22 @@ Recommendations:
 - The placement fields (`*Placement`/`*Key`) and padding obfuscation are needed only for fine-tuning to a specific anti-DPI/CDN scenario; with empty values the xray-core default values indicated in parentheses are used.
 - Parameters related to the client/outbound side (for example, retry POST intervals, chunk sizes, the XMUX multiplexer) are not shown in the inbound form — the listener server ignores them.
 
+**Example `streamSettings` for XHTTP (`auto` mode):**
+
+```json
+{
+  "network": "xhttp",
+  "xhttpSettings": {
+    "host": "xhttp.example.com",
+    "path": "/yourpath",
+    "mode": "auto",
+    "xPaddingBytes": "100-1000"
+  }
+}
+```
+
+For most setups these four fields are enough; the session/sequence placement and padding obfuscation fields are left empty — then the xray-core default values are used.
+
 ---
 
 ### 6.8. Hysteria transport (`hysteriaSettings`)
@@ -1673,6 +2061,23 @@ When **Masquerade** is enabled, a type selector (`type`) and fields depending on
   - `headers` (**Headers**) — a `name → value` map.
 
 Masquerade allows a Hysteria-based inbound to look like an ordinary HTTP/3 server to active probes, which increases stealth. By default masquerade is off.
+
+**Example `hysteriaSettings` with reverse proxying (`masquerade` → `proxy`):**
+
+```json
+{
+  "version": 2,
+  "udpIdleTimeout": 60,
+  "masquerade": {
+    "type": "proxy",
+    "url": "https://www.example.com",
+    "rewriteHost": true,
+    "insecure": false
+  }
+}
+```
+
+Here, when probed, the listener serves the response from `https://www.example.com`, disguising itself as an ordinary HTTP/3 site.
 
 ---
 
@@ -1720,6 +2125,30 @@ The transport is transmitted without a TLS wrapper: the `tlsSettings` and `reali
 - a protocol with its own encryption (Shadowsocks) is used on the internal network.
 
 For inbounds accessible from outside, "None" mode is not recommended.
+
+**Example: a `streamSettings` block for TLS on the `tcp` network** (VLESS/Trojan/VMess). This is the result after selecting **TLS** mode and filling in the SNI and certificate paths:
+
+```json
+"streamSettings": {
+  "network": "tcp",
+  "security": "tls",
+  "tlsSettings": {
+    "serverName": "vpn.example.com",
+    "minVersion": "1.2",
+    "maxVersion": "1.3",
+    "alpn": ["h2", "http/1.1"],
+    "settings": { "fingerprint": "chrome" },
+    "certificates": [
+      {
+        "certificateFile": "/root/cert/vpn.example.com.crt",
+        "keyFile": "/root/cert/vpn.example.com.key",
+        "ocspStapling": 3600,
+        "usage": "encipherment"
+      }
+    ]
+  }
+}
+```
 
 ### 7.3. TLS mode
 
@@ -1809,6 +2238,30 @@ Fields of the `realitySettings` block. REALITY does not use an SSL certificate: 
 
 **Target** (`target`) and **SNI** (`serverNames`), when REALITY is enabled and via the refresh button, are filled with a random pair from the panel's built-in list: `www.amazon.com`, `aws.amazon.com`, `www.oracle.com`, `www.nvidia.com`, `www.amd.com`, `www.intel.com`, `www.sony.com` (each with port `:443`). Choose a "heavy", stable third-party HTTPS site that is not located behind your own server.
 
+**Example: a `streamSettings` block for REALITY on the `tcp` network** (VLESS). No certificate is needed — a borrowed domain and an X25519 key pair are used instead:
+
+```json
+"streamSettings": {
+  "network": "tcp",
+  "security": "reality",
+  "realitySettings": {
+    "show": false,
+    "xver": 0,
+    "dest": "www.nvidia.com:443",
+    "serverNames": ["www.nvidia.com"],
+    "privateKey": "YOUR_X25519_PRIVATE_KEY",
+    "shortIds": ["", "6ba85179e30d4fc2"],
+    "settings": {
+      "publicKey": "YOUR_X25519_PUBLIC_KEY",
+      "fingerprint": "chrome",
+      "spiderX": "/"
+    }
+  }
+}
+```
+
+Here the panel's **Target** (`target`) field corresponds to `dest` in the final Xray config.
+
 #### REALITY keys (X25519)
 
 | Field | Default | Description |
@@ -1818,6 +2271,16 @@ Fields of the `realitySettings` block. REALITY does not use an SSL certificate: 
 
 Buttons below the keys:
 - **Get a new certificate** — requests a new key pair from the server (`GET /panel/api/server/getNewX25519Cert`; on the server `xray x25519` is executed), fills the **Private key** and **Public key**. The same pair is automatically generated when REALITY mode is first enabled.
+
+**Example: obtain an X25519 key pair via the API** (outside the form, e.g. for a script). The request returns the private and public keys:
+
+```bash
+curl -s -b cookie.txt https://your-panel:2053/panel/api/server/getNewX25519Cert
+# Response:
+# {"success":true,"obj":{"privateKey":"...","publicKey":"..."}}
+```
+
+`cookie.txt` is the session cookie file obtained after logging in via `POST /login`.
 - **Clear** — clears both keys.
 
 #### Post-quantum ML-DSA-65 signature (mldsa65)
@@ -1836,6 +2299,14 @@ Buttons:
 ### 7.5. Practical configuration recommendations
 
 1. **VLESS + Reality (recommended):** create a VLESS inbound on the `tcp` network, on the "Security" tab select **Reality** — the panel will substitute random `target`/SNI, `shortIds` and generate X25519 keys itself. If necessary, click "Get a new certificate" for your own key pair. For VLESS clients, enable **Flow** = `xtls-rprx-vision` (XTLS Vision) — this gives maximum performance and stealth.
+
+**Example: the final VLESS + Reality + Vision client link.** This is the invite link the panel issues for such an inbound (key/ID values are illustrative):
+
+```text
+vless://client-uuid@1.2.3.4:443?type=tcp&security=reality&pbk=PUBLIC_KEY&fp=chrome&sni=www.nvidia.com&sid=6ba85179e30d4fc2&spx=%2F&flow=xtls-rprx-vision#my-reality
+```
+
+Here `pbk` is the X25519 public key, `sni` is the borrowed domain from **Target**, `sid` is one of the **Short IDs**, and `flow=xtls-rprx-vision` is the enabled XTLS Vision.
 2. **TLS with your own domain:** select **TLS**, fill in **SNI** with the domain name, add a certificate (by file path or content), or click "Set panel certificate" if the domain and certificate are already configured in "Settings → Security". Leave **Min/Max version** = `1.2`–`1.3` and **uTLS** = `chrome` to disguise as a regular browser.
 3. Do not leave **None** mode for inbounds open to the outside — use it only for local fallback targets (`127.0.0.1`) or when TLS is provided by an external proxy.
 4. A tip from the interface: for most advanced fields the hint "*It is recommended to leave the default settings*" applies — change them only when you understand the consequences.
@@ -1883,6 +2354,19 @@ The specific credential field depends on the protocol of the inbound the client 
 - **Auth** (field `auth`) — the password for **Hysteria**. By default a UUID without dashes.
 
 Since a single client can be bound to inbounds of different protocols, a client record may simultaneously contain a UUID, a password, and an auth — each protocol uses its own field.
+
+**Example: how a client's credentials look in the `settings` of different inbounds.** The same client is identified by `id` in a VLESS inbound, by `password` in Trojan, and by `password` (a Base64 key) in Shadowsocks:
+
+```json
+// fragment of settings.clients for a VLESS inbound
+{ "id": "b831381d-6324-4d53-ad4f-8cda48b30811", "email": "user-a", "flow": "xtls-rprx-vision" }
+
+// the same client in a Trojan inbound
+{ "password": "b831381d63244d53ad4f8cda48b30811", "email": "user-a" }
+
+// the same client in a Shadowsocks inbound (method 2022-blake3-aes-256-gcm)
+{ "password": "GPyOaA3f7CO0az53eaQ8eqMfRDjmBlOh7v1u3+Z+pHk=", "email": "user-a" }
+```
 
 #### Flow
 
@@ -2101,6 +2585,23 @@ Backend behavior (`POST /panel/api/clients/groups/create`, body `{"name": "..."}
 
 Success message: **"Group "{name}" created."**
 
+**Example: create an empty group via the API.** Prepare a set of labels in advance, before populating them with clients:
+
+```bash
+curl -s 'https://panel.example.com:2053/panel/api/clients/groups/create' \
+  -H 'Content-Type: application/json' \
+  -b cookie.txt \
+  -d '{"name": "vip"}'
+```
+
+Response on success:
+
+```json
+{ "success": true, "msg": "Group \"vip\" created.", "obj": null }
+```
+
+Calling it again with the same name returns `"success": false` and the message `group already exists`.
+
 > Creating an empty group in advance is convenient when you want to prepare a set of labels and then populate them with clients via "Add clients…".
 
 ### 9.6. Renaming a group
@@ -2137,6 +2638,21 @@ Behavior (`POST /panel/api/clients/groups/bulkAdd`, body `{"emails": [...], "gro
 - The number of affected client records is returned; Xray is marked for restart.
 
 Success message: **"Added {count} client(s) to {name}."**
+
+**Example: label several clients with a group in a single request.** Clients are specified by email, and inbound bindings are not changed:
+
+```bash
+curl -s 'https://panel.example.com:2053/panel/api/clients/groups/bulkAdd' \
+  -H 'Content-Type: application/json' \
+  -b cookie.txt \
+  -d '{"emails": ["alice@example.com", "bob@example.com"], "group": "vip"}'
+```
+
+If the `vip` group does not exist yet, it is created automatically. After the request these clients get `group_name = "vip"` in their record, and in the Xray settings of each of their inbounds the client object gains a `"group": "vip"` field:
+
+```json
+{ "id": "6f1b...", "email": "alice@example.com", "group": "vip", "enable": true }
+```
 
 ### 9.8. Removing clients from a group (without deleting the clients themselves)
 
@@ -2216,6 +2732,24 @@ All group routes are mounted under `/panel/api/clients`:
 | `POST /panel/api/clients/groups/bulkAdd` | Add clients to a group (by email) | `{"emails":[...],"group"}` |
 | `POST /panel/api/clients/groups/bulkRemove` | Remove clients from a group (clear the label) | `{"emails":[...]}` |
 | `POST /panel/api/clients/bulkDel` | Full deletion of clients (used by "Delete group clients") | `{"emails":[...],"keepTraffic"}` |
+
+**Example: a typical group-lifecycle scenario via the API.**
+
+```bash
+# 1. Create the trial label
+curl -s .../panel/api/clients/groups/create   -d '{"name":"trial"}'
+
+# 2. Attach it to two clients
+curl -s .../panel/api/clients/groups/bulkAdd  -d '{"emails":["u1@example.com","u2@example.com"],"group":"trial"}'
+
+# 3. Remove one member from the group (label-only)
+curl -s .../panel/api/clients/groups/bulkRemove -d '{"emails":["u2@example.com"]}'
+
+# 4. Delete the group but keep the clients (label is just cleared)
+curl -s .../panel/api/clients/groups/delete   -d '{"name":"trial"}'
+```
+
+Step 4 removes the group record and clears `group_name` from its clients, but the clients themselves, their connections, and their traffic remain. To permanently delete the clients themselves, use `bulkDel` instead.
 
 Operations that change clients' label (`rename`, `delete`, `bulkAdd`, `bulkRemove`) mark Xray as requiring a restart and send a notification about the client change.
 
@@ -2428,6 +2962,20 @@ In the same section nearby are related settings whose values are available in th
 
 1. Create a folder for the theme on the server (anywhere), for example `/etc/3x-ui/sub_templates/my-theme/`.
 2. Put inside it an HTML file named `index.html` or `sub.html`.
+
+**Example: path to the theme.** The final layout on the server and the value of the settings field:
+
+```
+/etc/3x-ui/sub_templates/my-theme/
+└── index.html        (or sub.html — it takes priority)
+```
+
+```
+Settings → Subscription → "Subscription theme directory":
+/etc/3x-ui/sub_templates/my-theme/
+```
+
+The path must be **absolute** (start with `/`). If the folder contains neither `index.html` nor `sub.html`, the panel serves the built-in page.
 3. In the panel, open **Settings → Subscription** and enter the **absolute** path to this folder in the "Subscription theme directory" field.
 4. Save the settings.
 
@@ -2480,6 +3028,19 @@ A minimal example of a template body that uses some of the variables:
 <h1>{{ .subTitle }}</h1>
 <p>Used: {{ .used }} of {{ .total }} (remaining {{ .remained }})</p>
 {{ range .links }}<div>{{ . }}</div>{{ end }}
+
+**Example: expiry date from `expire`.** The `{{ .expire }}` field is Unix time in **seconds**, so for JavaScript you multiply it by 1000; a value of `0` means "no expiry":
+
+```html
+<script>
+  var exp = {{ .expire }};
+  document.write(exp === 0
+    ? 'No expiry'
+    : 'Until ' + new Date(exp * 1000).toLocaleDateString());
+</script>
+```
+
+Note: `{{ .lastOnline }}` is already in **milliseconds** — do not multiply it by 1000.
 ```
 
 ---
@@ -2559,6 +3120,21 @@ Hint: *"Connection-level policies for level-0 users. Leave the field empty to us
 | `connIdle` | **Idle timeout** (seconds) | *"Closes the connection after it has been idle for the specified number of seconds. Lowering the value frees memory and file descriptors faster on loaded servers (Xray default: 300)."* | empty → Xray default **300** |
 | `bufferSize` | **Buffer size** (KB) | *"The size of the internal per-connection buffer in KB. Set 0 to minimize memory usage on servers with little RAM (Xray's default value depends on the platform)."* Placeholder: **"auto"**. | empty → platform-dependent; `0` — minimize |
 
+**Example (`policy.levels.0`).** The fields in this group are written to the level-0 policy. On a loaded server with little RAM you can free resources faster like this:
+
+```json
+"policy": {
+  "levels": {
+    "0": {
+      "connIdle": 120,
+      "bufferSize": 0
+    }
+  }
+}
+```
+
+Here a connection is closed after just 120 s of idle time (instead of the default 300), and `bufferSize: 0` minimizes buffer memory usage. A field left empty in the form simply won't appear in the JSON — and Xray will apply its own default.
+
 ### 11.3. Routing rules (routing)
 
 The `routing.rules` list. **Order is critical** (*"The priority of each rule matters!"*): rules are evaluated top to bottom, and the first match wins. Hint: *"Drag to reorder"*. Order-control buttons: **First**, **Last**, **Move up**, **Move down**.
@@ -2592,6 +3168,19 @@ In the standard `config.json`, the `routing` section contains three rules (in th
 3. `protocol: ["bittorrent"] → outboundTag: "blocked"` — blocks BitTorrent.
 
 > The `api → api` rule is always automatically moved to position 0 on save (see [11.10](#1110-saving-restart-and-automatic-transformations)), so that the statistics request is not "swallowed" by a higher-priority catch-all rule.
+
+**Rule example.** Send all traffic to Russian sites and private networks directly (bypassing the proxy), and route the rest to a balancer. Order matters: the "send directly" rule must sit above the catch-all. In `routing.rules`:
+
+```json
+{
+  "type": "field",
+  "domain": ["geosite:category-ru", "domain:example.ru"],
+  "ip": ["geoip:ru", "geoip:private"],
+  "outboundTag": "direct"
+}
+```
+
+For the IP rules (`geoip:ru`) to fire for domain requests too, the top-level routing usually needs `routing.domainStrategy: "IPIfNonMatch"` (see [11.2](#112-general-settings-general)).
 
 #### Preconfigured routing groups (Basic connections)
 
@@ -2637,6 +3226,29 @@ The protocols supported by the form:
 - **`trojan`**, **`shadowsocks`** — `settings.servers[]`.
 - **`wireguard`** — `settings.peers[]` with `endpoint`, plus keys (see [11.7](#117-wireguard--warp--nordvpn)).
 - **`hysteria`** — `settings.address`/`settings.port` (UDP transport).
+
+**Example: a chain through an upstream SOCKS.** The `upstream` outbound dials an external SOCKS5 proxy, and `chained` sends its traffic through it (`dialerProxy`), forming a chain. In `outbounds`:
+
+```json
+[
+  {
+    "tag": "upstream",
+    "protocol": "socks",
+    "settings": {
+      "servers": [{ "address": "203.0.113.10", "port": 1080 }]
+    }
+  },
+  {
+    "tag": "chained",
+    "protocol": "freedom",
+    "streamSettings": {
+      "sockopt": { "dialerProxy": "upstream" }
+    }
+  }
+]
+```
+
+Now a routing rule with `outboundTag: "chained"` will egress to the internet through `upstream`.
 
 #### Mux fields (multiplexing)
 
@@ -2799,6 +3411,25 @@ The `dns` section. Enabling: **Enable DNS** (hint: *"Enable the built-in DNS ser
 | `enableParallelQuery` | **Enable parallel queries** | — | *"Enable parallel DNS requests to multiple servers for faster resolution"*. |
 | `useSystemHosts` | **Use system Hosts** | `dns.useSystemHosts` | *"Use the hosts file from the installed system"*. |
 
+**Example `dns` block.** Requests for Google domains are resolved via Cloudflare's DoH server, everything else via `1.1.1.1`; for Google requests only non-private IPs are expected. At the top level of the config:
+
+```json
+"dns": {
+  "tag": "dns-inbound",
+  "queryStrategy": "UseIPv4",
+  "servers": [
+    {
+      "address": "https://cloudflare-dns.com/dns-query",
+      "domains": ["geosite:google"],
+      "expectIPs": ["geoip:!private"]
+    },
+    "1.1.1.1"
+  ]
+}
+```
+
+The bare server string (`"1.1.1.1"`) with no fields is the default server for all other domains. The `dns-inbound` tag can then be used as an `inboundTag` in routing rules to send the DNS requests themselves through a specific outbound.
+
 #### Stale-entry cache
 
 | Field | Label | Description |
@@ -2840,6 +3471,22 @@ The `fakedns` section. Buttons: **Add Fake DNS**, **Edit Fake DNS**.
 | `poolSize` | **Pool size** | How many addresses to keep in the ring pool. |
 
 Fake DNS is used together with sniffing on the inbound: the core issues a fake IP to the client, remembers the domain↔IP mapping, and restores the domain during routing. For Fake DNS to work, a DNS server with the address `fakedns` must be added to the DNS server list.
+
+**Example: Fake DNS + DNS server pairing.** First define the fake-address pool, then add a `fakedns` DNS server so that domain requests get an IP from that pool:
+
+```json
+"fakedns": [
+  { "ipPool": "198.18.0.0/15", "poolSize": 65535 }
+],
+"dns": {
+  "servers": [
+    { "address": "fakedns", "domains": ["geosite:geolocation-!cn"] },
+    "1.1.1.1"
+  ]
+}
+```
+
+Additionally, the inbound must have sniffing enabled with `destOverride: ["fakedns"]`, otherwise the core has no way to recover the real domain.
 
 ### 11.8. WireGuard / WARP / NordVPN
 
@@ -3143,6 +3790,18 @@ When **Pin certificate** is selected, the following appear:
 - **SHA-256 of the pinned certificate** — an input field. It accepts a fingerprint in **base64** (the `pinnedPeerCertSha256` format from Xray) or in **hex** with or without colons (the `openssl -fingerprint` style). Hint: "The node's certificate SHA-256 in base64 or hex. Click 'Fetch' to read it from the node now". Placeholder: "SHA-256 in base64 or hex". When `pin` is selected, an empty or invalid fingerprint causes a validation error on save.
 - The **Fetch** button — connects to the node over HTTPS without verifying the certificate and reads the SHA-256 of the current leaf certificate (endpoint `POST /certFingerprint`), filling it into the field. On success — "The node's current certificate has been fetched"; on failure — "Failed to fetch the certificate". Available only for https nodes.
 
+**Example: the same fingerprint in two formats.** The field accepts either form — both denote one certificate:
+
+```
+# base64 (the pinnedPeerCertSha256 format from Xray)
+6O7TNg3l2k0pq8R1sT2uV3wX4yZ5a6B7c8D9e0F1g2=
+
+# hex with colons (openssl x509 -fingerprint -sha256 style)
+E8:E2:D3:60:DE:5D:9A:4D:29:AB:CF:11:B2:7C:34:...
+```
+
+If the fingerprint is not yet known, click **Fetch** — the master reads it from the node over HTTPS and fills the field in for you.
+
 ### 12.4. What is shown for each node
 
 The table columns and the fields on the node card (the observed state, populated on every heartbeat poll):
@@ -3178,7 +3837,34 @@ On an unsuccessful poll, the error text is saved and shown in clear wording, whi
 
 - **Test connection** (`POST /test`) — in the node form, tests connectivity using the entered (not-yet-saved) parameters with a 6 s timeout. Result: "Connection is OK ({ms} ms)" or "Failed to connect". Handy for debugging the address/port/token/TLS before saving.
 - **Probe now** (the "Probe now" button, `POST /probe/:id`) — an unscheduled poll of an already saved node; it immediately updates the status and metrics (CPU/memory/uptime/latency/versions) and records a heartbeat. On failure — "Probe failed".
+
+**Example: test and probe a node through the master's API.** "Test connection" tries the not-yet-saved parameters from the form:
+
+```
+POST /panel/api/nodes/test
+Content-Type: application/json
+
+{ "scheme": "https", "address": "de-frankfurt-1.example.com", "port": 2053,
+  "basePath": "/", "apiToken": "eyJhbGci...", "tlsMode": "verify" }
+```
+
+An unscheduled poll of an already saved node with id 7:
+
+```
+POST /panel/api/nodes/probe/7
+```
 - **Update panel** (`POST /updatePanel` with the body `{ids:[…]}`) — triggers the node's built-in self-updater: the node downloads the latest 3X-UI release and restarts on it. The **Update selected ({count})** button does this for several checked nodes at once. An indicator is shown next to a node: **Update available** or **Up to date**, based on comparing the node's panel version against the latest.
+
+**Example: update several nodes in one request.** The body carries the ids of the checked nodes; only enabled, `online` nodes are updated, the rest come back as skipped.
+
+```
+POST /panel/api/nodes/updatePanel
+Content-Type: application/json
+
+{ "ids": [3, 7, 12] }
+```
+
+A response like "Update started on 2 nodes, 1 failed": node 12, for instance, may have been offline and was therefore skipped.
   - Confirmation: "Update {count} nodes to the latest version? Each selected node will download the latest release and restart. Only enabled, online nodes are updated".
   - **Only enabled nodes with status `online` are updated.** A disabled node is marked in the results as "node is disabled", an offline one as "node is offline". Result: "Update started on {ok} nodes, {failed} failed". If no eligible node is selected — "Select at least one enabled, online node".
 - **Set Cert from Panel** (an auxiliary action, `GET /webCert/:id`) — when creating an inbound on the node, it lets you fill in the paths to the node's **own** web-TLS certificate (rather than the central panel's), so that the files actually exist on the node. Requires the node to be enabled and reachable.
@@ -3187,6 +3873,14 @@ On an unsuccessful poll, the error text is saved and shown in clear wording, whi
 ### 12.6. Metric history
 
 The history button/chart calls `GET /history/:id/:metric/:bucket`. The available metrics are **`cpu`** and **`mem`** — they accumulate on every successful heartbeat. The aggregation interval size (`bucket`, in seconds) is restricted to an allowlist:
+
+**Example: a history request.** The CPU-load chart for node 7 aggregated over 60-second intervals (up to 60 points are returned):
+
+```
+GET /panel/api/nodes/history/7/cpu/60
+```
+
+For memory and "real-time" mode (2 s) use `…/7/mem/60` and `…/7/cpu/2` respectively. Values outside the allowlist are rejected ("invalid metric" / "invalid bucket").
 
 | Bucket (s) | Purpose |
 |---|---|
@@ -3202,6 +3896,15 @@ Up to 60 points are returned. An invalid metric or bucket is rejected ("invalid 
 ### 12.7. How inbounds and clients are synchronized
 
 An inbound "belongs" to a node through the `node_id` field (the node is selected in the inbound editor):
+
+**Example: the token in the node form.** The token is taken on the child panel (Settings → API Token) and pasted into the master's **API Token** field. On every poll the master sends it in the header:
+
+```
+GET https://panel.example.com:2053/panel/api/server/status
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.abc123...
+```
+
+If the child panel has a **base path** (web base path) set, e.g. `/secret/`, the master prepends it before `panel/api/server/status` → `https://panel.example.com:2053/secret/panel/api/server/status`.
 
 1. **Configuration deployment (reconcile).** On any change to an inbound/client bound to a node, the node is marked "dirty". For each enabled node **with status `online`** that has pending changes, a background job deploys the node's inbounds (by `node_id`) to the node and then clears the dirty flag. A node that is disabled, offline, or "dirty" is considered "pending" — its deployment is deferred until connectivity is restored.
 2. **Traffic collection.** The same job requests a traffic snapshot from the node and merges it into the local statistics. Based on the merged traffic, a check for limit/term exhaustion is performed and clients are disabled if necessary; the node's "depleted" counter reflects exactly this. If the node is unreachable, its online clients are cleared.
@@ -3324,6 +4027,17 @@ The language of the panel web interface. The available languages are: `en-US` (E
   
   With the default value `-ieo`, the separator is `-`, and the order of the parts is: inbound → email → extra (for example, `MyInbound-user@mail-extra`). Empty parts are skipped. The "Sample Remark" field in the interface shows a preview of the generated name. Including the email in the name additionally depends on the "Include Email in Name" parameter in the subscription settings (subscription section).
 
+**Example: how the `remarkModel` value shapes the configuration name.** Suppose the inbound is named `VLESS-Reality`, the client email is `alex@vpn`, and the extra label is `RU`. Then:
+
+| Field value | Resulting name (remark) |
+| --- | --- |
+| `-ieo` (default) | `VLESS-Reality-alex@vpn-RU` |
+| `_ie` | `VLESS-Reality_alex@vpn` |
+| `-ei` | `alex@vpn-VLESS-Reality` |
+| ` o` (space separator, label only) | `RU` |
+
+The first character of the string is always the separator; the remaining letters define which parts go into the name and in what order.
+
 ### 13.3. Panel access: IP, port, path, domain, certificate
 
 This group defines the panel's network entry point. **All changes here are applied only after the panel is restarted.**
@@ -3369,12 +4083,47 @@ If **at least one** of the certificate/key paths is specified, the panel attempt
 - The literal hint: "Routes the panel's own outbound requests (geo updates, Xray/panel version checks, Telegram) through this proxy to bypass server-side filtering of GitHub/Telegram. Accepts socks5:// or http(s)://, e.g. a local Xray SOCKS inbound. Leave empty for a direct connection."
 - An invalid proxy does not cause a save error — the panel simply uses a direct connection and writes a warning to the log.
 
+**Field value example.** If a local Xray SOCKS inbound is already running on the server on port `10808`, route the panel's own requests through it:
+
+```
+socks5://127.0.0.1:10808
+```
+
+For an external HTTP proxy with authorization:
+
+```
+http://user:pass@proxy.example.com:8080
+```
+
+After saving and restarting, the panel will fetch geo-database updates, check versions, and reach Telegram through the specified proxy.
+
 #### Trusted proxy CIDRs (*Trusted proxy CIDRs*)
 
 - **Key:** `trustedProxyCIDRs`
 - **Default value:** `127.0.0.1/32,::1/128` (localhost only).
 - **Format:** a comma-separated list of IP addresses or CIDR subnets (for example `10.0.0.0/8, 192.168.1.5`). Each element is validated as an IP or CIDR — an invalid value is rejected when saving.
 - **Purpose:** lists the sources that are allowed to set the `X-Forwarded-Host`, `X-Forwarded-Proto` headers and the client's real IP header. The literal hint: "Comma-separated IPs/CIDRs allowed to set forwarded host, proto, and client IP headers." It needs to be configured if the panel runs behind a reverse proxy (nginx, Caddy, etc.), so that client IPs and the scheme are determined correctly.
+
+**Example: the panel behind a reverse proxy.** If nginx runs on the same host and proxies requests to the panel, trust only localhost (the default value):
+
+```
+127.0.0.1/32,::1/128
+```
+
+If the proxy sits on a separate server in the internal `10.0.0.0/8` network, add its subnet, otherwise the panel will ignore the headers it forwards and will see the proxy's IP instead of the real client:
+
+```
+127.0.0.1/32,::1/128,10.0.0.0/8
+```
+
+A matching nginx block that forwards the real IP and the scheme:
+
+```nginx
+proxy_set_header X-Real-IP        $remote_addr;
+proxy_set_header X-Forwarded-For  $proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-Proto $scheme;
+proxy_set_header X-Forwarded-Host $host;
+```
 
 ### 13.5. Telegram bot ("Telegram Bot" tab / *Telegram Bot*)
 
@@ -3409,6 +4158,18 @@ If **at least one** of the certificate/key paths is specified, the panel attempt
 - **Key:** `tgRunTime`
 - **Default:** `@daily` (once per day).
 - **Format:** a string in **Crontab** format (both standard cron expressions and abbreviations of the form `@daily`, `@hourly`, `@every 1h` are supported). Hint: "The Telegram bot notification time set for periodic reports. (use the crontab time format)". Controls the bot's periodic reports.
+
+**Field value examples.**
+
+| Value | When the bot sends a report |
+| --- | --- |
+| `@daily` | once a day at midnight (default) |
+| `@hourly` | every hour |
+| `@every 6h` | every 6 hours |
+| `0 9 * * *` | daily at 09:00 |
+| `30 8 * * 1` | every Monday at 08:30 |
+
+The time is interpreted in the zone from the "Time Zone" setting (section 13.6).
 
 #### SOCKS proxy (*SOCKS Proxy*)
 
@@ -3522,6 +4283,22 @@ The sub-path names themselves, the request bodies, and the response formats did 
 3. The request bodies, parameters, and response format do not need to be edited — only the URL changes.
 4. Since settings and the Xray configuration are now under `/panel/api`, they can (and should) be accessed with the same API token `Authorization: Bearer <token>` as `/panel/api/inbounds/*` and the other endpoints. Don't forget the CSRF middleware, which is enabled for the entire `/panel/api` group.
 
+**Example: reading all settings via the API.** Before (≤ 3.2.x):
+
+```bash
+curl -sk -X POST "https://panel.example.com:2053/MyPath/panel/setting/all" \
+  -H "Authorization: Bearer <token>"
+```
+
+Now (3.3.0) — `api/` is added after `/panel/`:
+
+```bash
+curl -sk -X POST "https://panel.example.com:2053/MyPath/panel/api/setting/all" \
+  -H "Authorization: Bearer <token>"
+```
+
+Likewise restarting the panel: `POST /panel/api/setting/restartPanel`. The old path `/panel/setting/restartPanel` now returns 404.
+
 #### Typed API: schemas and documentation (Swagger / OpenAPI)
 
 In 3.3.0, the OpenAPI specification became fully typed. Previously, typed responses were described by an empty object `{}`; now the components and schemas (`components.schemas`) are generated directly from the data models. Thanks to this:
@@ -3545,6 +4322,22 @@ The bot distinguishes between two types of interlocutors:
 
 - **Administrator** — a user whose Telegram User ID is specified in the bot settings (the "Bot Admin User ID" field). Has access to all features: server statistics, backup, client management, and restarting Xray.
 - **Client** — any other user whose Telegram User ID is linked to a specific inbound client (the client's `tgId` field). Sees only information about their own subscriptions.
+
+**Example: linking a client to Telegram.** For a user to receive statistics about their own subscription, their numeric Telegram User ID is written into the client's `tgId` field. In the client's JSON settings this looks like:
+
+```json
+{
+  "email": "ivan",
+  "id": "6f1e6b1a-0c3d-4f2a-9b7e-1a2b3c4d5e6f",
+  "tgId": "123456789",
+  "enable": true,
+  "limitIp": 2,
+  "totalGB": 53687091200,
+  "expiryTime": 0
+}
+```
+
+After that, the user with User ID `123456789` can ask the bot `/usage ivan` and see their statistics. The administrator can set the same ID via the "👤 Set Telegram User" button on the client card — there is no need to edit the JSON by hand.
 
 ### 14.1. Enabling and configuring the bot
 
@@ -3577,6 +4370,20 @@ The User ID is the numeric identifier of the account (not the username). You can
 - Start an already configured bot and send it the **`/id`** command — it will return your ID.
 
 Enter the obtained number into the **Bot Admin User ID** field. To assign several administrators, list their IDs separated by commas (for example, `11111111,22222222`). Each ID is validated as an integer; an invalid value will cause the bot to fail to start.
+
+**Example: value of the "Bot Admin User ID" field.** A single administrator is just a number:
+
+```
+123456789
+```
+
+Two administrators separated by a comma (spaces are optional):
+
+```
+123456789,987654321
+```
+
+Each value must be an integer. An entry like `@username` or `123 456` (with a space inside the number) will not work — the bot will fail to start.
 
 #### Proxy
 
@@ -3696,6 +4503,19 @@ If the **`tgCpu`** threshold > 0, a check of the average CPU load over a minute 
 
 Scheduled by the cron expression from the **Notification frequency** field (`tgRunTime`, `@daily` by default). If the value is empty or invalid, `@daily` is used. The report includes:
 
+**Example: values of the "Notification frequency" field (`tgRunTime`).** Both shorthand aliases and the full crontab format are supported:
+
+| Value | When it fires |
+|---|---|
+| `@daily` | once a day at midnight (the default) |
+| `@hourly` | every hour |
+| `@every 6h` | every 6 hours |
+| `0 9 * * *` | every day at 09:00 |
+| `0 9 * * 1` | every Monday at 09:00 |
+| `0 */12 * * *` | every 12 hours (at 00:00 and 12:00) |
+
+The crontab field order is: minute, hour, day of month, month, day of week.
+
 1. The line "🕰 Scheduled Reports: <schedule>" and the current date/time.
 2. The **server status** (see below).
 3. The "Deplete Soon" block for inbounds and clients.
@@ -3737,9 +4557,40 @@ Geo databases are binary `.dat` files that Xray-core uses to route and filter tr
 
 These files are needed to build rules such as "all traffic to Russian IPs/domains goes directly, everything else goes through an outbound" and similar. The rules themselves are defined in the Xray routing section; the geo databases merely supply the data for them. Without up-to-date geo files, rules that reference `geoip:`/`geosite:` will not work or will rely on outdated lists.
 
+**Example: a "Russian domains and IPs go directly" rule.** Such a rule in the routing section sends all traffic to Russian resources to the outbound tagged `direct`:
+
+```json
+{
+  "type": "field",
+  "domain": ["geosite:category-ru"],
+  "ip": ["geoip:ru"],
+  "outboundTag": "direct"
+}
+```
+
 ### 15.2. Standard geo files and their update
 
 The panel contains a fixed allowlist of six standard files with hard-coded download sources. The update is performed via `POST /panel/api/server/updateGeofile/:fileName` (or without a file name — to update all of them at once).
+
+**Example: updating a single file and all of them via the API.** Update only `geoip_RU.dat`:
+
+```bash
+curl -X POST 'https://panel.example.com:2053/panel/api/server/updateGeofile/geoip_RU.dat' \
+  -H 'Cookie: 3x-ui=<session-cookie>'
+```
+
+Update all six standard files in a single request (no file name):
+
+```bash
+curl -X POST 'https://panel.example.com:2053/panel/api/server/updateGeofile' \
+  -H 'Cookie: 3x-ui=<session-cookie>'
+```
+
+A successful response:
+
+```json
+{ "success": true, "msg": "Geofile updated successfully", "obj": null }
+```
 
 | File name | Source (releases repository) |
 |---|---|
@@ -3786,6 +4637,21 @@ The name of the resulting file is generated automatically from the type and the 
 - type `geosite` → `geosite_<alias>.dat`.
 
 For example, a source with type `geosite` and alias `myads` will create the file `geosite_myads.dat`.
+
+**Example: adding a source via the API.** Add your own list of advertising domains as a `geosite` resource with the alias `myads`:
+
+```bash
+curl -X POST 'https://panel.example.com:2053/panel/api/server/customGeo/add' \
+  -H 'Cookie: 3x-ui=<session-cookie>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "type": "geosite",
+    "alias": "myads",
+    "url": "https://example.com/lists/myads.dat"
+  }'
+```
+
+The panel downloads the file into the `bin` directory as `geosite_myads.dat`, saves the record, and restarts Xray.
 
 #### Buttons and actions
 
@@ -3844,6 +4710,16 @@ In Xray routing rules geo databases are used in fields such as `domain`/`ip` via
 - **geoip:** for IP databases — `geoip:<code>`. Examples: `geoip:ru`, `geoip:cn`, `geoip:private`. Taken from `geoip.dat` (or `geoip_RU.dat`, etc., if the rule points to a specific file).
 - **geosite:** for domain databases — `geosite:<category>`. Examples: `geosite:category-ads-all`, `geosite:google`, `geosite:ru`. Taken from `geosite.dat`.
 
+**Example: blocking ads via geosite.** A rule that sends all advertising domains into a black hole (assuming an outbound tagged `blocked` with the `blackhole` protocol):
+
+```json
+{
+  "type": "field",
+  "domain": ["geosite:category-ads-all"],
+  "outboundTag": "blocked"
+}
+```
+
 For **custom** files the external-file syntax `ext:` is used. The hint in the UI: *In routing rules use the value column as ext:file.dat:tag (replace tag).* Format:
 
 ```
@@ -3851,6 +4727,18 @@ ext:<file_name.dat>:<tag>
 ```
 
 where `<file_name.dat>` is `geoip_<alias>.dat` or `geosite_<alias>.dat`, and `<tag>` is a specific list/category inside the file. In the "Routing (ext:…)" column the panel suggests a ready-made template like `ext:geosite_myads.dat:tag` — you just need to replace `tag` with the desired tag. The same set of aliases and examples is available via `GET /aliases` (used by the routing editor UI to suggest custom sources alongside the standard `geoip:`/`geosite:`; custom ones are marked with the suffix " (custom)").
+
+**Example: a rule based on a custom file.** If a source of type `geosite` with the alias `myads` has been added, and inside the `.dat` file the list is labeled with the tag `ads`, the routing rule looks like this:
+
+```json
+{
+  "type": "field",
+  "domain": ["ext:geosite_myads.dat:ads"],
+  "outboundTag": "blocked"
+}
+```
+
+For an IP source (type `geoip`, alias `mycorp`, tag `office`) the field would be `"ip": ["ext:geoip_mycorp.dat:office"]`.
 
 ---
 
@@ -3882,6 +4770,21 @@ Hints in the interface:
 - PostgreSQL: "Click to download a PostgreSQL dump (.dump) of the current database to your device."
 
 Technically, the export is a `GET /panel/api/server/getDb` request. The attachment name is set by the server (`Content-Disposition`) depending on the engine.
+
+**Example: downloading a backup via the API.** The same export can be fetched from the console — for instance, for an automatic backup script. An authenticated session (login cookie) is required:
+
+```bash
+# 1) Log in and save the session cookie
+curl -s -c cookies.txt \
+     -d 'username=admin&password=admin' \
+     https://panel.example.com:2053/panel/login
+
+# 2) Download the database file (the name is set by the server: x-ui.db or x-ui.dump)
+curl -s -b cookies.txt -OJ \
+     https://panel.example.com:2053/panel/api/server/getDb
+```
+
+If the panel is served under a base path (Web Base Path), add it to the URL: `…:2053/<base_path>/panel/api/server/getDb`.
 
 #### Import (restore)
 
@@ -3955,6 +4858,16 @@ The behavior depends on the **SysLog** checkbox:
 - **Off (default):** logs are taken from the panel's internal ring buffer, filtered by the selected level. Records are displayed with a level (DEBUG / INFO / NOTICE / WARNING / ERROR) and a source: `X-UI:` — messages from the panel itself, `XRAY:` — forwarded Xray messages.
 - **On:** the panel runs `journalctl -u x-ui --no-pager -n <count> -p <level>` on the server, i.e., it shows the system journal of the `x-ui` service. The allowed number of lines is from 1 to 10000; the level accepts syslog values (`emerg/0`, `alert/1`, `crit/2`, `err/3`, `warning/4`, `notice/5`, `info/6`, `debug/7`). On Windows the SysLog mode is not supported — a warning will be shown that you need to clear the checkbox and use the application logs. If `systemd`/the service is unavailable, an error message about failing to run `journalctl` appears.
 
+**Example: the same journal from the server console.** When the panel is unreachable (e.g., it fails to start), the system journal can be read directly — this is exactly the command the panel runs in SysLog mode:
+
+```bash
+# last 100 lines at the warning level and above
+journalctl -u x-ui --no-pager -n 100 -p warning
+
+# follow the journal in real time
+journalctl -u x-ui -f
+```
+
 > The level in this window filters the **output**. The minimum level that is written to the console/syslog at all is determined by the panel's logging level (an environment variable, `Info` by default; the panel always writes to the file at the `DEBUG` level).
 
 #### Xray logs (access log)
@@ -3987,6 +4900,22 @@ The logging parameters of Xray itself are set on the **"Xray Configurations"** p
 | **Mask Address** (`maskAddress`) | Mask Address | empty (off) | When enabled, the real IP address is automatically replaced with a masking address in the logs. Hint: "When enabled, the real IP address is replaced with a masking address in the logs." |
 
 > Since by default **"Access Log" = `none`**, the "Xray logs" window (section 16.2) is initially empty. To make it work, set an access log path here and restart Xray.
+
+**Example: a `log` block that makes the "Xray logs" window show records.** In the Xray JSON configuration it looks like this:
+
+```json
+{
+  "log": {
+    "loglevel": "warning",
+    "access": "./access.log",
+    "error": "",
+    "dnsLog": false,
+    "maskAddress": ""
+  }
+}
+```
+
+The key change is replacing `"access": "none"` with a file path (e.g., `"./access.log"`). After saving, restart Xray, and the table in the "Xray logs" window will fill with rows.
 
 ### 16.4. Managing Xray: Stopping and Restarting
 
@@ -4041,6 +4970,15 @@ Here on the Dashboard you can also manage the Xray-core version separately from 
 
 - **Xray Updates** (`Xray Updates`) / **Version** (`Version`) — a drop-down list of available versions. Hints: "Select the desired version" and the warning "Important: older versions may not support the current settings".
 - Installing/changing the version — `POST /panel/api/server/installXray/{version}`. Dialog: "Switch the Xray version" / "Are you sure you want to change the Xray version?". On success — "Xray updated successfully".
+
+**Example: switching the Xray-core version via an API request.** The version is given as the release tag from XTLS/Xray-core (with a `v` prefix). For instance, to switch to `v1.8.24`:
+
+```bash
+curl -s -b cookies.txt -X POST \
+     https://panel.example.com:2053/panel/api/server/installXray/v1.8.24
+```
+
+(`cookies.txt` is the cookie file from the example in section 16.1.) After installation, Xray restarts automatically on the selected version.
 
 On the server, when the version is changed, Xray is first stopped, the archive of the desired version is downloaded from GitHub (XTLS/Xray-core), the binary is extracted and replaced, after which Xray is restarted with a check of the control sizes of the archive/binary.
 
