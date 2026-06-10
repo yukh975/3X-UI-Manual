@@ -2701,7 +2701,51 @@ The strategy (`strategy.type`) determines how the balancer chooses an outbound f
 | `baselines` | **Baselines** | Latency threshold values for grouping nodes. |
 | `costs` | **Costs** | Weight coefficients (cost) for individual tags. |
 
-> For `leastPing`/`leastLoad` to work, an `observatory`/`burstObservatory` section is required in the configuration, which measures the latency to each outbound. The balancer is wired into a routing rule via `balancerTag` (see [11.3](#113-routing-rules-routing)).
+#### Observatory: `observatory` and `burstObservatory` (measurements for `leastPing` / `leastLoad`)
+
+The `leastPing` and `leastLoad` strategies don't measure anything themselves — they need latency and availability data for each outbound. This is collected by an **observatory**: it periodically "pings" each watched outbound and records its response time and availability. The same data is shown on the **Observatory** tab (statuses **Alive / Down**, **Last seen**, **Last try**).
+
+There is no dedicated form for the observatory in the panel — you add the block **by hand** in the Xray configuration editor, at the top level of the config (next to `routing` and `outbounds`), and then **restart Xray**.
+
+Two variants are available:
+
+- **`observatory`** — simple: `subjectSelector` + `probeURL` + `probeInterval`.
+- **`burstObservatory`** — extended, with fine-grained ping control via `pingConfig`; convenient for several egresses.
+
+Example `burstObservatory` block:
+
+```json
+{
+  "subjectSelector": ["WS-SE", "WS-FR", "WS-PL"],
+  "pingConfig": {
+    "destination": "https://www.google.com/generate_204",
+    "interval": "1m",
+    "connectivity": "http://connectivitycheck.platform.hicloud.com/generate_204",
+    "timeout": "5s",
+    "sampling": 2
+  }
+}
+```
+
+Field meanings:
+
+| Field | What it sets |
+|---|---|
+| `subjectSelector` | A list of outbound tag **prefixes** to watch. Xray takes every outbound whose tag starts with one of these strings. In the example it watches the `WS-SE…`, `WS-FR…`, `WS-PL…` egresses. These tags must match what is chosen in the balancer's **Selectors**. |
+| `pingConfig.destination` | The URL requested **through each outbound** to measure latency. Use a lightweight page that replies `204` with no body — e.g. `https://www.google.com/generate_204`. The time until the reply is the measured latency. |
+| `pingConfig.interval` | How often to ping each outbound. A duration string: `"1m"` — once a minute, also `"30s"`, `"5m"`, etc. More often = fresher data but more background traffic. |
+| `pingConfig.connectivity` | (optional) A URL to check the server's **own baseline connectivity**. If it is unreachable, the problem is the server's network, and the observatory does **not** mark outbounds as down (protection against false positives during a local outage). Usually also a `204` endpoint. |
+| `pingConfig.timeout` | How long to wait for a single ping before treating the attempt as failed (e.g. `"5s"`). |
+| `pingConfig.sampling` | How many recent measurements to keep and average per outbound. `2` — use the last two pings (smooths out random spikes). |
+
+How to wire it together:
+
+1. In the Xray editor, add a `burstObservatory` block with the desired `subjectSelector`.
+2. Create a balancer: **Strategy** = `leastPing`, and in **Selectors** list the same outbound tags (`WS-SE`, `WS-FR`, `WS-PL`).
+3. Route traffic to it with a routing rule (the **Balancer tag** field, see [11.3](#113-routing-rules-routing)).
+4. Restart Xray. The **Observatory** tab will show the egress statuses, and the balancer will start picking the fastest live one.
+
+> In a single rule you cannot set both `balancerTag` and `outboundTag` — only `outboundTag` will take effect.
 
 ### 11.6. DNS
 
