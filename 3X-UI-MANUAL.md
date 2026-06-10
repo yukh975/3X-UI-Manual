@@ -2701,6 +2701,41 @@ The strategy (`strategy.type`) determines how the balancer chooses an outbound f
 | `baselines` | **Baselines** | Latency threshold values for grouping nodes. |
 | `costs` | **Costs** | Weight coefficients (cost) for individual tags. |
 
+**Strategy examples.** The `strategy` block lives inside a balancer (in JSON, next to `tag` and `selector`):
+
+```json
+"strategy": { "type": "random" }      // random choice among the selectors
+"strategy": { "type": "roundRobin" }  // round-robin, one after another
+"strategy": { "type": "leastPing" }   // lowest latency (needs an observatory)
+```
+
+For `leastLoad`, the parameters go into `settings`:
+
+```json
+"strategy": {
+  "type": "leastLoad",
+  "settings": {
+    "expected": 2,
+    "maxRTT": "1s",
+    "tolerance": 0.05,
+    "baselines": ["500ms", "1s", "2s"],
+    "costs": [
+      { "regexp": false, "match": "proxy-premium",   "value": 0.1 },
+      { "regexp": true,  "match": "^proxy-cheap-.+$", "value": 5 }
+    ]
+  }
+}
+```
+
+**How it plays out (worked example).** Suppose the observatory measured these latencies per egress: `A = 250 ms`, `B = 280 ms`, `C = 700 ms`, `D = 1500 ms`. With the settings above, selection goes as follows:
+
+1. **`maxRTT: "1s"`** — egresses slower than 1 s are dropped: `D` (1500 ms) is out. `A`, `B`, `C` remain.
+2. **`baselines` + `expected`** — egresses are grouped by latency thresholds, and the **smallest** threshold that contains at least `expected` egresses is chosen. The `500ms` threshold already contains `A` and `B` — that's 2 (= `expected`), so the group {`A`, `B`} is selected. `C` (700 ms) doesn't make the cut while there are enough fast ones (it's a "hot standby").
+3. **`tolerance: 0.05`** — within the selected group, egresses whose latencies differ by no more than 5% are treated as equal and the load is split evenly between them. `A` (250) and `B` (280) differ by ~12% (> 5%), so all else being equal the faster `A` is preferred; if the difference were within 5%, traffic would go through both `A` and `B`.
+4. **`costs`** — adjust the "cost" of individual egresses before comparison: a smaller `value` makes an egress more attractive, a larger one less so. In the example `proxy-premium` gets `0.1` (becomes "cheaper" and is chosen more eagerly), while all `proxy-cheap-*` (by regular expression, `regexp: true`) get `5` (become "more expensive" and are used last). This lets you softly prioritize egresses without excluding them outright.
+
+Result: traffic goes mostly through `A` (split evenly with `B` when their latencies are close), `C` stays as a standby, and `D` is excluded until its RTT drops below `maxRTT`.
+
 #### Observatory: `observatory` and `burstObservatory` (measurements for `leastPing` / `leastLoad`)
 
 The `leastPing` and `leastLoad` strategies don't measure anything themselves — they need latency and availability data for each outbound. This is collected by an **observatory**: it periodically "pings" each watched outbound and records its response time and availability. The same data is shown on the **Observatory** tab (statuses **Alive / Down**, **Last seen**, **Last try**).
