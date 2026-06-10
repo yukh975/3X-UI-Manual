@@ -347,6 +347,16 @@ After installation, the `x-ui` command is used to open the management menu (see 
 
 The database directory can be overridden with the `XUI_DB_FOLDER` environment variable (default `/etc/x-ui`), and the Xray binaries directory with the `XUI_BIN_FOLDER` variable (default `bin` relative to the panel directory). The database file name is `x-ui.db`.
 
+**Example: moving the database to a separate disk.** To store `x-ui.db` outside `/etc/x-ui` — for example, on a mounted disk at `/data` — set the variable in the service environment file and restart the panel:
+
+```bash
+echo 'XUI_DB_FOLDER=/data/x-ui' >> /etc/default/x-ui
+mkdir -p /data/x-ui
+systemctl restart x-ui
+```
+
+The full path to the database then becomes `/data/x-ui/x-ui.db`.
+
 #### Main environment variables
 
 | Variable | Purpose | Default |
@@ -2382,6 +2392,8 @@ If the inbound does not support XTLS flow, the configured flow is **silently cle
 
 **IP limit** (field `limitIp`) is the maximum number of **distinct IP addresses** from which the client may be connected simultaneously. The default value is `0`, which means **no limit**. With a positive value, the panel tracks the client's active IPs (via the Xray access log) and, when the limit is exceeded, disables the account via a background job. Use it to prevent sharing a single subscription across many devices: for example, `2` allows two devices.
 
+**Example values.** `limitIp: 0` — no limit; `limitIp: 1` — strictly one device at a time; `limitIp: 3` — up to three distinct IPs. On the fourth active IP the background job disables the client (`enable = false`) until you run **Reset IP limit**.
+
 Related operations: **IP log** shows the list of recorded client IPs (with timestamps, if available); **Reset IP limit** clears the accumulated IP log so the client can connect again without waiting for the records to expire naturally.
 
 #### Total up/down (GB) — traffic quota
@@ -2395,6 +2407,8 @@ Related operations: **IP log** shows the list of recorded client IPs (with times
 - **Never** — `0`. The client never expires by time.
 - **Specific date** — a positive Unix timestamp (in milliseconds). When it is reached (`expiryTime <= now`), the client is considered expired and is disabled. In the UI it is usually set by picking a date or by a duration in days (**Duration**, unit — **Days**).
 - **Start after first use** — a **negative** value encoding a duration. As long as the client has not transferred a single byte, the expiry stays negative ("delayed start"). On the very first traffic-accounting tick, the panel converts it to an absolute date: `now + |duration|`. This makes it possible to sell, for example, "30 days from the first connection" without knowing in advance when the client will activate. The conversion is performed once per email, so all bound inbounds get the same expiry.
+
+**Example of encoding the expiry.** Fixed date March 1, 2026, 00:00 UTC → `expiryTime: 1772323200000` (a positive timestamp in milliseconds). "30 days from first connection" → `expiryTime: -2592000000` (a negative value, `30 × 24 × 60 × 60 × 1000`); on the first byte of traffic the panel replaces it with `now + 2592000000`. Never → `expiryTime: 0`.
 
 #### Auto-renew (client traffic reset period)
 
@@ -2471,6 +2485,8 @@ In the client list you can select several records (**Select all**, **Clear all**
   - **Expiry:** clients with unlimited expiry (`expiryTime == 0`) are skipped ("unlimited expiry"); for clients with a date the expiry is shifted by the given number of days; for clients in "after first use" mode (negative expiry) the waiting duration is adjusted. A reduction that goes beyond the remainder is skipped ("reduction exceeds remaining time/delay window").
   - **Traffic:** clients with unlimited traffic (`totalGB == 0`) are skipped ("unlimited traffic"); otherwise the quota is changed by the given volume, not going below zero.
   - If neither days nor traffic is specified: "Specify days or traffic before applying.". Toast: "Adjusted: {count}" / "Adjusted: {ok}, skipped: {skipped}".
+
+**Example: extend the selected clients by 30 days and add 50 GB.** In the **Edit** dialog set **Add days** = `30`, **Add traffic (GB)** = `50`. Conversely, to subtract a week and trim the quota by 10 GB, enter negative values: **Add days** = `-7`, **Add traffic (GB)** = `-10` (clients with unlimited expiry or unlimited traffic are skipped for the corresponding field).
 - **Attach ({count})** / **Detach ({count})** (`POST /bulkAttach` / `bulkDetach`) — bulk attach/detach of the selected clients to/from the selected inbounds. Targets are multi-user inbounds only. Detach result: "Detached {detached}, skipped {skipped}.".
 - **Sub links ({count})** — a summary table of the subscription and JSON-subscription URLs of the selected clients, with a **Copy all** button. If none have a subId: "None of the selected clients have a subscription ID.".
 - **Add to group** and **Ungroup** — assign and remove a group label.
@@ -2718,6 +2734,14 @@ The group label is visible and used outside the **Groups** page as well:
 - The client list (`/panel/api/clients/list/paged`) accepts a `group` filter parameter: you can pass a single name or several names separated by commas. Matching is done on an "OR" basis within the field, case-insensitively. A special case: an empty element in the filter's group list means "clients without a group" (whose `group` is empty).
 - The clients page response returns a `groups` array — the full list of names of existing groups, so the UI can build the filter dropdown.
 
+**Example: filtering clients by group.** This request returns only clients labeled `vip` or `trial` (several names are comma-separated, with "OR" semantics):
+
+```
+GET /panel/api/clients/list/paged?group=vip,trial
+```
+
+To get clients **without** a group, pass an empty element in the list — for example, the filter value `group=` (empty string) or `group=vip,` (the `vip` label plus clients with no group).
+
 ### 9.12. API endpoints summary
 
 All group routes are mounted under `/panel/api/clients`:
@@ -2802,6 +2826,15 @@ The subscription is served by a separate HTTP/HTTPS server inside the panel, whi
 Every client in an inbound has a `subId` field (in the UI — "Subscription ID"). This value is precisely the subscription key: the panel searches across all inbounds for clients whose `subId` matches the requested one, and merges their configurations into a single response.
 
 - If several clients (in the same inbound or in different inbounds) have the same `subId`, their configurations end up in one subscription. This is the standard way to give a single user several servers/protocols at once via one link.
+
+**Example: one user — two servers via one link.** Suppose there are two inbounds (VLESS on server A and Trojan on server B). To hand the user both configurations through a single link, give both of his clients the same `subId`:
+
+```
+Inbound 1 (VLESS):  email = ivan@vpn,  subId = ivan2025
+Inbound 2 (Trojan): email = ivan@vpn,  subId = ivan2025
+```
+
+Then at `https://sub.example.com:2096/sub/ivan2025` the panel will serve both configurations at once. If you add a third inbound later with the same `subId`, it appears for the user on the next automatic subscription refresh, without sending a new link.
 - If a client's `subId` field is empty, you cannot share a public-access link. The UI indicates this with the hint: "This client has no subId, the sharing link is unavailable."
 - The `subId` value cannot be set arbitrarily: on save it is checked that it contains no spaces, no `/`, `\`, or control characters. The corresponding validation hint: "Subscription ID cannot contain spaces, '/', '\' or control characters".
 
@@ -2877,6 +2910,14 @@ In addition, each response carries the `Subscription-Userinfo` header with the c
 
 If the field is empty, the panel builds the base address of the link itself from the subscription domain and port (taking TLS into account). But if the subscription is served through an external reverse proxy/CDN on a different domain or path, this field is set to the final base URI, and all links will be built from it. Analogous separate fields exist for JSON (`subJsonURI`) and Clash (`subClashURI`).
 
+**Example: subscription behind a reverse proxy.** The subscription itself listens on `2096`, but is exposed externally via nginx/CDN at `https://cfg.example.com/u/`. So that the links in the response are built from the external address rather than the internal `domain:2096`, set the final base URI in the "Reverse proxy URI" field:
+
+```
+Reverse proxy URI: https://cfg.example.com/u
+```
+
+The final link then takes the form `https://cfg.example.com/u/ivan2025`. For the JSON and Clash formats, fill in the separate `subJsonURI` and `subClashURI` fields the same way if needed.
+
 ### 10.3. Output formats
 
 A subscription can be served in three independent formats, each with its own endpoint that can be enabled/disabled separately.
@@ -2884,6 +2925,15 @@ A subscription can be served in three independent formats, each with its own end
 #### Ordinary links (SUB) — Base64 / plain text
 
 The base format, the `subPath` endpoint (default `/sub/`). Always enabled (when subscriptions are enabled overall). It returns a list of Xray links (`vless://`, `vmess://`, `trojan://`, `ss://`, etc.) — one per line. When the "Encode" option (`subEncrypt`) is enabled, the entire list is Base64-encoded; when disabled — it is served as plain text. This format is understood by virtually all clients (v2rayNG, V2RayTun, Sing-box, NekoBox, Streisand, Shadowrocket, Happ, and others).
+
+**Example: response body with "Encode" disabled.** With `subEncrypt = false`, the `/sub/` endpoint serves plain text — one link per line:
+
+```
+vless://3c8f...@a.example.com:443?security=reality&...#srvA-ivan
+trojan://p4ss@b.example.com:443?security=tls&...#srvB-ivan
+```
+
+With `subEncrypt = true` (the default), the same list as a whole is Base64-encoded and served as a single string — this is exactly the form most clients expect.
 
 #### JSON subscription (sing-box and compatible)
 
