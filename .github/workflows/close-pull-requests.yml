@@ -1,0 +1,42 @@
+# This repository on GitHub is a READ-ONLY MIRROR. The manual's source lives in
+# a private GitLab and is push-mirrored here automatically. Pull requests are not
+# accepted, so any opened PR is closed automatically with a note pointing to Issues.
+name: Close pull requests (read-only mirror)
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  close:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const n = context.payload.pull_request.number;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: n,
+              body: [
+                "👋 Спасибо за интерес! Но это **зеркало только для чтения** — исходник руководства живёт в приватном GitLab и синхронизируется сюда автоматически, поэтому pull request'ы не принимаются и закрываются автоматически.",
+                "",
+                "Нашли ошибку или неточность? Откройте, пожалуйста, **[Issue](../../issues)** — поправим в исходнике, и правка приедет в зеркало.",
+                "",
+                "---",
+                "",
+                "👋 Thanks for your interest! This is a **read-only mirror** — the manual's source lives in a private GitLab and is synced here automatically, so pull requests are not accepted and are closed automatically.",
+                "",
+                "Found an error? Please open an **[Issue](../../issues)** instead — we'll fix it at the source and it will flow into the mirror."
+              ].join("\n")
+            });
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: n,
+              state: "closed"
+            });
