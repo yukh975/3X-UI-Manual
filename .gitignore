@@ -1,0 +1,8 @@
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor cruft
+*~
+.idea/
+*.tmp
