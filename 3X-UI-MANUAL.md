@@ -460,6 +460,7 @@ The full path to the database then becomes `/data/x-ui/x-ui.db`.
 | `XUI_DB_TYPE` | database backend: `sqlite` or `postgres` | `sqlite` |
 | `XUI_DB_DSN` | PostgreSQL connection string (when `XUI_DB_TYPE=postgres`) | — |
 | `XUI_DB_FOLDER` | SQLite database file directory | `/etc/x-ui` |
+| `XUI_INIT_WEB_BASE_PATH` | initial web panel URI path (first-time initialization only) | `/` |
 | `XUI_DB_MAX_OPEN_CONNS` | maximum open connections (PostgreSQL pool) | — |
 | `XUI_DB_MAX_IDLE_CONNS` | maximum idle connections (PostgreSQL pool) | — |
 | `XUI_ENABLE_FAIL2BAN` | enable enforcement of IP limits via Fail2ban | `true` |
@@ -475,6 +476,8 @@ x-ui log    # view the debug log
 ```
 
 After diagnosing, set the value back to `info` so the log does not grow unbounded.
+
+**Setting the initial web panel path via the environment.** The `XUI_INIT_WEB_BASE_PATH` variable sets the web panel's URI path (`webBasePath`) during the first-time initialization of the settings. This is convenient when deploying via Docker or systemd, so the panel's login path is fixed from the start. The value is normalized automatically — a leading and trailing slash are added if needed, and an empty or whitespace-only value is ignored (the default path `/` is used instead). The variable affects **first-time initialization only**: once the settings exist, the path is changed in the web interface or via the "Reset Web Base Path" menu item.
 
 ### 1.6. The `x-ui` management command (script menu)
 
@@ -951,6 +954,10 @@ Next to the status, the **Xray version** is displayed.
 
 > Note. In this fork, full Start / Stop / Restart control has been added to the dashboard for all authorization types; the original 3x-ui UI has no separate "start" button — starting is done via a restart.
 
+#### Xray log viewer button
+
+The Xray card has a button that opens the Xray logs (*Logs*). It appears only when an access log is configured in the Xray configuration: the built-in viewer reads exactly that file, so without an access log the button is hidden. The button's visibility is tied to a separate `accessLogEnable` flag and no longer depends on the IP limit — the online list and the IP-address limit keep working even without an access log (see 8).
+
 #### Choosing the Xray version
 
 The "Version" (*Version*) section lets you switch Xray-core to a different release. The list of versions is loaded via `GET /getXrayVersion`:
@@ -1151,7 +1158,9 @@ The IP address on which the inbound accepts connections. The field hint:
 
 When generating the Xray configuration, an empty value is replaced with `0.0.0.0`. In addition to an IP, the field accepts a **Unix socket path** — hint:
 
-> "You can also specify a Unix socket path (for example, /run/xray/in.sock) to listen on a socket instead of a TCP port — in that case, set the port to 0."
+> "You can also enter a Unix socket path (e.g. /run/xray/in.sock), or an abstract socket name prefixed with @ (e.g. @xray/in.sock), to listen on a socket instead of a TCP port — set Port to 0 in that case."
+
+Thus the field accepts two Unix socket forms: a filesystem path (`/run/xray/in.sock`) and an abstract socket name prefixed with `@` (`@xray/in.sock`). In both cases set `Port` to `0`.
 
 You change this field when you need to restrict the inbound to a single interface (for example, `127.0.0.1` for an inbound that works only as a fallback target behind Nginx), or when the inbound listens on a Unix socket.
 
@@ -1225,6 +1234,26 @@ The inbound's active flag. Toggling this flag in the list is handled by a separa
 
 A choice of where the inbound physically runs: on the local panel or on one of the registered nodes. An implementation detail: `nodeId = 0` is normalized to `nil`, since `0` is not a valid node id but an artifact of form binding; `nil`/`0` means the local panel. When saving an inbound on an offline node, a toast is possible — the change is synchronized when the node reconnects.
 
+#### Share address strategy
+
+| Parameter | Value |
+|---|---|
+| Field | strategy + (optional) custom address |
+| Label | **"Share address strategy"** |
+| Default | **"Inbound listen"** |
+
+A drop-down list that controls which address is inserted into this inbound's **exported share links and QR codes**. The values:
+
+| Value | Label | What is inserted |
+|---|---|---|
+| `node` | **"Node address"** | the address of the node on which the inbound runs |
+| `listen` | **"Inbound listen"** | the listen address of the inbound itself |
+| `custom` | **"Custom"** | a custom address from the **"Custom share address"** field |
+
+When **"Custom"** is selected, the **"Custom share address"** field appears; enter a host or IP **without a scheme or port** (the value is validated). The **"Node address"** option is shown in the list only if there is an enabled node on which this inbound can run; otherwise it is hidden and the value is coerced to **"Inbound listen"**.
+
+This strategy affects **only** the direct share links and QR codes. It does **not** affect subscription output — there the address is still resolved by the usual panel logic.
+
 ### 4.2. Sniffing
 
 The **Sniffing** tab edits the `sniffing` block of the Xray configuration, which is stored as raw JSON. Sniffing allows Xray to "peek" at the real domain name/protocol inside a connection for routing purposes.
@@ -1294,6 +1323,8 @@ The **Fallbacks** section defines rules for redirecting connections that did not
 The section hint:
 
 > "When a connection on this inbound does not match any client, it is redirected elsewhere. Select a child inbound below to auto-fill the routing fields (SNI / ALPN / Path / xver) from its transport, or leave the selection empty and set Dest directly (for example, 8080 or 127.0.0.1:8080) to redirect to an external server such as Nginx. Each child inbound must listen on 127.0.0.1 with security=none."
+
+The fallbacks section is shown only for a VLESS/Trojan inbound over RAW (TCP) with TLS or REALITY security. A new inbound starts at `security=none`, so the section may at first look as if it is missing. In that state (VLESS/Trojan, RAW/TCP, security not yet configured), an inline hint is shown instead of the section: fallbacks become available once TLS or Reality is selected on the **Security** tab.
 
 #### Fallback row fields
 
@@ -1382,6 +1413,8 @@ The following editors are available:
 
 These fields are serialized as nested JSON objects: empty blocks are returned as `null`, and text that is not valid JSON is wrapped in a string so that data is not lost. Parsing errors on save are shown with the prefix **"Advanced JSON"**.
 
+The "Inbound JSON" viewer, like the inbound import dialog, uses a full code editor with JSON syntax highlighting (instead of a plain text area): the configuration view is a highlighted read-only mode, while import is editable — which makes reading and editing the configuration easier.
+
 ### 4.8. Inbound actions: QR / Edit / Reset / Delete and statistics
 
 The following actions are available in the list and in the inbound card (the **"Menu"** menu):
@@ -1389,6 +1422,8 @@ The following actions are available in the list and in the inbound card (the **"
 #### Traffic statistics
 
 The inbound's aggregated traffic is displayed: **"Sent/received"** (the `up`/`down` fields), **"Total traffic"**, **"Total connections"**. The card also shows **"Created"**, **"Updated"**, **"Expiry date"**.
+
+In the client summary on the inbounds page, status is determined depleted-first: clients that have expired or exhausted their traffic (and that the auto-job cleared `enable` for) fall into the **"Depleted/Ended"** status rather than the grey **"Disabled"** one, and are not counted twice. The classification matches the one shown in the client's own card and correctly accounts for clients attached to several inbounds.
 
 #### QR code and copying links
 
@@ -1690,6 +1725,8 @@ Fields of the `settings` block:
 | `portMap` | `{}` | "Port map" — a port→port map (Record<string,string>) |
 | `followRedirect` | `false` (off) | "Follow redirect" — use the original destination address from the intercepted connection |
 
+> Transport tab for Tunnel: an inbound of this type has a **"Transport"** tab limited to `sockopt` configuration — which is enough for **TProxy** mode (transparent proxying/redirect via `sockopt.tproxy`). The transport (`network`) dropdown and the "Security" tab are hidden for Tunnel, since TLS/REALITY are not supported by this type.
+
 When to choose it: for transparent proxying/port forwarding to internal services.
 
 ---
@@ -1737,6 +1774,8 @@ Fields of the `settings` block:
 | `secretKey` | — | The server's private key (required). A generation button is next to it; the public key is derived automatically (a read-only field) |
 | `mtu` | (optional) | The interface MTU |
 | `noKernelTun` | `false` (off) | "No-kernel TUN" — use a userspace TUN instead of the kernel one |
+| `workers` | (optional) | "Workers" — the number of worker threads |
+| `domainStrategy` | (optional) | "Domain Strategy" — the domain-resolution strategy: `ForceIP`, `ForceIPv4`, `ForceIPv4v6`, `ForceIPv6`, `ForceIPv6v4` |
 | `peers` | `[]` | List of peers |
 
 Fields of each peer:
@@ -1748,8 +1787,17 @@ Fields of each peer:
 | `preSharedKey` (PSK) | (optional) | An additional shared key |
 | `allowedIPs` | `[]` | Allowed IPs. When adding a new peer, the panel automatically suggests the next free address (default `10.0.0.2/32`) |
 | `keepAlive` | (optional) | "Keep-alive" — the connection keep-alive interval |
+| `comment` | (optional) | "Comment" — an arbitrary peer label; shown next to the "Peer N" header and inserted into the share link and the `remark` of the `.conf` file |
 
 The "Add peer" button generates a new key pair and fills in the next `allowedIPs`. Each peer can be deleted (deletion is unavailable for the single remaining one).
+
+The peer "Comment" field helps tell devices apart: its text is shown in the form next to the "Peer N" header and is also inserted into the share link and the `remark` of the generated `.conf` file, so the device is easy to recognize in a client app. This is a panel-level field — xray-core ignores unknown peer fields.
+
+#### Workers, Domain Strategy, and the Transport tab
+
+Besides peers, a WireGuard inbound has the **Workers** field (the number of worker threads) and the **Domain Strategy** field (the domain-resolution strategy: `ForceIP`, `ForceIPv4`, `ForceIPv4v6`, `ForceIPv6`, `ForceIPv6v4`). Both fields are optional and are written to the config only when set.
+
+A **"Transport"** tab is also available for WireGuard — but in a reduced form: it configures only `sockopt` and **Finalmask** obfuscation. The transport (`network`) dropdown is hidden, since WireGuard always listens over UDP. In noise Finalmask entries, a separate **Rand Range** field sets the byte range 0–255 (with validation), and **Salamander** is available as an obfuscation method for WireGuard and Hysteria.
 
 When to choose WireGuard: when you need a genuine WireGuard VPN tunnel rather than a masquerading proxy.
 
@@ -1801,6 +1849,8 @@ Consequences:
 - The **"Transport" (Stream Settings) and "Clients" tabs do not apply to this inbound** — access is set by a single secret rather than a list of clients.
 - An MTProto inbound runs **only on the main panel**; it is not deployed to child nodes (inbounds with a set `NodeID` are skipped).
 
+- The **"Sniffing"** tab is hidden for MTProto — this protocol is served by the `mtg` process rather than Xray, so sniffing is not applicable to it.
+
 **Fields.** Stored in the inbound's `settings`:
 
 | UI field | Key | Description |
@@ -1812,6 +1862,14 @@ Consequences:
 | Cover domain (FakeTLS) | `settings.fakeTlsDomain` | The domain whose HTTPS traffic the proxy masquerades as. |
 
 **Secret format (FakeTLS).** The panel automatically brings the secret into the correct form: the result = `ee` + 32 hex characters + the hex code of the cover domain, that is, `ee<hex32><hex(fakeTlsDomain)>`. The `ee` prefix enables FakeTLS mode, and the domain (for example, a well-known site) serves to disguise the traffic as regular HTTPS. It is enough to specify the domain — the panel will build the rest itself.
+
+#### Domain fronting and extended mtg options
+
+An MTProto inbound has additional `mtg` process parameters. The **Domain fronting IP**, **Domain fronting port**, and **Domain fronting PROXY protocol** fields specify where `mtg` sends non-Telegram traffic (for example, to a fake NGINX site): if the IP is left empty, the FakeTLS domain is used via DNS, and the default port is `443`. Also available are **Accept PROXY protocol** (for the listener), **IP preference** (`prefer-ipv6` / `prefer-ipv4` / `only-ipv6` / `only-ipv4`), and **Debug logging**. Each value is written to the `mtg-<id>.toml` file only when it is set.
+
+#### Routing Telegram traffic through Xray
+
+The **"Route through Xray"** toggle (off by default) and the optional **Outbound** field let you subordinate the Telegram egress to the Xray router. When enabled, the panel embeds a local SOCKS bridge tagged with the inbound's own tag into the Xray config, and `mtg` sends Telegram traffic through it. The traffic can then be matched by rules on the "Routing" tab or forced into a chosen outbound or balancer via the **Outbound** field (if the field is empty, the routing rules decide).
 
 **How to share it with a user.** For an MTProto inbound, the panel generates an invitation link:
 
@@ -2122,7 +2180,9 @@ The choice of mode determines which additional fields become visible.
 Recommendations:
 - For most setups it is enough to leave **Mode = `auto`**, set **Path**/**Host** and (when working through a CDN) coordinate them with the client.
 - The placement fields (`*Placement`/`*Key`) and padding obfuscation are needed only for fine-tuning to a specific anti-DPI/CDN scenario; with empty values the xray-core default values indicated in parentheses are used.
-- Parameters related to the client/outbound side (for example, retry POST intervals, chunk sizes, the XMUX multiplexer) are not shown in the inbound form — the listener server ignores them.
+- Parameters related to the client/outbound side (for example, retry POST intervals, chunk sizes) are not shown in the inbound form — the listener server ignores them. The XMUX multiplexer, by contrast, is available in the inbound form (see below).
+
+- **Service defaults are no longer seeded.** The panel no longer writes the `scMaxEachPostBytes` and `scMinPostsIntervalMs` service defaults into XHTTP configs — xray-core's internal values are applied instead. This removes a stable DPI fingerprint (the literal `scMinPostsIntervalMs=30`) that traffic could previously be blocked on. For inbounds already saved, values equal to xray-core's defaults are no longer emitted into share links and the subscription (no re-save required); values you set manually are kept.
 
 **Example `streamSettings` for XHTTP (`auto` mode):**
 
@@ -2140,6 +2200,21 @@ Recommendations:
 
 For most setups these four fields are enough; the session/sequence placement and padding obfuscation fields are left empty — then the xray-core default values are used.
 
+#### XMUX (connection multiplexing)
+
+The **XMUX** toggle (`enableXmux`) enables a multiplexing layer that spreads parallel requests across a small pool of physical connections. When enabled, six configurable fields appear (stored under `xhttpSettings.xmux`):
+
+| Field | Key | Default | Description |
+| --- | --- | --- | --- |
+| Max Concurrency | `maxConcurrency` | `16-32` | Maximum concurrent requests per connection (`min-max` range) |
+| Max Connections | `maxConnections` | `0` | Maximum physical connections (`0` — unlimited) |
+| Max Reuse Times | `cMaxReuseTimes` | `""` (empty) | How many times a connection may be reused |
+| Max Request Times | `hMaxRequestTimes` | `600-900` | Maximum requests per connection (range) |
+| Max Reusable Secs | `hMaxReusableSecs` | `1800-3000` | How long a connection stays reusable (seconds, range) |
+| Keep Alive Period | `hKeepAlivePeriod` | `""` (empty) | The keep-alive period for holding the connection open |
+
+> **Important.** **Max Connections** and **Max Concurrency** cannot be set at the same time — xray-core will reject such a config. By default, when XMUX is enabled the panel pre-fills `Max Concurrency = 16-32`; if you set **Max Connections** (a value greater than `0`), the panel drops the default `Max Concurrency` value to avoid the conflict.
+
 ---
 
 ### 6.8. Hysteria transport (`hysteriaSettings`)
@@ -2149,7 +2224,7 @@ The **Hysteria** transport is not selected in the "Transport" list: it is activa
 | Field | Key | Default | Description |
 | --- | --- | --- | --- |
 | Version | `version` | `2` (fixed, the field is locked) | The Hysteria version. Only Hysteria 2 is supported |
-| UDP idle timeout (s) | `udpIdleTimeout` | `60` | The UDP session idle timeout (seconds), ≥ 1 |
+| UDP idle timeout (s) | `udpIdleTimeout` | `60` | The UDP session idle timeout (seconds). The accepted range is 2–600; xray-core rejects values outside this interval at startup |
 | Masquerade | `masquerade` | off (absent) | Enables disguising the listener as an HTTP/3 server when probed |
 
 When **Masquerade** is enabled, a type selector (`type`) and fields depending on it appear:
@@ -2215,7 +2290,7 @@ When the mode is changed, the panel fully rebuilds the `streamSettings` block: `
 
 - **TLS** — classic transport encryption over the TLS 1.2/1.3 protocol. A valid certificate (your own domain + chain) must be present on the server. Traffic looks like regular HTTPS, but an active censor can recognize a distinguishable TLS handshake to your domain; in case of "SNI shooting" or the absence of a trusted certificate, the connection is blocked/returns an error.
 
-- **XTLS (Vision)** — this is not a separate mode in the "Security" list but a *flow* mechanism on top of TLS **or** Reality. It is enabled on the inbound's client side via the **Flow** field = `xtls-rprx-vision` (or `xtls-rprx-vision-udp443`). Vision is available only for VLESS on the `tcp` network with `security = tls` or `security = reality`. Vision reduces "double encryption" (TLS-in-TLS) by delivering the payload directly after the handshake, which speeds up transmission and improves disguise. Therefore, the combination of **VLESS + Reality + Flow `xtls-rprx-vision`** is considered the recommended modern configuration.
+- **XTLS (Vision)** — this is not a separate mode in the "Security" list but a *flow* mechanism on top of TLS **or** Reality. It is enabled on the inbound's client side via the **Flow** field = `xtls-rprx-vision` (or `xtls-rprx-vision-udp443`). Vision is available for VLESS on the `tcp` network with `security = tls` or `security = reality`, and also for VLESS over the `xhttp` transport when VLESS encryption (vlessenc / ML-KEM) is enabled — in that case the **Flow** field can likewise be set to `xtls-rprx-vision`, and the value is correctly carried into the `vless://` link (`flow=xtls-rprx-vision`). Vision reduces "double encryption" (TLS-in-TLS) by delivering the payload directly after the handshake, which speeds up transmission and improves disguise. Therefore, the combination of **VLESS + Reality + Flow `xtls-rprx-vision`** is considered the recommended modern configuration.
 
 - **REALITY** — a disguise mechanism without its own certificate. The server "borrows" the TLS handshake of a real third-party site (`target`/`serverNames`), so to an observer the connection is indistinguishable from accessing that site, and no certificate is needed at all. Authentication is built on an X25519 key pair and a set of `shortIds`. REALITY is resistant to active probing and SNI-based blocking, since the SNI points to a real external domain. The price is stricter configuration requirements (a correct `target` with port, key synchronization with the client).
 
@@ -2427,6 +2502,8 @@ A client is a VPN user account: a set of credentials (UUID or password) bound to
 
 Below is a breakdown of every field in the **Add client** / **Edit client** editor.
 
+The client form is split into two tabs: **Basic** (email, inbound binding, limits, expiry, group, comment, reverse tag) and **Config** (UUID/password/auth, Flow, VMess Security). In the field labels the quota is shown as **Traffic limit (GB)**, and the expiry settings as **Duration (days)** and **Auto-renew (days)**; the **Traffic limit (GB)** and **IP limit** fields carry tooltips explaining that `0` means "no limit". When editing an existing client the random-email generator button is hidden, and the IP-log button is placed right next to the **IP limit** field and shows the number of recorded addresses.
+
 | Field | JSON key | Default | Description |
 |------|-----------|--------------|----------|
 | Email | `email` | — (required) | Unique client identifier |
@@ -2496,6 +2573,8 @@ Related operations: **IP log** shows the list of recorded client IPs (with times
 
 **Total up/down (GB)** (field `totalGB`) is the combined traffic quota (upload + download). The default value, `0`, means **unlimited**. Once the quota is reached (`up + down >= total`), the client is considered **depleted** and is disabled. In the UI it is usually entered in gigabytes; in the database it is stored in bytes.
 
+In the client list, the **Traffic** column shows a color-coded usage bar: the consumed traffic, the limit label (or the ∞ sign when unlimited), and a hover popover with an upload/download/remaining breakdown. The same compact indicator appears in the client cards in the mobile layout.
+
 #### Expiry
 
 **Expiry** (field `expiryTime`) sets the moment the account expires. The field has three modes:
@@ -2550,6 +2629,8 @@ Every client must be bound to at least one inbound — at least one is required 
 
 When saving a client bound to several inbounds, fields incompatible with a specific protocol/transport (for example, Flow outside VLESS-Vision) are automatically coerced to permitted values for each inbound.
 
+Above the inbound selection list (in the client form, in bulk client creation, and in the bulk attach/detach dialogs) there are **Select all** and **Clear** buttons. In these lists each inbound is labelled by its remark, if one is set, otherwise by the inbound's tag.
+
 ### 8.3. Client operations
 
 For an individual client (via the **Client info** card or the **Actions** context menu) the following are available:
@@ -2557,12 +2638,16 @@ For an individual client (via the **Client info** card or the **Actions** contex
 #### Viewing info, QR code, and link
 
 - **Client info** — a card with all fields, used/remaining traffic (**Remaining**), expiry, and attached inbounds.
+
+Requesting a client via the API (`GET /panel/api/clients/get/:email`) additionally returns `usedTraffic` next to the `client` and `inboundIds` fields — the traffic actually consumed (upload + download, including node data), which makes it easier to compare consumption against the `totalGB` quota.
 - **QR code** and **Link** — the client's configuration link for importing into a client app. It is built from all attached inbounds with a supported protocol (`GET /links/:email`). If there are no suitable links: "No share links — first attach the client to an inbound with a supported protocol.".
 - **Subscription link** — the subscription URL by `subId` (`GET /subLinks/:subId`). Available only if the client has a `subId` and the subscription service is enabled in **Panel settings → Subscription** (otherwise "The subscription service is disabled."). Additionally, a **JSON subscription URL** is provided.
 
 #### Reset traffic
 
 **Reset traffic** (`POST /resetTraffic/:email`) zeroes the upload/download counters (`up`, `down`) of a specific client. The quota (`totalGB`) and the expiry are **not affected** — only the used volume is reset. Toast: "Traffic reset". If the client is not bound to any inbound: "First attach this client to an inbound.".
+
+The **Reset traffic** button is also available from the client edit form — in the bottom bar, next to **Cancel** / **Save** (a confirmation is requested before the reset). If the client was disabled because its traffic was depleted, the reset (both single and bulk) automatically **re-enables** it (`enable = true`) and immediately pushes this change to the nodes — there is no longer any need to re-enable the client manually on the master and on each node.
 
 #### Reset IP limit
 
@@ -2596,7 +2681,7 @@ In the client list you can select several records (**Select all**, **Clear all**
 
 Above the list there is a search box ("Search email, comment, sub ID, UUID, password, auth…") — it searches by email, comment, subId, UUID, password, and auth. Results counter: "Showing {shown} of {total}".
 
-The **Client filter** panel lets you select by status (category), protocol, attached inbound, expiry range, used-traffic range, presence of auto-renew (**Has/None**), presence of a Telegram ID and a comment, as well as by group. Sorting: **Oldest/Newest first**, **Recently updated**, **Recently online**, **Email A→Z / Z→A**, **Most traffic**, **Highest remaining**, **Expiring soonest**.
+The **Client filter** panel lets you select by status (category), protocol, attached inbound, expiry range, used-traffic range, presence of auto-renew (**Has/None**), presence of a Telegram ID and a comment, as well as by group. On panels that have nodes, a **Nodes** multi-select appears: you can narrow the list to clients of the selected nodes; a separate **Local panel** entry selects clients of inbounds not attached to any node (the filter is shown only when nodes exist). Sorting: **Oldest/Newest first**, **Recently updated**, **Recently online**, **Email A→Z / Z→A**, **Most traffic**, **Highest remaining**, **Expiring soonest**.
 
 ### 8.6. Badges and statuses
 
@@ -2886,10 +2971,14 @@ Alongside in the groups table are shown:
 | Column | What it means |
 |---|---|
 | Name | The group name |
-| Clients in group | How many clients are labeled with this group |
+| Clients | How many clients are labeled with this group (the column was previously named "Clients in group") |
+| Upload | The total `up` (sent traffic) across all clients of the group |
+| Download | The total `down` (received traffic) across all clients of the group |
 | Traffic used | The total `up + down` across all clients of the group |
 
-The summary above the table additionally shows aggregates across all groups — **"Total groups"**, **"Clients with a group"**, and **"Total traffic"**.
+Sent and received traffic are shown as separate **Upload** and **Download** columns, while the **Traffic used** column shows their sum. The client-count column is now simply named **Clients**.
+
+The summary above the table additionally shows aggregates across all groups — **"Total groups"** and **"Clients with a group"**, and the total traffic is split into two cards: **"Total upload / download"** (with up/down arrows — the sent and received traffic of all groups separately) and **"Total traffic"** (with a pie-chart icon — their combined total).
 
 #### How it is calculated
 
@@ -2936,9 +3025,17 @@ Then at `https://sub.example.com:2096/sub/ivan2025` the panel will serve both co
 
 The final link is built as `<base>/<subPath>/<subId>` (see the section on subscription server settings and the "Reverse proxy URI" field). If no client is found for the `subId` (the client was deleted, the `subId` does not exist), the server returns HTTP 404 with no body. On an internal error — HTTP 500. VPN clients rely solely on the response code, so the error body is intentionally empty.
 
+#### Inbound link order in the subscription
+
+Every inbound has a **"Subscription order"** field (`subSortIndex`) — a number from 1 that sets the position of this inbound's links in the subscription output. Lower values come first; ties keep the original creation order (by id). The order applies to all output formats — raw text, the subscription page, JSON, and Clash. It does not affect the order of inbounds in the panel itself.
+
+The field is edited in the inbound form next to the share-address settings and propagates to nodes by the usual sync rules. If at least one inbound has an order other than 1, a compact **"Order"** column appears in the Inbounds list.
+
 ### 10.2. Subscription server settings
 
 All subscription parameters are located in the panel settings under the **"Subscription"** tab. Each parameter is explained below; the internal setting key and the default value are given in parentheses.
+
+The section itself is split into tabs: **"Panel settings"**, **"Information"**, **"Profile"**, **"Certificates"**, **"Happ"**, and **"Clash / Mihomo"**. The subscription title, support URL, profile page, announcement, and theme directory fields are on the "Profile" tab; the Happ and Clash/Mihomo routing rules are on the tabs of the same name; the subscription update interval is on the "Information" tab.
 
 #### Basic parameters
 
@@ -3006,6 +3103,8 @@ In addition, each response carries the `Subscription-Userinfo` header with the c
 
 If the field is empty, the panel builds the base address of the link itself from the subscription domain and port (taking TLS into account). But if the subscription is served through an external reverse proxy/CDN on a different domain or path, this field is set to the final base URI, and all links will be built from it. Analogous separate fields exist for JSON (`subJsonURI`) and Clash (`subClashURI`).
 
+If only the common `subURI` is set while the separate JSON and Clash fields are left empty, the links of those formats on the subscription page inherit the scheme and host from `subURI` (instead of the sub-server port and `http`) — so they match the reverse-proxy address.
+
 **Example: subscription behind a reverse proxy.** The subscription itself listens on `2096`, but is exposed externally via nginx/CDN at `https://cfg.example.com/u/`. So that the links in the response are built from the external address rather than the internal `domain:2096`, set the final base URI in the "Reverse proxy URI" field:
 
 ```
@@ -3017,6 +3116,14 @@ The final link then takes the form `https://cfg.example.com/u/ivan2025`. For the
 ### 10.3. Output formats
 
 A subscription can be served in three independent formats, each with its own endpoint that can be enabled/disabled separately.
+
+#### Server address and nodes in the output
+
+The server address in subscription links is substituted using the same share-address strategy as the panel's ordinary links and QR codes: "listen" — a routable bind address, "custom" — the configured user address (`shareAddr`), "node" (the default) — the node's address. For inbounds with no explicitly set strategy, the subscription output is unchanged. This lets a node-hosted inbound bound to a specific public IP advertise a reachable address to clients. The strategy applies to the raw, JSON, and Clash formats.
+
+For an inbound hosted on a node, the node name is automatically appended to the name (remark) in the subscription via "@" (e.g. `my-inbound@node1`), unless the admin already included it. This removes the situation where, in a multi-node subscription, several identically-named entries differed only by address.
+
+If, due to drift between nodes, the same client ended up twice in an inbound's internal JSON, the subscription output automatically removes such duplicates by email in all three formats, so repeated profiles no longer appear in the output.
 
 #### Ordinary links (SUB) — Base64 / plain text
 
@@ -3075,6 +3182,8 @@ The page (a single-page application built with Vite) shows:
   - Dates are displayed using the Gregorian or Jalali calendar depending on the panel's "Calendar Type" setting (`datepicker`, default `gregorian`).
 - **Subscription links**: for each enabled format — a separate row with a colored tag (green **SUB**, purple **JSON**, gold **CLASH**), a copy button, and a **QR code** button (a pop-up, size 240 px). The rows for JSON and CLASH appear only if the corresponding format is enabled in the settings.
 - **Individual links** ("Copy link"): the full list of individual configurations included in the subscription, each with its own protocol tag, copy button, and QR code (for post-quantum links no QR is built).
+
+- **A "Copy all configs" button** (above the list of individual links): with a single click it copies all configuration links to the clipboard at once (each on its own line), without copying them one by one; when done, the notification "All configs copied" is shown.
 - **Quick-import buttons for apps** (drop-down menus by platform): for Android — v2box, v2rayNG (deep-link `v2rayng://install-config?url=…`), Sing-box, V2RayTun, NPV Tunnel, Happ (`happ://add/…`); for iOS — Shadowrocket (via the `flag=shadowrocket` parameter), v2box (`v2box://install-sub?url=…&name=…`), Streisand (`streisand://import/…`), V2RayTun, NPV Tunnel, Happ. These buttons either open the deep-link of the required app with the subscription address already filled in, or copy the link to the clipboard.
 
 The information page is served with cache-prevention headers (`Cache-Control: no-cache`), so that the client always sees up-to-date data on traffic and expiry.
@@ -3095,6 +3204,8 @@ The field description in the UI:
 "The absolute path to the folder with a custom template (index.html/sub.html) for the subscription page (e.g. /etc/3x-ui/sub_templates/my-theme/). Leave empty to use the default page."
 
 In the same section nearby are related settings whose values are available in the template:
+
+The "Subscription theme directory" field description includes a **"Template guide ↗"** link to the documentation on creating your own subscription-page themes.
 - **"Subscription title"** (`subTitle`) — the name visible to the client;
 - **"Support URL"** (`subSupportUrl`) — the link to technical support.
 
@@ -3287,6 +3398,12 @@ The `routing.rules` list. **Order is critical** (*"The priority of each rule mat
 
 Each rule has `type: "field"`. Buttons: **Add rule**, **Edit rule**. Hint for the list fields: *"Comma-separated items"*.
 
+#### Route Tester
+
+The Routing tab has a **Route Tester** sub-tab that asks the running Xray which outbound would handle a specific connection, without sending any real traffic. Enter a domain or IP, a port, the network (TCP/UDP) and, optionally, an inbound and the sniffed protocol (`http`/`tls`/`quic`/`bittorrent`), then press **Test Route**. The decision is taken straight from the live routing engine.
+
+The result shows the selected outbound and, when a balancer is involved, its balancer tag as well. If no rule matched, the tester reports that the traffic goes to the default outbound (the first one in the `outbounds` list). This is handy for verifying rule order before relying on it.
+
 #### Rule form fields
 
 | Form field | Label (RU) | JSON field | Description |
@@ -3299,7 +3416,7 @@ Each rule has `type: "field"`. Buttons: **Add rule**, **Edit rule**. Hint for th
 | User | **User** | `user` | Filter by user e-mail/identifier. |
 | Attributes / Value | **Attributes** / **Value** | `attrs` | HTTP-header attributes to match. |
 | VLESS route | **VLESS route** | — | Routing by the route field for VLESS. |
-| Inbound tags | **Inbound tags** | `inboundTag` | One or more inbound tags to which the rule applies (including the built-in `api`, and the DNS tag from the DNS settings). |
+| Inbound tags | **Inbound tags** | `inboundTag` | One or more inbound tags to which the rule applies (including the built-in `api`, and the DNS tag from the DNS settings). In inbound lists it is shown as "tag (remark)" when the inbound has a distinct remark, otherwise just the tag; saved rules still store only the tags. |
 | Outbound tag | **Outbound tag** / **Outbound connection** | `outboundTag` | Where to send matched traffic. |
 | Balancer tag | **Balancer tag** / **Balancer** | `balancerTag` | Hint: *"Routes traffic through one of the configured load balancers"*. |
 
@@ -3340,6 +3457,10 @@ In "Basic connections" mode, the panel helps assemble common rules from ready-ma
 | IPv4 rules | — | *"These parameters will let clients route to the target domains over IPv4 only"* |
 | WARP rules | — | *"These options will route traffic to specific destinations through WARP."* |
 | NordVPN routing | — | *"These options will route traffic to specific destinations through NordVPN."* |
+
+#### MTProto inbound: routing Telegram traffic through Xray
+
+An MTProto inbound has a **"Route through Xray"** toggle (off by default) and an optional **Outbound** picker. When enabled, the panel injects a loopback SOCKS bridge into the Xray config tagged with the inbound's own tag, and mtg dials Telegram through it. The router then governs the Telegram egress: it can be matched by ordinary rules on the Routing tab via the inbound tag, or forced to a chosen outbound or balancer through the **Outbound** field. Leave **Outbound** empty to let the routing rules decide.
 
 ### 11.4. Outbounds (outgoing connections)
 
@@ -3428,9 +3549,13 @@ Buttons: **Test**, **Test all**. States: **Testing connection...**, **Test succe
 Two modes (hint: *"TCP: a fast dial-only probe. HTTP: a full request through xray."*):
 
 - **TCP** (`mode=tcp`) — a simple dial to `host:port`, performed in parallel across all endpoints, ~5 s timeout. Checks only TCP reachability and does not validate the proxy protocol. For `freedom`/`blackhole`/the `blocked` tag it returns *"Outbound has no testable endpoint"*.
-- **HTTP** (`mode=http` or empty) — spins up a temporary Xray instance and runs a real HTTP request (probe URL = the server-side `outboundTestUrl`), measuring real latency. The authoritative but expensive mode: it is serialized by a global lock (*"Another outbound test is already running, please wait"*), with a result-wait timeout of ~12 s.
+- **HTTP** (`mode=http` or empty) — spins up a temporary Xray instance and runs a real HTTP request (probe URL = the server-side `outboundTestUrl`), measuring real latency. The authoritative but expensive mode: it is serialized by a global lock (*"Another outbound test is already running, please wait"*). The per-attempt timeout is 10 s and the result-wait window is 15 s (raised so that healthy outbounds on slow or tunneled links are not marked "Failed"). On failure the real cause (DNS error, connection refused, deadline exceeded, TLS error, etc.) is written to the panel/Xray log, which the generic timeout messages point to.
 
 > UDP protocols (`wireguard`, `hysteria`) and UDP transports (`kcp`, `quic`, `hysteria`) are **always** tested in HTTP mode, even if TCP is requested — a bare UDP dial cannot distinguish a "live" endpoint from a "dead" one. For wireguard, the test configuration forcibly sets `noKernelTun: true`.
+
+#### Batched testing and per-stage breakdown
+
+In HTTP mode, **Test** and **Test all** bring up a single shared temporary Xray instance per batch of outbounds, create a loopback SOCKS inbound with a rule for each one, and send a real HTTP request through each in parallel; **Test all** checks outbounds in batches. Besides success/failure, the result popup shows the HTTP response status and a time breakdown by stage: **Proxy connect** (connecting to the proxy), **TLS via outbound** (the TLS handshake through the outbound), and **First byte** (time to the first byte) — which helps pinpoint at which step the latency or failure occurred.
 
 #### Outbound traffic statistics
 
@@ -3439,6 +3564,8 @@ The panel keeps per-tag traffic counters (`up`/`down`/`total`). The reset button
 ### 11.5. Balancers
 
 The `routing.balancers` list. Buttons: **Add balancer**, **Edit balancer**.
+
+The Balancers tab has live-state columns: **Live Target** shows the balancer's current active target in the running Xray, and **Override** lets you manually override the target choice (the **Auto (strategy)** value returns to the strategy-based selection). A refresh button updates the live state. If the balancer is not yet active in the running Xray, the panel prompts you to save your changes or start Xray first.
 
 | Field | Label (RU) | Description |
 |---|---|---|
@@ -3587,6 +3714,8 @@ The bare server string (`"1.1.1.1"`) with no fields is the default server for al
 
 Buttons: **Add DNS** (*"Add Server"*), **Edit DNS**, **Clear all** (confirmation: *"All DNS servers will be removed from the list. This action cannot be undone."*). Presets: **Use preset**, the **DNS presets** dialog, including the **Family** preset.
 
+Pressing **Edit DNS** on a DNS-server entry (and likewise on a Fake DNS entry) opens the edit dialog with the server's saved values rather than the defaults.
+
 DNS server fields:
 
 | Field | Label | Description |
@@ -3670,6 +3799,10 @@ Step by step:
 3. **Server** → `servers` loads the servers of the selected country (`countryId` is validated as a number — injection protection). Filter: only servers with a **Load** > 7% are shown. If there are no servers: *"No servers found for the selected country"*. If the server does not report a NordLynx public key: *"The selected server does not report a NordLynx public key."*
 4. Creating/updating the outbound: toasts *"NordVPN outbound added"* / *"NordVPN outbound updated"*.
 
+#### IPv4 priority and userspace TUN
+
+The WireGuard outbounds generated by the WARP and NordVPN wizards use `domainStrategy: "ForceIPv4v6"` (IPv4 priority with IPv6 fallback on v6-only hosts) instead of `ForceIP` — this fixes the handshake "hanging" on hosts with half-configured IPv6, where the AAAA record of the Cloudflare endpoint would be picked. They also enable userspace TUN (`noKernelTun: true`) instead of kernel TUN: the latter needs privileges and fwmark routing and fails silently on many VPS setups, whereas the panel's built-in connectivity probe always tests through userspace TUN — so real traffic and the probe now follow the same path. This affects only newly added or reset outbounds; already-saved templates keep their settings.
+
 ### 11.9. Reverse proxy and TUN
 
 #### Reverse (reverse proxy)
@@ -3736,6 +3869,10 @@ The reference template contains a `metrics` section (`listen: "127.0.0.1:11111"`
 | **Restart Xray** | Reloads the service with the saved configuration. Confirmation: *"Restart xray?"* / *"Reloads the xray service with the saved configuration."* |
 
 Toasts: success — *"Xray restarted successfully"*, *"Xray stopped successfully"*; errors — *"An error occurred while restarting Xray."*, *"An error occurred while stopping Xray."* The **Xray restart output** dialog shows the core's diagnostic output.
+
+#### Hot-applying changes (without a full restart)
+
+Changes to inbounds, outbounds, and routing rules are applied live: when you press **Save**, the panel computes the diff between the old and new config and applies only the changed parts through the Xray gRPC API (HandlerService/RoutingService), without restarting the process. A full restart is performed automatically only when sections with no hot-reload API (`log`, `dns`, `policy`, `observatory`, etc.) change. Because of this, the Xray page no longer has a separate "Restart" button — **Save** applies the changes itself. A core restart, when needed, still happens automatically (see also the auto-reload on subscription updates and WARP rotation).
 
 #### Restoring the default template
 
@@ -3917,6 +4054,22 @@ When you click "Save" (both when adding and when editing), the panel **first che
 
 The token is obtained on the remote panel under **Settings → API Token**. It can also be reissued there: the **Regenerate token** button with a warning: "Regenerating invalidates the current token. Any central panel using it will lose access until updated. Continue?". After regeneration, the old token stops working in the master panel — it must be updated in the node form.
 
+#### Inbound import (choosing which inbounds to synchronize)
+
+The node form has an **Inbound import** setting (`inboundSyncMode`) with two modes: **All inbounds** (`all`, the default) and **Selected** (`selected`). By default the master synchronizes to the node every inbound that has this node selected; existing nodes keep working in "All inbounds" mode.
+
+In **Selected** mode a multi-select of inbound tags appears below the field. Click **Load inbounds** — using the entered (not-yet-saved) connection parameters, the master asks the node for the list of its inbounds (endpoint `POST /panel/api/nodes/inbounds`) and shows their tags; check the ones you want. The panel then synchronizes and deploys only the checked tags to the node, while the other inbounds that exist directly on the node are left untouched — the master neither deletes nor manages them.
+
+**Example: list a node's inbounds for selective import.** The body carries the not-yet-saved connection parameters; the response holds the tags of the inbounds available on the node:
+
+```
+POST /panel/api/nodes/inbounds
+Content-Type: application/json
+
+{ "name": "de-fra-1", "scheme": "https", "address": "node1.example.com",
+  "port": 2053, "basePath": "/", "apiToken": "abcdef..." }
+```
+
 ### 12.3. TLS verification (for https nodes)
 
 This group of fields specifies how the master verifies the node's HTTPS certificate. These settings **apply only to the `https` scheme**; for `http` nodes they are ignored.
@@ -4056,6 +4209,8 @@ If the child panel has a **base path** (web base path) set, e.g. `/secret/`, the
 
 1. **Configuration deployment (reconcile).** On any change to an inbound/client bound to a node, the node is marked "dirty". For each enabled node **with status `online`** that has pending changes, a background job deploys the node's inbounds (by `node_id`) to the node and then clears the dirty flag. A node that is disabled, offline, or "dirty" is considered "pending" — its deployment is deferred until connectivity is restored.
 2. **Traffic collection.** The same job requests a traffic snapshot from the node and merges it into the local statistics. Based on the merged traffic, a check for limit/term exhaustion is performed and clients are disabled if necessary; the node's "depleted" counter reflects exactly this. If the node is unreachable, its online clients are cleared.
+
+   For a client attached to several panels at once, the master also pushes each node the client's **aggregated, cross-panel** traffic in the same job (stored in a separate table on the node, keyed by the master's GUID; overwritten on every push, so a master-side reset propagates too). On the node, the client's traffic is shown as the larger of the two values — local or pushed — and when the overall quota is exceeded the client is disabled **locally on the node itself** (via the same restart-Xray-on-disable flow, which drops already-established connections). This eliminates the case where a node saw only its own share of the traffic, under-counted usage, and kept serving a client who had already exhausted the overall limit. On a traffic reset, auto-renew, or client delete, the pushed counters are cleared.
 3. **Heartbeat.** A separate background job periodically polls all **enabled** nodes (with a concurrency limit) via `panel/api/server/status`, updates the status/metrics/versions, and, if there are web clients connected, broadcasts the updated node tree over WebSocket.
 
 ### 12.8. Node chains (sub-nodes / transitive nodes)
@@ -4164,6 +4319,12 @@ The language of the panel web interface. The available languages are: `en-US` (E
 - **Purpose:** the number of rows per page in tables (connection/inbound lists). Hint: "Define page size for inbounds table. (0 = disable)" — with `0`, pagination is disabled, and all records are shown as a single list.
 - **No panel restart required** (display setting).
 
+#### Restart Xray after auto disable (*Restart Xray After Auto Disable*)
+
+- **Key:** `restartXrayOnClientDisable`
+- **Default value:** `true`
+- **Purpose:** when a client is automatically disabled (due to expiration or reaching the traffic limit), Xray is restarted to tear down that client's already-established connections. Hint: "When a client is automatically disabled due to expiration or traffic limit, restart Xray.". The feature itself is unchanged — the toggle simply lives on the "Panel" (*General*) tab alongside the other general settings.
+
 #### Remark model and separation character (*Remark Model & Separation Character*)
 
 - **Key:** `remarkModel`
@@ -4222,11 +4383,13 @@ If **at least one** of the certificate/key paths is specified, the panel attempt
 - **Allowed values:** from `1` to `525600` minutes (1 year).
 - **Purpose:** how long the administrator stays logged in without signing in again. The unit is the **minute**. Hint: "The duration for which you can stay logged in. (unit: minute)".
 
-#### Panel network proxy (*Panel Network Proxy*)
+#### Panel traffic outbound (*Panel Traffic Outbound*)
 
-- **Key:** `panelProxy`
+- **Key:** `panelOutbound`
 - **Default value:** `""` (empty = direct connection).
-- **Purpose:** routes **the panel's own outbound requests** (geo database updates, Xray/panel version checks, requests to Telegram) through the specified proxy, to bypass server-side filtering of GitHub/Telegram.
+- **Purpose:** selects the Xray **outbound** through which the panel sends its **own requests** — panel/Xray version checks and downloads, requests to Telegram, the normal geo-file update — to bypass server-side filtering of GitHub/Telegram. The field is a **dropdown picker**: it lists outbounds from the Xray configuration template, outbounds derived from outbound subscriptions, and routing **balancers** (as a separate group). `blackhole` outbounds are excluded from the list — routing a download into a black hole is pointless. The literal hint: "Routes the panel's own requests — panel/Xray version checks and downloads, Telegram, and the normal geo-file update — through this Xray outbound to bypass server-side filtering of GitHub/Telegram. A loopback bridge inbound is added to the running config automatically and applied live. The Xray-native Geodata Auto-Update is not affected; it has its own download outbound. Leave empty for a direct connection."
+
+> **How it works.** When an outbound is selected, the panel itself adds a service loopback inbound (a SOCKS bridge with the tag `panel-egress`) to the running config plus a routing rule that steers the panel's own HTTP traffic to the chosen outbound. If a balancer is selected, `balancerTag` is emitted in the rule and the panel's traffic load-balances across its members. The bridge and rule are applied **live**, without a full panel restart. Leave the field empty for a direct connection. Xray's native geo-data Auto-Update is **not affected** by this setting — it has its own outbound inside the Xray router.
 - **Format:** `socks5://` (or `socks5h://`) or `http(s)://`, with authorization of the form `socks5://user:pass@host:port` if needed. The supported schemes are strictly: `socks5`, `socks5h`, `http`, `https` — other schemes are considered invalid, and the panel then falls back to a direct connection. A typical example is Xray's own local SOCKS inbound.
 - The literal hint: "Routes the panel's own outbound requests (geo updates, Xray/panel version checks, Telegram) through this proxy to bypass server-side filtering of GitHub/Telegram. Accepts socks5:// or http(s)://, e.g. a local Xray SOCKS inbound. Leave empty for a direct connection."
 - An invalid proxy does not cause a save error — the panel simply uses a direct connection and writes a warning to the log.
@@ -4357,7 +4520,7 @@ The time is interpreted in the zone from the "Time Zone" setting (section 13.6).
 | --- | --- | --- | --- |
 | External Traffic Inform (*External Traffic Inform*) | `externalTrafficInformEnable` | `false` | Notify an external API on every traffic update. Hint: "Inform external API on every traffic update.". |
 | External Traffic Inform URI (*External Traffic Inform URI*) | `externalTrafficInformURI` | `""` | The URL to which the panel sends traffic updates. Passes a URL validity check when saving. Hint: "Traffic updates are sent to this URI.". |
-| Restart Xray After Auto Disable (*Restart Xray After Auto Disable*) | `restartXrayOnClientDisable` | `true` | Restart Xray when a client is automatically disabled due to expiration or exceeding the traffic limit. Hint: "When a client is automatically disabled due to expiration or traffic limit, restart Xray.". |
+| Restart Xray After Auto Disable (*Restart Xray After Auto Disable*) | `restartXrayOnClientDisable` | `true` | Restart Xray when a client is automatically disabled due to expiration or exceeding the traffic limit. Hint: "When a client is automatically disabled due to expiration or traffic limit, restart Xray.". **The toggle is on the "Panel" (*General*) tab** — see section 13.2; it is listed here for completeness. |
 
 ### 13.8. Other: Xray configuration template and test URL
 
@@ -4651,6 +4814,14 @@ If the **`tgCpu`** threshold > 0, a check of the average CPU load over a minute 
 
 Scheduled by the cron expression from the **Notification frequency** field (`tgRunTime`, `@daily` by default). If the value is empty or invalid, `@daily` is used. The report includes:
 
+#### Schedule builder
+
+The **Notification frequency for administrators from the bot** field is set through a schedule builder rather than by typing a string by hand. First, pick a mode from the dropdown:
+
+- **`@every` — repeat at an interval** — a number field and a unit selector (**Seconds** / **Minutes** / **Hours**) appear; the result is composed into an expression like `@every 6h`.
+- **`@hourly` — every hour**, **`@daily` — every day at 00:00**, **`@weekly` — every week**, **`@monthly` — every month** — ready-made presets saved as the corresponding macro (`@hourly`, `@daily`, `@weekly`, `@monthly`).
+- **Custom (crontab)** — a field for your own crontab expression. The panel's scheduler runs with seconds enabled, so a custom expression has **6 fields**: second, minute, hour, day of month, month, day of week (for example, `0 30 8 * * *` — every day at 08:30:00). When you switch to this mode, the field is seeded with the crontab equivalent of the current selection, giving you a real expression to start from.
+
 **Example: values of the "Notification frequency" field (`tgRunTime`).** Both shorthand aliases and the full crontab format are supported:
 
 | Value | When it fires |
@@ -4757,9 +4928,29 @@ Specifics of updating the standard files:
 - **File name safety.** Only names from the allowlist are accepted; the name is checked to contain no `..`, no path separators `/` or `\`, no absolute paths, and must match the pattern `^[a-zA-Z0-9._-]+\.dat$`. Any name outside the list is rejected with the error "Invalid geofile name".
 - **Xray restart.** After the geo files are downloaded, Xray-core is restarted so that it re-reads the updated databases. If the restart fails, a corresponding line is added to the error message.
 
-### 15.3. Custom geo resources (Custom GeoSite / GeoIP)
+### 15.3. Geodata auto-update via Xray (Geodata Auto-Update)
 
-The "Custom GeoSite / GeoIP" section (*Custom GeoSite / GeoIP*) lets you add your own `.dat` sources by an arbitrary URL — for example, custom lists of domains or IPs that are not part of the standard set. Each source is stored in the database (the `CustomGeoResource` table) and is automatically downloaded into the `bin` directory.
+Additional `.dat` sources at an arbitrary URL are added not by the panel itself but through Xray-core's native `geodata` section. The corresponding screen lives in the Xray Updates modal (Dashboard → Xray updates, `xrayUpdates`) as the "Geodata Auto-Update" tab. Here the panel only edits the `geodata` key in the Xray config template; downloading, validating, and hot-reloading the files is handled by the Xray core itself.
+
+At the top of the section a hint is shown: *Xray downloads these files on schedule and hot-reloads them without a restart. URLs must be HTTPS. Each file must already exist in the bin folder once before Xray can update it.*
+
+#### Section fields
+
+- **Schedule (cron)** (*Schedule (cron)*) — a 5-field cron string; the default value is `0 4 * * *` (daily at 04:00). On save the string is checked to contain exactly 5 fields, otherwise the error *Cron must have 5 fields, e.g. 0 4 * * ** is shown.
+- **Download through outbound (optional)** (*Download through outbound (optional)*) — a dropdown with the tags of available outbounds (plus subscription outbounds) through which Xray will download the files; outbounds with the `blackhole` protocol are excluded. The field may be left empty — then a direct connection is used. This choice is independent of the outbound used for the panel's own requests (see §11): geodata auto-update has its own separate download outbound.
+- **File list** — each row defines a "URL + File name" pair (*File name*). The URL must start with `https://` (otherwise *Each file needs an HTTPS URL.*). The file name must be plain, with no paths or separators — only the characters `^[A-Za-z0-9._-]+$` (otherwise *File names must be plain names like geosite_custom.dat (no paths).*). When a URL is entered, the panel tries to fill in the file name automatically from the last path segment. The "Add file" button (*Add file*) adds a row, and the trash button removes it.
+
+If the list is empty, a hint is shown: *No files configured. Reference files in routing rules as ext:geosite_custom.dat:category.*
+
+#### Saving
+
+The "Save & Restart Xray" button (*Save & Restart Xray*) shows a confirmation *Save geodata settings?* with the explanation *This updates the Xray config template and restarts Xray.* After saving, the `geodata` key is written into the config template (`POST /panel/api/xray/update`) and Xray is restarted (`POST /panel/api/server/restartXrayService`). If the file list is empty, the `geodata` key is removed from the template.
+
+Important specifics:
+
+- **The file must already exist in `bin`.** Xray only updates `.dat` files that are already present in the `bin` folder at startup. So a new custom file is first placed into `bin` manually (or at least an empty/outdated version is created there under the desired name), and only then does Xray keep it up to date on schedule.
+- **Hot reload.** After a scheduled download Xray re-reads the updated databases without a full restart of the process.
+- **Compatibility.** Previously downloaded geo files (both standard and custom) keep working in routing rules with the `ext:` syntax unchanged.
 
 If the list is empty, a hint is displayed: *No custom geo sources yet — click Add to create one*.
 
@@ -4874,7 +5065,7 @@ For **custom** files the external-file syntax `ext:` is used. The hint in the UI
 ext:<file_name.dat>:<tag>
 ```
 
-where `<file_name.dat>` is `geoip_<alias>.dat` or `geosite_<alias>.dat`, and `<tag>` is a specific list/category inside the file. In the "Routing (ext:…)" column the panel suggests a ready-made template like `ext:geosite_myads.dat:tag` — you just need to replace `tag` with the desired tag. The same set of aliases and examples is available via `GET /aliases` (used by the routing editor UI to suggest custom sources alongside the standard `geoip:`/`geosite:`; custom ones are marked with the suffix " (custom)").
+where `<file_name.dat>` is `geoip_<alias>.dat` or `geosite_<alias>.dat`, and `<tag>` is a specific list/category inside the file. In the "Routing (ext:…)" column the panel suggests a ready-made template like `ext:geosite_myads.dat:tag` — you just need to replace `tag` with the desired tag. The name of such a file is set in the "Geodata Auto-Update" section (see §15.3) in the "File name" field — for example `geosite_custom.dat`; rules reference it as `ext:geosite_custom.dat:category`.
 
 **Example: a rule based on a custom file.** If a source of type `geosite` with the alias `myads` has been added, and inside the `.dat` file the list is labeled with the tag `ads`, the routing rule looks like this:
 
@@ -5049,6 +5240,8 @@ The logging parameters of Xray itself are set on the **"Xray Configurations"** p
 
 > Since by default **"Access Log" = `none`**, the "Xray logs" window (section 16.2) is initially empty. To make it work, set an access log path here and restart Xray.
 
+> Note that an empty access log affects only this window. The online-client list on the Dashboard and the IP-count limit in the client form do **not** depend on the access log — the panel detects online clients and counts their IP addresses through the Xray core's online-stats API (connection statistics). On older core versions that lack this API, the panel automatically falls back to the previous method (reading the access log), in which case an access log path here is still required for the IP limit.
+
 **Example: a `log` block that makes the "Xray logs" window show records.** In the Xray JSON configuration it looks like this:
 
 ```json
@@ -5109,6 +5302,8 @@ Starting the update — `POST /panel/api/server/updatePanel`. The confirmation d
 After starting — a pop-up message "Panel update started" (`Panel update started`); on a failed version check — "Panel update check failed" (`Panel update check failed`).
 
 **What happens on the server:** self-update is supported **only on Linux** (on other operating systems it returns the error "panel web update is supported only on Linux installations"). The panel downloads the official `update.sh` script from GitHub (`raw.githubusercontent.com/MHSanaei/3x-ui/main/update.sh`) and runs it in a separate process: preferably via `systemd-run` in a separate unit (`x-ui-web-update-<timestamp>`), and in the absence of systemd — as a separate detached process. Upon completion, the script updates the components and restarts the panel service. Running it requires `bash`.
+
+If the script regenerated a new random web panel base path (Web Base Path) during the update, the `x-ui` service is restarted automatically so that the new path takes effect immediately. (Without the restart, the server would keep serving the old path while the UI shows the new one, leaving the new address unreachable until a manual restart.)
 
 > On nodes, the panel of this same 3x-ui is updated centrally via `POST /panel/api/nodes/updatePanel` — see the section on nodes.
 
@@ -5208,6 +5403,10 @@ All available subcommands:
 | `x-ui uninstall` | Uninstall the panel |
 
 > The `x-ui update` command downloads and runs the official `update.sh` (the same one as the web update from section 16.5), asking for confirmation: "This function will update all x-ui components to the latest version, and the data will not be lost." Upon completion, the panel automatically restarts.
+
+#### Retrieving an API token via the CLI
+
+The CLI API-token command (the `x-ui` menu item/command) does not display a previously issued token. API tokens are stored only as hashes, so an existing token cannot be retrieved in plaintext. If tokens are already configured, the command reports how many there are, advises managing them in the panel (**Settings → API Tokens**, see the section on API tokens), and immediately generates a **new fallback token** with a name of the form `cli-fallback-<timestamp>` and prints it, so the CLI stays useful without opening the interface.
 
 ### 16.8. Uninstalling the Panel
 
