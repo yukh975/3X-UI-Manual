@@ -10,24 +10,8 @@
 
 | Файл | Язык | Формат |
 | --- | --- | --- |
-| **[3X-UI-MANUAL.ru.md](3X-UI-MANUAL.ru.md)** · [PDF](3X-UI-MANUAL.ru.pdf) | 🇷🇺 Русский — **каноничный** | Markdown + PDF |
-| **[3X-UI-MANUAL.md](3X-UI-MANUAL.md)** · [PDF](3X-UI-MANUAL.pdf) | 🇬🇧 Английский — зеркало русского | Markdown + PDF |
-
-16 разделов: установка, inbounds/клиенты, подписки, маршрутизация и балансировщики, DNS, TLS/Reality, узлы, бэкап, безопасность и другое — с практическими примерами. Руководство открывается разделом **«Что нового в 3.3.1»** со сводкой изменений относительно 3.3.0.
-
-## Правки
-
-Каноничная версия — **русская**: сначала меняем `3X-UI-MANUAL.ru.md`, затем переносим изменения в `3X-UI-MANUAL.md`. Держим обе в синхроне.
-
-## PDF
-
-PDF-версии лежат в репозитории рядом с Markdown. После правок пересоберите их:
-
-```bash
-./scripts/build-pdf.sh
-```
-
-Нужен `pandoc` и рендерер — [WeasyPrint](https://weasyprint.org/) (предпочтительно: нумерация страниц; `brew install pango` + `pip install weasyprint`) либо Google Chrome (запасной вариант).
+| **[3X-UI-MANUAL.ru.md](3X-UI-MANUAL.ru.md)** · [PDF](3X-UI-MANUAL.ru.pdf) | 🇷🇺 Русский | Markdown + PDF |
+| **[3X-UI-MANUAL.md](3X-UI-MANUAL.md)** · [PDF](3X-UI-MANUAL.pdf) | 🇬🇧 Английский | Markdown + PDF |
 
 ---
 
