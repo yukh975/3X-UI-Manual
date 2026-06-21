@@ -1,6 +1,6 @@
 # 3X-UI Manual
 
-User manual for the [3x-ui](https://github.com/MHSanaei/3x-ui) panel — a comprehensive, source-free user guide written for panel **v3.3.1**.
+User manual for the [3x-ui](https://github.com/MHSanaei/3x-ui) panel — a comprehensive user guide written for panel **v3.3.1**.
 
 🇷🇺 [Russian version](README.ru.md)
 
@@ -10,7 +10,7 @@ User manual for the [3x-ui](https://github.com/MHSanaei/3x-ui) panel — a compr
 
 | File | Language | Format |
 | --- | --- | --- |
-| **[3X-UI-MANUAL.ru.md](3X-UI-MANUAL.ru.md)** · [PDF](3X-UI-MANUAL.ru.pdf) | 🇷🇺 Russian — **canonical** (edit this first) | Markdown + PDF |
+| **[3X-UI-MANUAL.ru.md](3X-UI-MANUAL.ru.md)** · [PDF](3X-UI-MANUAL.ru.pdf) | 🇷🇺 Russian — **canonical** | Markdown + PDF |
 | **[3X-UI-MANUAL.md](3X-UI-MANUAL.md)** · [PDF](3X-UI-MANUAL.pdf) | 🇬🇧 English — mirror of the Russian manual | Markdown + PDF |
 
 16 sections covering installation, inbounds/clients, subscriptions, routing & balancers, DNS, TLS/Reality, nodes, backup, security and more — with worked examples. The manual opens with a **"What's new in 3.3.1"** section summarizing changes since 3.3.0.
