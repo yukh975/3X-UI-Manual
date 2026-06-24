@@ -12,6 +12,9 @@
 | --- | --- | --- |
 | **[3X-UI-MANUAL.ru.md](3X-UI-MANUAL.ru.md)** · [PDF](pdf/3X-UI-MANUAL.ru.pdf) | 🇷🇺 Русский | Markdown + PDF |
 | **[3X-UI-MANUAL.en.md](3X-UI-MANUAL.en.md)** · [PDF](pdf/3X-UI-MANUAL.en.pdf) | 🇬🇧 Английский | Markdown + PDF |
+| **[3X-UI-MANUAL.uk.md](3X-UI-MANUAL.uk.md)** | 🇺🇦 Українська | Markdown |
+| **[3X-UI-MANUAL.zh-CN.md](3X-UI-MANUAL.zh-CN.md)** | 🇨🇳 简体中文 | Markdown |
+| **[3X-UI-MANUAL.zh-TW.md](3X-UI-MANUAL.zh-TW.md)** | 🇹🇼 繁體中文 | Markdown |
 
 ## Что нового в 3.4.0
 

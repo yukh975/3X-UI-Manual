@@ -12,6 +12,9 @@ User manual for the [3x-ui](https://github.com/MHSanaei/3x-ui) panel — a compr
 | --- | --- | --- |
 | **[3X-UI-MANUAL.ru.md](3X-UI-MANUAL.ru.md)** · [PDF](pdf/3X-UI-MANUAL.ru.pdf) | 🇷🇺 Russian | Markdown + PDF |
 | **[3X-UI-MANUAL.en.md](3X-UI-MANUAL.en.md)** · [PDF](pdf/3X-UI-MANUAL.en.pdf) | 🇬🇧 English | Markdown + PDF |
+| **[3X-UI-MANUAL.uk.md](3X-UI-MANUAL.uk.md)** | 🇺🇦 Українська | Markdown |
+| **[3X-UI-MANUAL.zh-CN.md](3X-UI-MANUAL.zh-CN.md)** | 🇨🇳 简体中文 | Markdown |
+| **[3X-UI-MANUAL.zh-TW.md](3X-UI-MANUAL.zh-TW.md)** | 🇹🇼 繁體中文 | Markdown |
 
 ## What's new in 3.4.0
 
