@@ -13,6 +13,10 @@ User manual for the [3x-ui](https://github.com/MHSanaei/3x-ui) panel — a compr
 | **[3X-UI-MANUAL.ru.md](3X-UI-MANUAL.ru.md)** · [PDF](3X-UI-MANUAL.ru.pdf) | 🇷🇺 Russian | Markdown + PDF |
 | **[3X-UI-MANUAL.md](3X-UI-MANUAL.md)** · [PDF](3X-UI-MANUAL.pdf) | 🇬🇧 English | Markdown + PDF |
 
+## What's new in 3.3.0
+
+**3.3.0 is the first documented version** of the manual. It is the baseline, so there is no change-summary section relative to a previous version — changes in later versions are described on their branches.
+
 ---
 
 © 2026 Yuriy Khachaturian ([yukh.net](https://yukh.net))
