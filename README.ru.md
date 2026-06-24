@@ -98,4 +98,4 @@
 
 ---
 
-© 2026 Yuriy Khachaturian ([yukh.net](https://yukh.net))
+Создано на основании анализа исходных файлов. Yuriy Khachaturian ([yukh.net](https://yukh.net))

@@ -98,4 +98,4 @@ This section briefly lists the user-visible changes in version **3.4.0** relativ
 
 ---
 
-© 2026 Yuriy Khachaturian ([yukh.net](https://yukh.net))
+Created from an analysis of the panel's source files. Yuriy Khachaturian ([yukh.net](https://yukh.net))
