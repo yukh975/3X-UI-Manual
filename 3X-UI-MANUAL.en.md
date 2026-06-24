@@ -1,6 +1,6 @@
 # 3X-UI Panel — User Manual
 
-🇷🇺 [Russian version](3X-UI-MANUAL.ru.md)
+🇬🇧 English · 🇷🇺 [Русский](3X-UI-MANUAL.ru.md)
 
 **3X-UI version: 3.4.0.** This manual is written for and applies to that version. A summary of 3.4.0 changes relative to 3.3.1 is in the ["What's new in 3.4.0"](#whats-new-in-340) section.
 
