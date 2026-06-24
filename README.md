@@ -1,6 +1,6 @@
 # 3X-UI Manual
 
-User manual for the [3x-ui](https://github.com/MHSanaei/3x-ui) panel — a comprehensive user guide written for panel **v3.3.1**.
+User manual for the [3x-ui](https://github.com/MHSanaei/3x-ui) panel — a comprehensive user guide written for panel **v3.4.0**.
 
 🇷🇺 [Russian version](README.ru.md)
 

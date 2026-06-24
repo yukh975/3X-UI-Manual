@@ -2,7 +2,7 @@
 
 🇷🇺 [Russian version](3X-UI-MANUAL.ru.md)
 
-**3X-UI version: 3.4.0.** This manual is written for and applies to that version. Change summaries: ["What's new in 3.4.0"](#whats-new-in-340) (relative to 3.3.1) and ["What's new in 3.3.1"](#whats-new-in-331) (relative to 3.3.0).
+**3X-UI version: 3.4.0.** This manual is written for and applies to that version. A summary of 3.4.0 changes relative to 3.3.1 is in the ["What's new in 3.4.0"](#whats-new-in-340) section.
 
 > A detailed user manual for the **3X-UI** web panel (an Xray-core manager):
 > features, configuration, and operation, with every field and toggle explained.
@@ -12,7 +12,6 @@
 ## Contents
 
 - [What's new in 3.4.0](#whats-new-in-340)
-- [What's new in 3.3.1](#whats-new-in-331)
 - [1. Introduction, requirements, and installation](#1-introduction-requirements-and-installation)
   - [1.1. What 3X-UI is](#11-what-3x-ui-is)
   - [1.2. Supported operating systems and architectures](#12-supported-operating-systems-and-architectures)
@@ -257,11 +256,7 @@ This section briefly lists the user-visible changes in version **3.4.0** relativ
 - **The database backup file name is derived from the server address** — Database backup files are now named after the server address rather than a fixed x-ui.db / x-ui.dump. When downloading from a browser, the name is taken from the panel's address in the address bar; otherwise from the configured web domain; and in its absence, from the public IP (IPv4 first, then IPv6). This makes it easy to tell apart backups from different servers. The extension remains .db for SQLite and .dump for PostgreSQL.
 - **Support for installation and update on IPv6-only hosts** — The installation and update scripts now work correctly on IPv6-only servers: downloading the release and supporting files no longer forces IPv4, so the panel can be installed and updated on a host without an IPv4 address.
 
-## What's new in 3.3.1
-
-This section briefly lists the changes in version **3.3.1** relative to 3.3.0 that are visible to a panel user, grouped by manual section. Details for each feature are in the corresponding section below.
-
-### 1. Introduction, requirements, and installation
+## 1. Introduction, requirements, and installation
 - **XUI_INIT_WEB_BASE_PATH environment variable for the initial web-panel path** — A new XUI_INIT_WEB_BASE_PATH environment variable has been added — it sets the initial URI path of the web panel on first initialization (default "/"). This is convenient for Docker deployments, so the panel path can be set right away. Leading and trailing slashes are added automatically; an empty value is ignored. The variable affects only the initial initialization — afterwards the path is changed in the panel settings or via the CLI.
 
 ### 3. Overview / Dashboard
