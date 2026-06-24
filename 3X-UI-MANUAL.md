@@ -2,7 +2,7 @@
 
 🇷🇺 [Russian version](3X-UI-MANUAL.ru.md)
 
-**3X-UI version: 3.3.1.** This manual is written for and applies to that version. A summary of 3.3.1 changes relative to 3.3.0 is in the ["What's new in 3.3.1"](#whats-new-in-331) section.
+**3X-UI version: 3.4.0.** This manual is written for and applies to that version. Change summaries: ["What's new in 3.4.0"](#whats-new-in-340) (relative to 3.3.1) and ["What's new in 3.3.1"](#whats-new-in-331) (relative to 3.3.0).
 
 > A detailed user manual for the **3X-UI** web panel (an Xray-core manager):
 > features, configuration, and operation, with every field and toggle explained.
@@ -11,6 +11,7 @@
 
 ## Contents
 
+- [What's new in 3.4.0](#whats-new-in-340)
 - [What's new in 3.3.1](#whats-new-in-331)
 - [1. Introduction, requirements, and installation](#1-introduction-requirements-and-installation)
   - [1.1. What 3X-UI is](#11-what-3x-ui-is)
@@ -172,6 +173,89 @@
   - [16.9. The `x-ui migrateDB` Command](#169-the-x-ui-migratedb-command)
 
 ---
+
+## What's new in 3.4.0
+
+This section briefly lists the user-visible changes in version **3.4.0** relative to 3.3.1, grouped by manual section. Details for each feature are in the corresponding section below. (Changes from the previous version are in the ["What's new in 3.3.1"](#whats-new-in-331) section.)
+
+### 3. Overview / Dashboard
+- **System metrics history: new 12h/24h/48h aggregation intervals** — The system metrics history view adds 12h, 24h, and 48h to the averaging intervals — the charts (CPU, RAM, traffic, packets, connections, disk, online, load) can now be viewed over a period of up to two days.
+
+### 4. Inbounds: creation and common parameters
+- **Inbound: warning about a conflict with the reserved Xray API port** — When you create or edit an inbound, the panel no longer lets you occupy the reserved internal Xray API port (62789 on 127.0.0.1 by default): a local TCP inbound on this port on loopback is rejected with a port-conflict error. The restriction does not apply to nodes — they have their own Xray.
+- **Tunnel/TProxy: accepting streamSettings without a security key** — Inbounds of type tunnel/TProxy whose streamSettings do not contain a security block now open and save without a validation error.
+- **Inbounds: Speed column (live speed) in the list** — The inbounds list gains a Speed column showing the current traffic speed (upload/download) for each inbound.
+
+### 5. Protocols
+- **Shadowsocks-2022: regenerating client PSKs when switching to a method with a different key size** — For Shadowsocks-2022: when you switch the encryption method to a method with a different key size (for example between aes-256 and aes-128), client PSKs are now automatically regenerated to the new length when the inbound is saved. Consequence: affected clients need to fetch their subscription again (old links will stop working).
+- **WireGuard: workers field removed** — The workers field has been removed from the WireGuard forms (inbound and outbound): xray-core v26.6.22 no longer uses it. Previously saved configs work unchanged — the field is simply ignored.
+- **VLESS+XHTTP: xtls-rprx-vision flow in links and subscriptions** — For VLESS over XHTTP, the xtls-rprx-vision flow now correctly appears in links and subscriptions (including for XHTTP+REALITY and in the Clash/Mihomo format). Previously the panel saved the flow, but clients received a configuration without vision.
+
+### 6. Transport (Stream Settings)
+- **XHTTP: renaming the sessionID fields + Session ID Table / Length** — In the XHTTP transport the session fields have been renamed: Session ID Placement and Session ID Key (formerly Session Placement / Session Key). Two parameters have been added. Session ID Table — the character set for generating session identifiers: you can choose a predefined one (ALPHABET, Base62, hex, number, etc.) or enter an arbitrary ASCII string; empty means the xray-core default. Session ID Length — the length or range (for example 8-16) of generated identifiers; it is taken into account only when Session ID Table is set, and the minimum must be greater than 0. Old saved inbounds are migrated automatically.
+- **Inbound: Real client IP preset for determining the real IP behind a CDN/relay** — The inbound socket settings (sockopt) gain a Real client IP selector — a preset for determining a visitor's real IP when traffic arrives through a CDN or relay (otherwise the intermediary's address is recorded). Three options are available: Off / direct (no processing), Cloudflare CDN (trust X-Forwarded-For), and L4 relay / Spectrum (PROXY) (accept the PROXY-protocol header). The presets are mutually exclusive and warn you if the selected transport does not support them. These fields are never sent to clients in subscriptions.
+- **gRPC: the Trusted X-Forwarded-For header is now honored** — The Trusted X-Forwarded-For header is now honored on the gRPC transport too (previously only on WebSocket, HTTPUpgrade, and XHTTP). For a gRPC inbound the panel no longer shows a warning about an unsupported header.
+
+### 7. Connection Security: TLS, XTLS, and REALITY
+- **TLS: new Verify Peer Cert By Name, Curve Preferences, Master Key Log, ECH Sockopt fields** — Verify Peer Cert By Name — names (comma-separated) by which the client verifies the server certificate instead of the SNI; a modern replacement for the removed allowInsecure, passed in links and subscriptions, not written to the server. Curve Preferences — restricting and ordering the TLS key-exchange curves (for example X25519MLKEM768, X25519); empty means the defaults. Master Key Log — a path for writing TLS keys (SSLKEYLOGFILE format) for debugging in Wireshark; leave it empty in production. ECH Sockopt — socket parameters for fetching the ECH configuration (dialerProxy, Domain Strategy, TCP Fast Open, Multipath TCP).
+- **REALITY: fallback rate limiting (Limit Fallback) and Master Key Log** — For each direction (Upload and Download) you set: After Bytes — how many bytes to pass at full speed before the limiting starts (0 — limit from the first byte); Bytes Per Sec — the speed cap for fallback traffic, so that probes don't use the server as a free channel (0 — no limit, disables the direction); Burst Bytes Per Sec — headroom for short-lived bursts. A Master Key Log field has also been added (a path to the SSLKEYLOGFILE file for debugging).
+- **TLS: buttons to fill Pinned Peer Cert SHA-256 from the inbound certificate and by SNI** — Next to the Pinned Peer Cert SHA-256 field there are now two autofill buttons instead of the former random-hash button. The first inserts the SHA-256 of the inbound's own certificate. The second fetches the hash of the live server certificate by making a TLS connection to the specified SNI (serverName must be filled in). The fetched hashes are added to the field (comma-separated) and end up in the links to pin the certificate on the client.
+- **TLS: OCSP stapling disabled by default for new inbound certificates** — For new inbounds OCSP stapling is disabled by default (interval 0). This removes errors in the xray logs for certificates without an OCSP responder (for example Let's Encrypt). The field remains — you can enable it for certificates that support stapling.
+- **REALITY: compatibility with the dest field (an alias for target)** — If a REALITY inbound was created with a dest field (by old panel versions, via the API, or by external tools), it now loads correctly: the dest value is placed into the Target field. Previously Target ended up empty, and re-saving broke REALITY.
+
+### 8. Clients
+- **"Links" tab in the client editor (external links and subscriptions)** — On it, the **Add External Link** button adds third-party share links (`vless://`, `vmess://`, `trojan://`, `ss://`, `hysteria2://`, `wireguard://`), and the **Add External Subscription** button adds URLs of remote subscriptions. Everything listed is mixed into this client's subscription output (raw, JSON, and Clash formats): links are added as-is, while remote subscriptions are periodically downloaded by the panel and their configurations are merged with the panel's own.
+- **The "IP Limit" field is now disabled without Fail2ban** — The **IP Limit** field now works only when Fail2ban is installed and active. If Fail2ban is not installed (or the system is Windows, or the feature is disabled on the server), the field in the client editor is locked, and hovering shows a tooltip suggesting you install Fail2ban from the `x-ui` bash menu. When the panel is upgraded, the saved IP limit is reset to zero for clients on servers without Fail2ban, since it was not being enforced there anyway.
+- **Deleting unbound clients, exporting and importing clients** — Three operations have been added to the **More** menu on the **Clients** page. **Export clients** shows a JSON list of all clients (in `{client, inboundIds}` format) with copy and download buttons (`clients-export.json`). **Import clients** accepts the same JSON: clients with bindings are recreated and bound to inbounds, clients without bindings are restored as standalone records, and already-existing emails are not overwritten (they are marked as skipped). **Delete unbound clients** removes all clients not bound to any inbound, along with their traffic, IP log, and external links; the action is irreversible.
+- **Client IP log: connection time and node name** — In the client IP log (the view button next to the "IP Limit" field and in the "Client info" card) each entry now contains, in addition to the IP itself, the time of the last request and the node label (`@ node_name`) through which the connection was recorded — in a multi-panel configuration you can see which node a client connected through.
+- **Resetting a client's group label in the single-client editor** — Now, if you clear the **Group** field in the single-client editor and save, the group label is correctly removed — previously the client could keep appearing under its former group until it was saved again.
+- **The client list refreshes automatically (background polling)** — The client list now refreshes automatically: the panel pulls the current page every few seconds, so newly connected clients and a changed sort order appear without a manual refresh.
+
+### 10. Subscriptions (Subscription)
+- **Managed Hosts: overriding subscription links per host** — Version 3.4.0 adds a Hosts section (a side-menu item). For each inbound you can define one or more Host endpoints that are substituted into the subscription links in place of the inbound's own address, port, and TLS parameters — convenient for serving traffic through a CDN or relay. A host has a Remark and description, a binding to an inbound, an Address (empty — inherits the inbound's address) and Port (0 — inherits the inbound's port), Security parameters (same/tls/none/reality), as well as a Host header, Path, Mux, Sockopt, Final Mask, exclusion from subscription formats (raw/json/clash), and Clash/mihomo parameters. Hosts are ordered within an inbound and support bulk operations.
+- **Remark Template replaced the remark-model builder; {{VAR}} variables** — The former profile-name builder (choosing Inbound/Email/External Proxy and a separator) has been replaced by a "Remark Template" field. In it you write an arbitrary name format, inserting variables with a button: client identification ({{EMAIL}}, {{INBOUND}}, {{HOST}}, {{ID}}, {{SUB_ID}}, {{COMMENT}}, {{TELEGRAM_ID}}), traffic ({{TRAFFIC_USED}}, {{TRAFFIC_LEFT}}, {{TRAFFIC_TOTAL}}, {{UP}}, {{DOWN}}, {{USAGE_PERCENTAGE}}), and term/status ({{DAYS_LEFT}}, {{TIME_LEFT}}, {{EXPIRE_DATE}}, {{JALALI_EXPIRE_DATE}}, {{STATUS}}, {{STATUS_EMOJI}}). The variables are substituted individually for each client when the subscription is generated, and a preview is available. Segments separated by the "|" character that have unlimited values are hidden automatically, and usage and term details are shown only on the client's first link. If the field is left empty, the former remark model is used.
+- **Per-client external links and remote subscriptions (Links tab)** — Here, for an individual client, you can attach third-party share links (Add External Link) and addresses of external subscriptions (Add External Subscription) — they will be included in that client's own subscription (RAW, JSON, and Clash formats). External subscriptions are downloaded by the panel and merged with the client's configurations. This is handy for giving a client extra servers on top of your inbounds.
+- **Happ: hiding server settings in the client (Hide server settings)** — A "Hide server settings" toggle has been added to the Happ tab of the subscription settings. When it is enabled, the Happ client hides the ability to view and change server parameters. The option applies only to the Happ client.
+- **The node name is no longer appended to the profile name in the subscription** — The node (Node) name is no longer appended to the profile name in the subscription. The client app shows only the inbound remark set by the administrator, without an internal suffix of the form "@node-name".
+- **The remark-model label renamed Other → External Proxy (then replaced by the template)** — No separate documentation needed: renaming the remark-model item "Other" to "External Proxy" is subsumed by the move to the new Remark Template field, where the model builder has been removed from the UI.
+- **Subscription link correctness: SS2022, Shadowrocket, SIP002 obfs, XHTTP in Clash** — Compatibility of the generated subscription links has been improved: SS2022 encoding, the Shadowrocket deep-link, Shadowsocks+obfs output in SIP002 format (the obfs-local plugin), and the full set of XHTTP fields in Clash/Mihomo subscriptions have been fixed. No separate settings are required — the links are simply recognized more correctly by clients.
+- **Subscription remark model: the "Other" item renamed to "External Proxy"** — In the subscription settings, in the remark model, the **"Other"** item has been renamed to **"External Proxy"** (the source is the external proxy's remark). The behavior is unchanged, and existing settings remain compatible.
+- **Subscriptions: picking remark variables by clicking chips (Remark variable picker)** — Next to the Remark Template field there is a grouped set of variable chips: clicking a {{VAR}} variable inserts it into the template, and hovering shows a description. In the remark and host-name fields a simplified single-brace notation is also allowed — {DATA_LEFT}, {EXPIRE_DATE}, {PROTOCOL}, {TRANSPORT}, etc.; the panel automatically converts it to the internal {{...}} format.
+
+### 11. Xray: routing, outbounds, DNS, and extensions
+- **Routing and Outbounds moved to separate side-menu items** — Starting with this version, **Outbounds** and **Routing** have been moved to separate side-menu items (right below "Hosts"), each with its own address — `/outbound` and `/routing`. Previously routing opened inside the "Xray configurations" submenu, and outbounds appeared as a tab of the Xray page. The "Xray configurations" submenu now contains only: Basic, Balancer, DNS, and Advanced Template. Direct links to `/outbound` and `/routing` and reloading the page work as expected.
+- **Routing rules can be enabled and disabled with a toggle** — An individual routing rule can now be temporarily **disabled** with a toggle without deleting it. The rules table has an **"Enable"** column with a toggle, and the rule form has an "Enable" field that is also a toggle. A disabled rule is not included in the final Xray configuration. The service statistics rule (`api`) cannot be disabled — its toggle is locked.
+- **Exporting routing rules and outbounds opens in a preview modal** — The **"Export"** button for routing rules and outbounds no longer downloads a file immediately; instead it opens a modal with a JSON preview and **"Copy"** and **"Download"** buttons. On the "Routing" tab, "Import" and "Export" are collected in a **"more"** dropdown (as on the Outbounds tab).
+- **Test all outbounds now also checks outbounds from subscriptions; direct/dns are no longer tested** — The **"Test all"** button on the "Outbounds" page now also checks outbounds obtained from subscriptions (the "from subscriptions" table) — their rows are also highlighted with the result. At the same time, `freedom` ("direct") and `dns` outbounds are no longer tested in any mode (they are not proxies): the test button is unavailable for them, and "Test all" skips them.
+- **FinalMask: per-fragment Lengths/Delays arrays instead of single Length/Delay** — In the fragment mask (FinalMask) the single Length and Delay fields have been replaced by Lengths and Delays lists: for each segment you can set a separate length range (for example 100-200) and a delay in ms (for example 10-20 or 0). Rows can be added and removed; previously saved values are migrated automatically.
+- **Loopback outbound: a Sniffing block added** — The loopback outbound gains a Sniffing block with the same parameters as an inbound: enable, destOverride, Metadata Only, Route Only, and a list of excluded domains.
+- **Hysteria2 / Salamander: Gecko mode (packetSize) and TLS for the Realm mask** — In the UDP mask (FinalMask) for Hysteria2 the capabilities have been extended. The Salamander mask gains a Mode selector: Gecko mode adds random packet padding with Min/Max size fields (from 1 to 2048, default 512-1200) to protect against packet-length analysis. The Realm mask gains an optional TLS Config block: Server Name (SNI), ALPN (h3/h2/http/1.1), Fingerprint, and Allow Insecure.
+- **Importing a share link into an outbound preserves the xmux settings** — When importing an outbound from a share link, the **xmux** (XHTTP) multiplexer settings are now preserved: previously they were silently lost. After import, the values are placed into the XMUX subform.
+- **Tags of outbounds from subscriptions preserve non-ASCII characters (Cyrillic)** — Tags of outbounds obtained from subscriptions now preserve non-ASCII characters (for example Cyrillic) and remain readable, rather than being reduced to digits only.
+
+### 12. Nodes (multi-panel, master/slave)
+- **Nodes: new TLS verification mode — Mutual TLS (client certificate)** — In the node form the TLS verification mode now has four options: Verify (system CA), Pin (pinning the certificate by SHA-256), Skip (no verification), and the new Mutual TLS (client certificate). In Mutual TLS mode the panel additionally authenticates itself to the node with a client certificate issued by its own CA; the API token becomes optional for such a node. To enable mTLS: on the node, set the Mutual TLS mode, copy the managing panel's CA from the Node mTLS section, register it on the node as a trusted parent CA, and restart the node.
+- **Nodes: "Node mTLS" section — copying the panel CA and the trusted parent CA** — The Nodes page adds a Node mTLS section for configuring mutual TLS authentication between panels. The "Copy this panel's CA" button copies the panel's root certificate to the clipboard — it must be passed to the managed nodes that will verify the panel's client certificate. The "Trusted parent CA" field is used when the panel itself is a node: paste the managing panel's CA here to require its client certificate, and restart the panel. Mutual TLS is enabled optionally; if the fields are empty, nodes work the old way — with an API token only.
+- **Routing the panel's outbound connection to a node (Connection outbound)** — The node form gains a **"Connection outbound"** field. If you select an Xray-outbound tag in it, the panel's traffic to that node's API will go through the specified outbound (the panel itself adds a bridge inbound on loopback to the working configuration and applies it without a restart). An empty value = a direct connection. In the list the tags are grouped into "Outbounds" and "Balancers", and blackhole outbounds are hidden.
+- **Nodes: routing panel→node traffic through a selected outbound ("Connection outbound")** — The node form gains a "Connection outbound" field: it lets you route the panel's requests to the node through a selected Xray outbound (regular outbounds and balancers are available). The panel automatically adds a loopback-bridge inbound to the working configuration and applies the changes without a restart. Leave the field empty for a direct connection.
+- **Nodes: deleting a node is blocked while inbounds are bound to it** — A node can be deleted only after all inbounds have been removed from it. If at least one inbound is still bound to the node, the panel will reject the deletion with an error — first detach or delete those inbounds, then delete the node.
+- **Nodes: the nodes page shows live speed for inbounds hosted on a node** — On the Nodes page, for inbounds hosted on a node, online clients, counters, and the current transfer speed are now shown. The "ended" chip counts only expired and traffic-exhausted clients (disabled ones are no longer included in it).
+
+### 14. Telegram Bot
+- **Notifications: new event bus with Telegram and Email (SMTP) channels** — An event-notification system has been added with two delivery channels — Telegram and Email. On the notifications tab the events are grouped into cards: Outbound (down/recovered), Xray Core (crash), Nodes (node unreachable/recovered), System (high CPU and memory load with a configurable threshold in %), Security (login attempt). Each group has a master toggle and a count of selected events. The set of enabled events is configured separately for Telegram and Email; by default "login attempt" and "high CPU load" are enabled.
+- **Notifications: new Email/SMTP channel and SMTP server settings** — A new email-notification channel over SMTP has been added. On the SMTP settings tab you set: enabling email notifications, the SMTP host and port (587 by default), the username, the password (stored hidden), the list of recipients (comma-separated), and the encryption type — none, STARTTLS (default), or TLS. The "Send a test email" button checks the connection and shows at which stage (connection, authentication, sending) an error occurred. On the second tab you select the events that emails will be sent about.
+- **Notifications: high memory load alert (RAM threshold)** — Alongside the high CPU load alerts, a high RAM load alert has been added. The "System" event group gains "Memory high (%)" with its own threshold field (80% by default); the panel checks RAM load once a minute and, when the threshold is exceeded, sends a notification to the selected channels.
+
+### 15. Geo databases (geoip / geosite and custom)
+- **Geo database update: status per file and skipping the restart when nothing changed** — Updating the geo databases (geoip/geosite, including the IR and RU sets) now shows a status per file: updated, already current, or download error. Xray is restarted (and active connections are therefore dropped) only if at least one file was actually updated; when there are no changes, the panel does not restart. The x-ui update-all-geofiles command behaves the same way.
+
+### 16. Operations: Backups, Logs, Updates, CLI
+- **A client's IP limit works only when fail2ban is installed; otherwise the field is locked** — A client's IP-count limit now applies only if fail2ban is installed on the server. If it is not, the "IP Limit" field in the client form and during bulk add becomes unavailable with an explanatory tooltip (on Windows — a separate message), and previously set limits on such servers are automatically reset to zero, since they were not being enforced anyway. The fail2ban block now covers both TCP and UDP.
+- **Automatic fail2ban installation during panel installation and update** — During panel installation and update on a regular server, fail2ban is now installed and configured automatically (previously this happened only in Docker), so that the IP-limit feature works out of the box. The behavior is controlled by the XUI_ENABLE_FAIL2BAN environment variable: configuration is performed if the variable is unset or equals true. A manual run is available with the x-ui setup-fail2ban command; a fail2ban error does not interrupt the installation or update.
+- **Overriding the panel port via the XUI_PORT variable** — An XUI_PORT environment variable has been added that sets the web panel port only for the lifetime of the current process, without changing the stored webPort value in the database. Values from 1 to 65535 are allowed; an empty, invalid, or out-of-range value is ignored (webPort is used) with a warning in the log. When using Docker with a bridge network, the container's published port must match XUI_PORT, for example XUI_PORT=8080 and ports: "8080:8080".
+- **CLI: the -webCert/-webCertKey flags now apply in the setting subcommand** — In the CLI the -webCert and -webCertKey flags now work in the x-ui setting subcommand too (previously they were silently ignored and the panel stayed without HTTPS). By specifying them, you can set the path to the web panel's certificate and key right away, without invoking a separate cert subcommand.
+- **The database backup file name is derived from the server address** — Database backup files are now named after the server address rather than a fixed x-ui.db / x-ui.dump. When downloading from a browser, the name is taken from the panel's address in the address bar; otherwise from the configured web domain; and in its absence, from the public IP (IPv4 first, then IPv6). This makes it easy to tell apart backups from different servers. The extension remains .db for SQLite and .dump for PostgreSQL.
+- **Support for installation and update on IPv6-only hosts** — The installation and update scripts now work correctly on IPv6-only servers: downloading the release and supporting files no longer forces IPv4, so the panel can be installed and updated on a host without an IPv4 address.
 
 ## What's new in 3.3.1
 
@@ -1060,7 +1144,7 @@ The "Download Migration" button (*Download Migration*) calls `GET /getMigration`
 ### 3.15. Additional interface elements
 
 - **Online clients indicator.** The dashboard maintains the `online` series (*Online Clients* / "Online Clients") — the number of clients with an active connection. It is computed while Xray is running (0 otherwise) and recorded into the history on the same 2-second tick. The chart is the "Online" tab.
-- **System History (charts).** The "Charts" button/section → "System History" with tabs: "Bandwidth", "Packets", "Disk I/O", "Online", "Load", "Connections", "Disk Usage". The data is pulled via `GET /history/:metric/:bucket`; the allowed aggregation intervals (bucket, sec) are **2, 30, 60, 120, 180, 300**, and up to 60 points arrive per tab. The allowed metrics are: `cpu, mem, swap, netUp, netDown, pktUp, pktDown, diskRead, diskWrite, diskUsage, tcpCount, udpCount, online, load1, load5, load15`. The label "Last 2 minutes" corresponds to bucket = 2 (real-time mode).
+- **System History (charts).** The "Charts" button/section → "System History" with tabs: "Bandwidth", "Packets", "Disk I/O", "Online", "Load", "Connections", "Disk Usage". The data is pulled via `GET /history/:metric/:bucket`; the allowed aggregation intervals (bucket, sec) are **2, 30, 60, 120, 180, 300, 720, 1440, 2880** (the last three correspond to the **12h**, **24h**, and **48h** presets in the interval selector), and up to 60 points arrive per tab. The metric ring buffer retains data for up to **48 hours**, so the charts (CPU, RAM, traffic, packets, connections, disk, online, load) can be viewed over a period of up to two days. The allowed metrics are: `cpu, mem, swap, netUp, netDown, pktUp, pktDown, diskRead, diskWrite, diskUsage, tcpCount, udpCount, online, load1, load5, load15`. The label "Last 2 minutes" corresponds to bucket = 2 (real-time mode).
 
 **Example.** Fetch the CPU-load series for the last ~2 minutes (bucket = 2 s, up to 60 points) and the same series aggregated over 5 minutes (bucket = 300 s):
 
@@ -1069,7 +1153,7 @@ The "Download Migration" button (*Download Migration*) calls `GET /getMigration`
   curl 'https://panel.example.com:2053/xpanel/history/cpu/300' -b cookie.txt
   ```
 
-  The metric can be replaced with any allowed one (`mem`, `netUp`, `tcpCount`, `load1`, etc.). A bucket outside the list `2, 30, 60, 120, 180, 300` is rejected.
+  The metric can be replaced with any allowed one (`mem`, `netUp`, `tcpCount`, `load1`, etc.). A bucket outside the list `2, 30, 60, 120, 180, 300, 720, 1440, 2880` is rejected.
 - **Xray metrics** — a separate block with Xray's memory consumption and garbage collection (series `xrAlloc, xrSys, xrHeapObjects, xrNumGC, xrPauseNs`) and the "Observatory" (the state of outbound connections). They work only if the `metrics` block is set in the Xray configuration (`listen 127.0.0.1:11111`, tag `metrics_out`); otherwise "Xray metrics endpoint is not configured" is shown.
 
 **Example** of the block that enables the Xray metrics tile. The Xray settings must contain both `metrics` (with a tag) and an inbound that listens on that tag:
@@ -1144,6 +1228,8 @@ The field is required (`required`). The choice of protocol determines which clie
 
 > Important: when saving, the service normalizes `streamSettings`. Transport settings are kept only for the protocols `vmess`, `vless`, `trojan`, `shadowsocks`, `hysteria`; for the others (`http`, `mixed`, `tunnel`, `wireguard`, `tun`) the `streamSettings` field is **forcibly cleared**.
 
+For a `tunnel`/TProxy inbound whose `streamSettings` block carries no `security` key (the transportless variant), the form now opens and saves without the `streamSettings.security Invalid input` validation error.
+
 #### Listen IP
 
 | Parameter | Value |
@@ -1183,6 +1269,8 @@ listen = /run/xray/in.sock   port = 0
 The TCP/UDP listening port. Values from `0` to `65535` are allowed. The value `0` is used only in combination with listening on a Unix socket (see above).
 
 When saving, the service checks for a port conflict: two inbounds cannot simultaneously occupy overlapping `listen:port` for the same transport (TCP/UDP). The transport is derived from the protocol and `streamSettings`/`settings`: for example, `hysteria` and `wireguard` always occupy UDP, `kcp`/`quic` — UDP, and most others — TCP. On a conflict, saving is rejected with an error.
+
+Separately, the panel does not allow occupying the **reserved internal Xray API port** (tag `api`, default `62789` on `127.0.0.1`): a local TCP inbound whose listen address overlaps that port on loopback is rejected with the same port-conflict error. The actual API port is read from the Xray config template (with a fallback of `62789`). On nodes this restriction does not apply — they run their own Xray.
 
 > The Xray tag (`Tag`, unique) is generated automatically from the port and transport in the format `in-<port>-<tcp|udp|tcpudp|any>`; for an inbound deployed on a node, the prefix `n<nodeId>-` is added. On a collision, `-2`, `-3`, etc. is appended to the tag. The user usually does not edit the tag.
 
@@ -1423,6 +1511,8 @@ The following actions are available in the list and in the inbound card (the **"
 
 The inbound's aggregated traffic is displayed: **"Sent/received"** (the `up`/`down` fields), **"Total traffic"**, **"Total connections"**. The card also shows **"Created"**, **"Updated"**, **"Expiry date"**.
 
+The inbounds list has a **Speed** column showing each inbound's current traffic speed (upload/download), computed from the counter deltas between polls; the same live speed is shown in the inbound stats modal. When a poll returns no delta, the speed value is cleared.
+
 In the client summary on the inbounds page, status is determined depleted-first: clients that have expired or exhausted their traffic (and that the auto-job cleared `enable` for) fall into the **"Depleted/Ended"** status rather than the grey **"Disabled"** one, and are not counted twice. The classification matches the one shown in the client's own card and correctly accounts for clients attached to several inbounds.
 
 #### QR code and copying links
@@ -1533,6 +1623,8 @@ Fields of the `settings` block:
 | `xtls-rprx-vision-udp443` | The same Vision, but with UDP/443 (QUIC) handling |
 
 The `flow` field is available for selection only when all of the following conditions are met: protocol `vless`, `network = tcp`, and `security` = `tls` or `reality`. The **Vision testseed** field is shown in the form only under the same conditions.
+
+> XHTTP exception: with VLESS over `network = xhttp` and VLESS post-quantum authentication enabled (`encryption`/`decryption`, vlessenc), the `xtls-rprx-vision` flow is also allowed — regardless of the security layer, including with REALITY. In this case the panel correctly emits `xtls-rprx-vision` into share links and subscriptions (including the Clash/Mihomo format), so the client receives a configuration with Vision.
 
 #### Decryption / Encryption (VLESS post-quantum authentication)
 
@@ -1688,6 +1780,8 @@ The panel's logic by method:
 
 > Normalization before launching Xray: for legacy ciphers, each client must carry a `method` matching the inbound's method (otherwise Xray fails with "unsupported cipher method:"). For 2022 methods, the opposite — the client's `method` field must be **empty** (otherwise Xray rejects the inbound with "users must have empty method"). The panel brings the data into order itself when the method is switched.
 
+> Client-key regeneration on a key-size change: for Shadowsocks-2022, when the encryption method is switched to a method with a different key size (for example, between `2022-blake3-aes-256-gcm` and `2022-blake3-aes-128-gcm`), the panel automatically regenerates the client PSKs to the new length when the inbound is saved. Otherwise the old keys would stay at the previous length and Xray would reject them. Consequence: affected clients must re-subscribe — the old links will stop connecting.
+
 When to choose Shadowsocks: for simple deployments without TLS masquerading; the modern choice is the 2022-blake3 methods.
 
 **Example: a Shadowsocks `settings` block for a 2022-blake3 method (multi-user mode).** The inbound has its own password (a base64 key of the required length), each client has its own password, and the client's `method` field is **empty**:
@@ -1774,7 +1868,6 @@ Fields of the `settings` block:
 | `secretKey` | — | The server's private key (required). A generation button is next to it; the public key is derived automatically (a read-only field) |
 | `mtu` | (optional) | The interface MTU |
 | `noKernelTun` | `false` (off) | "No-kernel TUN" — use a userspace TUN instead of the kernel one |
-| `workers` | (optional) | "Workers" — the number of worker threads |
 | `domainStrategy` | (optional) | "Domain Strategy" — the domain-resolution strategy: `ForceIP`, `ForceIPv4`, `ForceIPv4v6`, `ForceIPv6`, `ForceIPv6v4` |
 | `peers` | `[]` | List of peers |
 
@@ -1793,9 +1886,11 @@ The "Add peer" button generates a new key pair and fills in the next `allowedIPs
 
 The peer "Comment" field helps tell devices apart: its text is shown in the form next to the "Peer N" header and is also inserted into the share link and the `remark` of the generated `.conf` file, so the device is easy to recognize in a client app. This is a panel-level field — xray-core ignores unknown peer fields.
 
-#### Workers, Domain Strategy, and the Transport tab
+#### Domain Strategy and the Transport tab
 
-Besides peers, a WireGuard inbound has the **Workers** field (the number of worker threads) and the **Domain Strategy** field (the domain-resolution strategy: `ForceIP`, `ForceIPv4`, `ForceIPv4v6`, `ForceIPv6`, `ForceIPv6v4`). Both fields are optional and are written to the config only when set.
+Besides peers, a WireGuard inbound has the **Domain Strategy** field (the domain-resolution strategy: `ForceIP`, `ForceIPv4`, `ForceIPv4v6`, `ForceIPv6`, `ForceIPv6v4`). The field is optional and is written to the config only when set.
+
+> The **Workers** field (`workers`, the number of worker threads) has been removed from the WireGuard forms (both inbound and outbound): starting with xray-core v26.6.22 the engine no longer uses it and relies on wireguard-go's internal worker fallback. Previously saved configs keep working unchanged — the field is simply dropped on parse, and no migration is needed.
 
 A **"Transport"** tab is also available for WireGuard — but in a reduced form: it configures only `sockopt` and **Finalmask** obfuscation. The transport (`network`) dropdown is hidden, since WireGuard always listens over UDP. In noise Finalmask entries, a separate **Rand Range** field sets the byte range 0–255 (with validation), and **Salamander** is available as an obfuscation method for WireGuard and Hysteria.
 
@@ -2172,10 +2267,14 @@ The choice of mode determines which additional fields become visible.
 
 | Field | Key | Default | Description |
 | --- | --- | --- | --- |
-| Session Placement | `sessionPlacement` | `""` (Default = path) | Where to carry the session identifier: `path`, `header`, `cookie`, `query` |
-| Session Key | `sessionKey` | `""` (placeholder `x_session`) | The session key name. Appears only if `sessionPlacement` is set and is not equal to `path` |
+| Session ID Placement | `sessionIDPlacement` | `""` (Default = path) | Where to carry the session identifier: `path`, `header`, `cookie`, `query` |
+| Session ID Key | `sessionIDKey` | `""` (placeholder `x_session`) | The session key name. Appears only if `sessionIDPlacement` is set and is not equal to `path` |
+| Session ID Table | `sessionIDTable` | `""` (placeholder `Base62`) | The charset used to generate session identifiers. Pick a predefined one from the autocomplete drop-down (`ALPHABET`, `Alphabet`, `BASE36`, `Base62`, `HEX`, `alphabet`, `base36`, `hex`, `number`) or enter an arbitrary ASCII string. Empty — the xray-core default |
+| Session ID Length | `sessionIDLength` | `""` (empty) | The length or range (for example `8-16`) of the generated identifiers. Shown only when `Session ID Table` is set; the lower bound must be greater than 0 |
 | Sequence Placement | `seqPlacement` | `""` (Default = path) | Where to carry the packet sequence number: `path`, `header`, `cookie`, `query` |
 | Sequence Key | `seqKey` | `""` (placeholder `x_seq`) | The sequence key name. Appears only if `seqPlacement` is set and is not equal to `path` |
+
+The session fields were renamed for xray-core v26.6.22: they were previously called **Session Placement** / **Session Key** (`sessionPlacement` / `sessionKey`) and are now **Session ID Placement** / **Session ID Key** (`sessionIDPlacement` / `sessionIDKey`); the core no longer understands the old names. Inbounds saved before the update are migrated to the new keys automatically — no re-save is needed.
 
 Recommendations:
 - For most setups it is enough to leave **Mode = `auto`**, set **Path**/**Host** and (when working through a CDN) coordinate them with the client.
@@ -2268,6 +2367,20 @@ In addition to the network choice, two common blocks that do not depend on a spe
 
 - **External Proxy** (`externalProxy`) — a list of external addresses/ports that are substituted into subscription links instead of the panel's own address.
 - **Sockopt** (`sockopt`) — low-level socket options (TCP Fast Open, mark, domain strategy, transparent proxying, etc.).
+
+#### Real client IP (recovering the real IP behind a CDN/relay)
+
+When an inbound sits behind an intermediary (a CDN such as Cloudflare, an L4 tunnel/relay, or another panel), Xray sees the intermediary's address rather than the real visitor's. That address is what shows up in the online-clients list and what the per-client IP limit counts against, which makes both useless behind a proxy. To recover the real IP, the **Sockopt** section of the inbound form provides a **Real client IP** preset selector that bundles the `acceptProxyProtocol` and `trustedXForwardedFor` settings:
+
+| Preset | What it does | When to use |
+| --- | --- | --- |
+| **Off / direct** | Clears both fields. | Inbound reachable directly by clients |
+| **Cloudflare CDN** | Sets `sockopt.trustedXForwardedFor = ["CF-Connecting-IP"]`. | WebSocket / HTTPUpgrade / XHTTP / gRPC behind Cloudflare's CDN (orange cloud) |
+| **L4 relay / Spectrum (PROXY)** | Enables `acceptProxyProtocol = true`. | An L4 tunnel/relay in front of the inbound, or Cloudflare **Spectrum** |
+
+The presets are mutually exclusive: choosing one clears the other field, so a stale `trustedXForwardedFor` cannot override the PROXY-protocol-recovered IP. The raw **Proxy Protocol** switch and **Trusted X-Forwarded-For** list stay visible below the preset selector — the preset just fills them in for you, and you can edit them manually if needed. If the selected preset is not supported by the current transport (for example, the PROXY protocol on mKCP), the form shows a warning. These fields apply to the server side only and are **never sent to clients in subscriptions**.
+
+> **Use one, not both.** `acceptProxyProtocol` reads the real IP from the L4 PROXY-protocol header, while `trustedXForwardedFor` reads it from an HTTP request header; mix them by hand only if your upstream chain requires it.
 - **FinalMask** (`finalmask`) — a common transport-layer obfuscation mechanism (including legacy mKCP obfuscation) that has replaced the separate "seed"/"header type" fields inside the network sub-forms.
 
 ---
@@ -2357,6 +2470,19 @@ Available **Cipher Suites** values (TLS 1.3 and ECDHE suites): `TLS_AES_128_GCM_
 | **Disable System Root** (`disableSystemRoot`) | off (`false`) | Disables the use of the system store of trusted root certificates. |
 | **Session resumption** (`enableSessionResumption`) | off (`false`) | Enables TLS session resumption (session resumption / session tickets). |
 
+#### Additional TLS parameters (vcn, curves, key log, ECH Sockopt)
+
+Below the main TLS settings, additional fields are available.
+
+| Field (label) | Default | Description |
+|----------------|--------------|----------|
+| **Verify Peer Cert By Name** (`settings.verifyPeerCertByName`) | `""` | Names (comma-separated) the client verifies the server certificate against instead of the SNI. This is the modern replacement for `allowInsecure`, which Xray removed after 2026-06-01. The value is panel-only: it is not written to the xray server config but is carried into invite links and subscriptions (`vcn=…`) so the client applies it itself. Placeholder: `example.com`. |
+| **Curve Preferences** (`curvePreferences`) | `""` | Restricts and orders the TLS key-exchange curves the server offers, in preference order (e.g. `X25519MLKEM768`, `X25519`). Empty — Xray-core defaults are used. |
+| **Master Key Log** (`masterKeyLog`) | `""` | Path to write TLS master keys in `SSLKEYLOGFILE` format (for decrypting traffic in Wireshark while debugging). Placeholder: `/path/to/sslkeylog.txt`. Leave empty in production — the file lets anyone decrypt all traffic. |
+| **ECH Sockopt** (`echSockopt`) | off | A toggle with socket options for the connection Xray uses to fetch the ECH config list. When enabled, the following are available: **Dialer Proxy** (`dialerProxy` — route the lookup through a given outbound by tag), **Domain Strategy** (`domainStrategy`), **TCP Fast Open** (`tcpFastOpen`), **Multipath TCP** (`tcpMptcp`). Leave disabled unless needed. |
+
+The `verifyPeerCertByName`, `curvePreferences`, `masterKeyLog`, and `echSockopt` fields sit at the top level of `tlsSettings` and survive the panel-only settings strip when the configuration is saved.
+
 #### Certificates
 
 The **SSL certificate** section (the UI heading is "SSL certificate") is defined as a list: the **+** button adds a new certificate entry, the **− Delete** button removes one (the delete button is available only if there is more than one entry). By default, one empty entry is created when TLS is enabled.
@@ -2378,7 +2504,7 @@ Additional fields of each certificate entry:
 
 | Field | Default | Description |
 |------|--------------|----------|
-| **OCSP Stapling** (`ocspStapling`) | `3600` (sec.) | The OCSP stapling refresh interval in seconds (minimum `0`). |
+| **OCSP Stapling** (`ocspStapling`) | `0` (off) | The OCSP stapling refresh interval in seconds (minimum `0`). For new inbounds it is off by default (`0`): this removes errors in the xray logs for certificates without an OCSP responder (for example, Let's Encrypt, which dropped OCSP). Enable it only for certificates that support stapling. |
 | **One-time loading** (`oneTimeLoading`) | off (`false`) | If enabled, the certificate is read from disk once at startup and is not re-read when the file changes. |
 | **Usage option** (`usage`) | `encipherment` | The certificate's purpose. Permitted: `encipherment` (encryption — a regular server certificate), `verify` (verification), `issue` (issuance — the server signs/issues certificates itself). |
 | **Build Chain** (`buildChain`) | off (`false`) | Shown **only** when `usage = issue`. Build up the certificate chain. |
@@ -2394,7 +2520,11 @@ Additional fields of each certificate entry:
 | **Peer certificate SHA-256** (`settings.pinnedPeerCertSha256`) | `[]` | SHA-256 hashes of the peer certificate (hex strings, comma-separated). Verbatim hint: "*SHA-256 hashes of the peer certificate as a hexadecimal string (e.g. e8e2d3…), comma-separated. Panel-only — not written to the xray server config, but included in invite links so that clients can pin the certificate.*" |
 
 Buttons:
-- **Generate random hash** (the refresh icon next to the hash field) — adds a random 32-byte hex hash to the list (generated in the browser).
+Next to the **Peer certificate SHA-256** field there are two auto-fill buttons:
+- **Fill from this inbound's certificate** (shield icon) — substitutes the SHA-256 hash of this inbound's own certificate (taken locally via the `getCertHash` endpoint).
+- **Fetch the hash by pinging the SNI (xray tls ping)** (download icon) — obtains the hash of the server's live certificate by making a TLS connection to the specified SNI (the server calls `getRemoteCertHash`). The **SNI** (`serverName`) field must be filled in — otherwise the hint "*Set the SNI (serverName) first to ping the remote certificate.*" is shown.
+
+The obtained hashes are added to the field (comma-separated) and included in invite links so the client can pin the certificate.
 - **Get a new ECH certificate** — requests a new ECH pair from the server for the current SNI (`POST /panel/api/server/getNewEchCert`, on the server `xray tls ech --serverName <SNI>` is executed); fills the **ECH key** and **ECH config** fields.
 - **Clear** — clears both ECH fields.
 
@@ -2441,7 +2571,7 @@ Fields of the `realitySettings` block. REALITY does not use an SSL certificate: 
 }
 ```
 
-Here the panel's **Target** (`target`) field corresponds to `dest` in the final Xray config.
+Here the panel's **Target** (`target`) field corresponds to `dest` in the final Xray config. If a REALITY inbound was created with its destination in the `dest` key (by older panel versions, via the API, or by external tools), the panel normalizes `dest` → `target` while parsing when `target` is empty — so such an inbound loads correctly, the **Target** field is not left empty, and re-saving does not break a working REALITY.
 
 #### REALITY keys (X25519)
 
@@ -2476,6 +2606,18 @@ An additional (optional) layer of REALITY post-quantum authentication:
 Buttons:
 - **Get a new Seed** — requests a new pair (`GET /panel/api/server/getNewmldsa65`; on the server `xray mldsa65` is executed), fills the **mldsa65 Seed** and **mldsa65 Verify**.
 - **Clear** — clears both fields.
+
+#### REALITY fallback rate limiting and key log
+
+The REALITY settings offer rate limiting of the fallback traffic — it prevents active probes from using the server as free bandwidth to the borrowed domain. The limit is configured separately for two directions — **Limit Fallback Upload** and **Limit Fallback Download** (`limitFallbackUpload` / `limitFallbackDownload`), each with the same set of fields:
+
+| Field (label) | Default | Description |
+|----------------|--------------|----------|
+| **After Bytes** (`afterBytes`) | `0` | How many bytes to let through at full speed before throttling begins. `0` — throttle from the first byte. |
+| **Bytes Per Sec** (`bytesPerSec`) | `0` | The fallback-traffic speed cap in bytes per second after the threshold. `0` — no limit (disables this direction). |
+| **Burst Bytes Per Sec** (`burstBytesPerSec`) | `0` | An allowance for short bursts above the steady rate (token-bucket size). If lower than **Bytes Per Sec**, it is raised to match. |
+
+A **Master Key Log** (`masterKeyLog`) field is also added here — a path to write TLS master keys in `SSLKEYLOGFILE` format for debugging with Wireshark; leave it empty in production.
 
 ### 7.5. Practical configuration recommendations
 
@@ -2565,9 +2707,11 @@ If the inbound does not support XTLS flow, the configured flow is **silently cle
 
 **IP limit** (field `limitIp`) is the maximum number of **distinct IP addresses** from which the client may be connected simultaneously. The default value is `0`, which means **no limit**. With a positive value, the panel tracks the client's active IPs and, when the limit is exceeded, disables the account via a background job. (Starting with **3.3.1**, IP counting goes through the Xray core's online-stats API and **does not require** the access log; on older core versions the panel falls back to reading the access log, which must then be enabled.) Use it to prevent sharing a single subscription across many devices: for example, `2` allows two devices.
 
+The IP limit is enforced through **Fail2ban**, so the **IP limit** field is active only when Fail2ban is installed and usable (the panel checks its status via `GET /panel/api/server/fail2banStatus`). If Fail2ban is not installed, the field in the client editor (and in the bulk-add form) is disabled, and a hover tooltip offers to install Fail2ban from the `x-ui` bash menu ("Fail2ban is not installed, so the IP limit cannot be enforced. Install Fail2ban from the x-ui bash menu to enable this option."); on Windows the tooltip reports that Fail2ban is unavailable there ("Fail2ban is not available on Windows, so the IP limit cannot be enforced."), and if the feature is disabled on the server — "The IP limit feature is disabled on this server.". When the panel is upgraded, the saved IP limit of clients on hosts without Fail2ban is zeroed by a one-time migration, since it never applied there.
+
 **Example values.** `limitIp: 0` — no limit; `limitIp: 1` — strictly one device at a time; `limitIp: 3` — up to three distinct IPs. On the fourth active IP the background job disables the client (`enable = false`) until you run **Reset IP limit**.
 
-Related operations: **IP log** shows the list of recorded client IPs (with timestamps, if available); **Reset IP limit** clears the accumulated IP log so the client can connect again without waiting for the records to expire naturally.
+Related operations: **IP log** shows the list of recorded client IPs; each entry now carries, besides the IP itself, the time of the last access and a node label (`@ node-name`) for the node through which the connection was recorded — in a multi-panel setup you can see which node the client connected through. **Reset IP limit** clears the accumulated IP log so the client can connect again without waiting for the records to expire naturally.
 
 #### Total up/down (GB) — traffic quota
 
@@ -2604,9 +2748,17 @@ An important consequence: clients with `reset > 0` are **excluded** from the not
 
 Without a `subId`, the subscription link is unavailable for the client ("This client has no subId, the share link is unavailable.").
 
+#### Links tab (external links and subscriptions)
+
+In addition to the **Basic** and **Config** tabs, the client editor has a third **Links** tab (tooltip: "Add third-party share links and remote subscription URLs to include in this client's subscription."). On it, the **Add External Link** button adds third-party share links (`vless://`, `vmess://`, `trojan://`, `ss://`, `hysteria2://`, `wireguard://`), and the **Add External Subscription** button adds remote subscription URLs (for example, `https://provider.example/sub/…`).
+
+All of these are merged into this client's subscription output (the raw, JSON, and Clash formats): the links are inserted as-is, while the remote subscriptions are fetched periodically (with a cache and a short timeout) and their configurations are merged with the client's own. This lets a single client subscription link serve external configurations alongside your own servers.
+
 #### Group
 
 **Group** (field `group`) is a logical label for grouping related clients. Tooltip: "A logical label for grouping related clients (e.g., team, customer, region). Filterable from the toolbar.", placeholder — "e.g., customer-a". The field is optional (empty by default). You can filter the list and run bulk operations by group; to clear a client's label, use the **Ungroup** action.
+
+A group can also be removed right in the single-client editor: if you clear the **Group** field and save, the label is properly removed and the client no longer appears under its former group.
 
 #### Comment
 
@@ -2677,9 +2829,19 @@ In the client list you can select several records (**Select all**, **Clear all**
 - **Reset all clients' traffic** (`POST /resetAllTraffics`) — zeroes the `up`/`down` counters of **all** panel clients. Confirmation: "Reset all clients' traffic?" and "The upload/download counters of all clients are reset to zero. Quotas and expiry are not affected. This action cannot be undone.". Toast: "All clients' traffic reset".
 - **Delete depleted** (`POST /delDepleted`) — deletes all clients whose **quota is depleted** (`total > 0 and up + down >= total`) **or whose expiry has passed** (`expiry_time > 0 and expiry_time <= now`), provided `reset = 0` (clients with auto-renew are left untouched). Confirmation: "Delete depleted clients?", "All clients whose traffic quota is depleted or whose expiry has passed are deleted. This action cannot be undone.". Toast: "Depleted clients deleted: {count}".
 
+#### Exporting, importing, and deleting unattached clients
+
+When nothing is selected, the **More** menu on the **Clients** page offers three operations.
+
+**Export clients** (`GET /clients/export`) opens a viewer with a JSON list of all clients in the `{client, inboundIds}` format, with copy and download buttons (the file `clients-export.json`). **Import clients** (`POST /clients/import`) opens an editor into which you paste the same JSON and press **Import**: clients with `inboundIds` are created and attached to inbounds, clients without bindings are restored as standalone "bare" records, and already-existing emails are **never overwritten** — they go to the skipped list. Toasts: "{count} clients imported", "{ok} imported, {failed} skipped".
+
+**Delete unattached clients** (`POST /clients/delOrphans`) is a dangerous operation: it deletes every client not attached to any inbound, together with its traffic record, IP log, and external links. Confirmation: "Delete clients without an inbound?", "Removes every client that is not attached to any inbound, along with its traffic record. This cannot be undone.". Toast: "{count} unattached clients deleted". The action cannot be undone.
+
 ### 8.5. Search, filters, and sorting
 
 Above the list there is a search box ("Search email, comment, sub ID, UUID, password, auth…") — it searches by email, comment, subId, UUID, password, and auth. Results counter: "Showing {shown} of {total}".
+
+The client list refreshes automatically: every few seconds the panel re-fetches the current page, so newly connected clients and a changed sort order appear without a manual refresh (the loading indicator does not flicker during the background poll).
 
 The **Client filter** panel lets you select by status (category), protocol, attached inbound, expiry range, used-traffic range, presence of auto-renew (**Has/None**), presence of a Telegram ID and a comment, as well as by group. On panels that have nodes, a **Nodes** multi-select appears: you can narrow the list to clients of the selected nodes; a separate **Local panel** entry selects clients of inbounds not attached to any node (the filter is shown only when nodes exist). Sorting: **Oldest/Newest first**, **Recently updated**, **Recently online**, **Email A→Z / Z→A**, **Most traffic**, **Highest remaining**, **Expiring soonest**.
 
@@ -3021,6 +3183,15 @@ Inbound 2 (Trojan): email = ivan@vpn,  subId = ivan2025
 
 Then at `https://sub.example.com:2096/sub/ivan2025` the panel will serve both configurations at once. If you add a third inbound later with the same `subId`, it appears for the user on the next automatic subscription refresh, without sending a new link.
 - If a client's `subId` field is empty, you cannot share a public-access link. The UI indicates this with the hint: "This client has no subId, the sharing link is unavailable."
+
+#### Per-client external links and subscriptions (the "Links" tab)
+
+The client form has a **"Links"** tab where, for an individual client, you can attach extra configuration sources that are merged into that client's own subscription (the RAW, JSON, and Clash formats):
+
+- **Add External Link** — a third-party share link (`vless://`, `trojan://`, `ss://`, etc.). It is added to the output as is, and for JSON/Clash it is additionally parsed into a configuration.
+- **Add External Subscription** — the address of an external subscription. The panel downloads it itself (with caching and a short timeout) and merges the resulting configurations into the client's common list.
+
+This is convenient for handing a client extra servers on top of your own inbounds through the same single link. If a remote subscription's response is too large, it is no longer silently truncated: the panel returns an error and keeps using the last successfully cached value.
 - The `subId` value cannot be set arbitrarily: on save it is checked that it contains no spaces, no `/`, `\`, or control characters. The corresponding validation hint: "Subscription ID cannot contain spaces, '/', '\' or control characters".
 
 The final link is built as `<base>/<subPath>/<subId>` (see the section on subscription server settings and the "Reverse proxy URI" field). If no client is found for the `subId` (the client was deleted, the `subId` does not exist), the server returns HTTP 404 with no body. On an internal error — HTTP 500. VPN clients rely solely on the response code, so the error body is intentionally empty.
@@ -3073,7 +3244,23 @@ The value is passed to the client in the `Profile-Update-Interval` HTTP header; 
 | Encode | `subEncrypt` | `true` | Hint: "Encrypt the configs returned in the subscription". Technically this is not encryption but **Base64 encoding** of the entire body of an ordinary subscription (the format that most clients expect). When disabled, the links are served as plain text, one per line. |
 | Show usage info | `subShowInfo` | `true` | Hint: "Show the remaining traffic and the expiry date after the config name". When enabled, markers for remaining traffic (📊) and expiry term (e.g. `5D,3H⏳`) are appended to the name (remark) of each configuration; for an expired/unavailable client, `⛔️N/A` is shown. |
 | Include Email in remark | `subEmailInRemark` | `true` | Hint: "Include the client's email in the subscription profile name.". Adds the client's email to the profile remark. |
-| Remark model and separator character | `remarkModel` | `-ieo` | Defines which parts and in what order form the displayed name (remark) of each configuration, as well as the separator character. The letters encode the component parts (e.g. inbound, email, etc.), and the first character is the separator. A "Remark example" is shown next to it. |
+
+#### Remark Template
+
+The displayed name (remark) of each configuration in the subscription is built from a **remark template** — the **"Remark Template"** field (`remarkTemplate`) on the **"Information"** tab of the subscription settings. The former remark-model builder (separately choosing inbound/email/external proxy parts and a separator character) is removed from the UI; you now write a free-form name format and insert variables into it. The default value is `{{INBOUND}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D`. If the field is left empty, the former (no longer UI-configurable) remark model is used.
+
+The variables are grouped into **Client**, **Traffic**, and **Time & status** sections and shown next to the field as clickable `{{VAR}}` chips with a hover hint; clicking inserts the token into the template, and a live preview is available. Each variable is substituted per client at the moment the subscription is generated. A simplified single-bracket form is also accepted (`{DATA_LEFT}`, `{EXPIRE_DATE}`, `{PROTOCOL}`, `{TRANSPORT}`, etc.) — the panel normalizes it to the internal `{{...}}` format itself.
+
+The available variables are:
+
+- **Client identification:** `{{EMAIL}}`, `{{INBOUND}}` (the inbound's own remark), `{{HOST}}` (host remark), `{{ID}}` (UUID), `{{SHORT_ID}}` (the first 8 characters of the UUID), `{{SUB_ID}}`, `{{COMMENT}}`, `{{TELEGRAM_ID}}`, `{{PROTOCOL}}`, `{{TRANSPORT}}`.
+- **Traffic:** `{{TRAFFIC_USED}}`, `{{TRAFFIC_LEFT}}`, `{{TRAFFIC_TOTAL}}` (and their `*_BYTES` variants in exact bytes), `{{UP}}`, `{{DOWN}}`, `{{USAGE_PERCENTAGE}}`.
+- **Term and status:** `{{DAYS_LEFT}}`, `{{TIME_LEFT}}`, `{{EXPIRE_DATE}}` (`YYYY-MM-DD`), `{{JALALI_EXPIRE_DATE}}` (the date in the Jalali calendar), `{{EXPIRE_UNIX}}`, `{{CREATED_UNIX}}`, `{{RESET_DAYS}}`, `{{STATUS}}` (active / expired / disabled / depleted), `{{STATUS_EMOJI}}`.
+
+The template can be split into segments with a vertical bar `|`. A segment in which a variable yields an "unlimited" value (`∞`) — for example `{{TRAFFIC_LEFT}}` or `{{DAYS_LEFT}}` for a client with no limits — is hidden automatically. In addition, the traffic-usage and term block is shown once, on the client's first link, so it is not duplicated across every configuration.
+
+**Example.** The template `{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D` produces, for a client with 42 GB left and 7 days, a name like `ivan@vpn 📊42.00GB ⏳7D`, and for an unlimited client simply `ivan@vpn` (the `∞` segments are dropped).
+| Remark Template | `remarkTemplate` | `{{INBOUND}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D` | A free-form template for the displayed name (remark) of each configuration, with `{{VAR}}` token substitution. It is rendered per client when the subscription is generated. The former "remark model" builder (choosing inbound/email/external proxy parts and a separator) is removed from the UI and is used only as a fallback if the field is left empty. See "Remark Template" below for details. |
 
 #### Profile metadata (response headers)
 
@@ -3094,6 +3281,8 @@ In addition, each response carries the `Subscription-Userinfo` header with the c
 |---|---|---|---|
 | Enable routing | `subEnableRouting` | `false` | "A global setting to enable routing in the VPN client. (Happ only)". Passed in the `Routing-Enable` header. |
 | Routing rules | `subRoutingRules` | empty | "Global routing rules for the VPN client. (Happ only)". Passed in the `Routing` header. |
+
+| Hide server settings | `subHideSettings` | `false` | "Hide server settings in the subscription (Happ only)". When enabled, the Happ client hides the ability to view and edit the server configuration. The option applies to the Happ client only. |
 
 #### Reverse proxy URI
 
@@ -3121,9 +3310,23 @@ A subscription can be served in three independent formats, each with its own end
 
 The server address in subscription links is substituted using the same share-address strategy as the panel's ordinary links and QR codes: "listen" — a routable bind address, "custom" — the configured user address (`shareAddr`), "node" (the default) — the node's address. For inbounds with no explicitly set strategy, the subscription output is unchanged. This lets a node-hosted inbound bound to a specific public IP advertise a reachable address to clients. The strategy applies to the raw, JSON, and Clash formats.
 
-For an inbound hosted on a node, the node name is automatically appended to the name (remark) in the subscription via "@" (e.g. `my-inbound@node1`), unless the admin already included it. This removes the situation where, in a multi-node subscription, several identically-named entries differed only by address.
+The node (Node) name is not appended to the profile name (remark) in the subscription: the client app shows only the inbound remark set by the admin, without an internal `@node-name` suffix. To distinguish identically-named entries in a multi-node subscription, give them different remarks manually or use managed hosts (Hosts) with their own Remark.
 
 If, due to drift between nodes, the same client ended up twice in an inbound's internal JSON, the subscription output automatically removes such duplicates by email in all three formats, so repeated profiles no longer appear in the output.
+
+#### Managed hosts (Hosts)
+
+The **Hosts** section (a side-menu item; a summary page with Total/Enabled/Disabled counts and a list) defines address overrides for subscription links. For each inbound you can add one or more **hosts** — endpoints that are substituted into the subscription links served to the client **instead of the address, port, and TLS parameters of the inbound itself**. This is convenient for serving traffic through a CDN or relay without changing the inbound itself.
+
+Each host has:
+
+- **Remark** and a Description, a binding to a specific **Inbound**, an **Enable** toggle, and assignment to nodes (**Nodes**).
+- **Address** (empty — the inbound's address is inherited) and **Port** (`0` — the inbound's port is inherited); **Tags** (honored in the RAW subscription only).
+- A **Security** tab — `same` / `tls` / `none` / `reality` with SNI, fingerprint, ALPN, a pinned certificate, `allowInsecure`, and ECH.
+- An **Advanced** tab — Host header, Path, VLESS route, Mux, Sockopt, Final Mask, and excluding the host from individual subscription formats (raw / json / clash).
+- A **Clash (mihomo)** tab — IP version, Mihomo X25519, and Shuffle host.
+
+Hosts are ordered within their inbound and support bulk enable, disable, and delete. Managed hosts supersede the former External Proxy array.
 
 #### Ordinary links (SUB) — Base64 / plain text
 
@@ -3163,6 +3366,8 @@ The `subClashPath` endpoint (default `/clash/`), enabled by a separate checkbox.
 | Global routing rules | `subClashRules` | empty | "Clash/Mihomo rules added at the beginning of each YAML subscription before MATCH,PROXY.". |
 
 The response is served with the type `application/yaml; charset=utf-8`. If the "Subscription title" (`subTitle`) is set, it is also passed in the `Content-Disposition` header (`attachment; filename*=UTF-8''<title>`), so that the Clash client names the imported profile with this name.
+
+The format of the generated links and YAML is kept current for modern clients: Shadowsocks-2022 (SS2022) no longer Base64-encodes the userinfo; Shadowsocks links with http obfuscation are emitted in the SIP002 format with the `obfs-local` plugin; and the Clash/Mihomo subscriptions implement the full set of XHTTP fields. None of this requires any settings — the links are simply recognized more correctly by clients.
 
 > Note: this build supports exactly three formats — ordinary links (Base64/text), JSON (sing-box-compatible), and Clash/Mihomo (YAML). There is no separate Outline format in the subscription server.
 
@@ -3308,6 +3513,10 @@ The **"Xray Settings"** section is the editor for the Xray-core configuration te
 
 > Important: the template value is stored in the database under the key `xrayTemplateConfig`. On save, the panel runs it through a series of automatic transformations (see [11.10](#1110-saving-restart-and-automatic-transformations)). Any syntactically invalid JSON is rejected with the error *"xray template config invalid"*.
 
+#### Menu location: "Outbounds" and "Routing"
+
+**Outbounds** and **Routing** are separate sidebar items (right below "Hosts", above "Panel settings"), each with its own address: `/outbound` and `/routing`. Direct links to these pages and a page reload work as expected. The **"Xray configurations"** submenu then keeps only: Basic, Balancer, DNS, and Advanced template. In the descriptions below, [11.3](#113-routing-rules-routing) and [11.4](#114-outbounds-outgoing-connections) correspond to the "Routing" and "Outbounds" pages.
+
 ### 11.1. Editor layout: tabs/modes
 
 The editor offers several modes for displaying the template (filters over the JSON sections):
@@ -3398,11 +3607,19 @@ The `routing.rules` list. **Order is critical** (*"The priority of each rule mat
 
 Each rule has `type: "field"`. Buttons: **Add rule**, **Edit rule**. Hint for the list fields: *"Comma-separated items"*.
 
+On the "Routing" page the **"Import rules"** and **"Export rules"** buttons are collapsed into a **"more"** dropdown menu — just as on the "Outbounds" page. The **"Export rules"** button no longer downloads a file immediately; it opens a modal with a JSON preview and **"Copy"** and **"Download"** buttons, so you can review the content before saving. Exporting outbounds on the "Outbounds" page works the same way.
+
 #### Route Tester
 
 The Routing tab has a **Route Tester** sub-tab that asks the running Xray which outbound would handle a specific connection, without sending any real traffic. Enter a domain or IP, a port, the network (TCP/UDP) and, optionally, an inbound and the sniffed protocol (`http`/`tls`/`quic`/`bittorrent`), then press **Test Route**. The decision is taken straight from the live routing engine.
 
 The result shows the selected outbound and, when a balancer is involved, its balancer tag as well. If no rule matched, the tester reports that the traffic goes to the default outbound (the first one in the `outbounds` list). This is handy for verifying rule order before relying on it.
+
+#### Enabling and disabling an individual rule
+
+An individual routing rule can be temporarily **disabled** with a switch, without deleting it. The rules table has an **"Enable"** column with a switch, and in the rule form the **"Enable"** field is a switch as well. A disabled rule is excluded from the final Xray configuration but is kept in the template and can be re-enabled at any time.
+
+The statistics service rule (`inboundTag: ["api"] → outboundTag: "api"`) cannot be disabled — its switch is locked, so the panel's traffic accounting is not broken (see [11.10](#1110-saving-restart-and-automatic-transformations)).
 
 #### Rule form fields
 
@@ -3494,6 +3711,10 @@ The protocols supported by the form:
 - **`wireguard`** — `settings.peers[]` with `endpoint`, plus keys (see [11.7](#117-wireguard--warp--nordvpn)).
 - **`hysteria`** — `settings.address`/`settings.port` (UDP transport).
 
+The **loopback** outbound type has a **Sniffing** block with the same parameters as an inbound: the enable toggle, **destOverride**, **Metadata Only**, **Route Only**, and a list of **excluded domains**.
+
+In the **UDP** mask (FinalMask) for **Hysteria2**, additional modes are available. The **Salamander** mask has a **Mode** selector with the values **Salamander** and **Gecko**: Gecko mode adds random packet padding with **Min**/**Max** size fields (`packetSize`, range 1–2048, default 512–1200) to protect against fingerprinting by packet length. The **Realm** mask (UDP hole-punching) gains an optional **TLS Config** block with **Server Name** (SNI), **ALPN** (`h3`/`h2`/`http/1.1`), **Fingerprint** (uTLS), and an **Allow Insecure** toggle.
+
 **Example: a chain through an upstream SOCKS.** The `upstream` outbound dials an external SOCKS5 proxy, and `chained` sends its traffic through it (`dialerProxy`), forming a chain. In `outbounds`:
 
 ```json
@@ -3517,6 +3738,10 @@ The protocols supported by the form:
 
 Now a routing rule with `outboundTag: "chained"` will egress to the internet through `upstream`.
 
+#### Importing an outbound from a share link
+
+An outbound can be imported from a share link (`vless://`, `vmess://`, etc.). On import, the **xmux** (XHTTP) multiplexer settings carried in the link's `extra=` block are preserved too: after import their values are filled into the outbound's **XMUX** sub-form.
+
 #### Mux fields (multiplexing)
 
 **Max concurrency**, **Max connections**, **Max reuse times**, **Max request times**, **Max reusable seconds**, **Keep alive period**. These parameters configure the outbound's mux/XUDP behavior.
@@ -3535,6 +3760,10 @@ For a freedom outbound, the **Final rules** group is available:
 | `action` | **Action** | `allow` (as in the reference template: `finalRules: [{action: "allow"}]`), `redirect` (**Redirect**), or others. |
 | `blockDelay` | **Block delay (ms)** | The delay before dropping the connection. |
 | `redirect` / `fragment` | **Redirect** / **Fragment** | Traffic redirection and fragmentation actions. |
+
+#### The fragment mask: per-fragment Lengths and Delays
+
+In the **fragment** mask (the fragment type in FinalMask, for TCP), the single Length and Delay fields are replaced with **Lengths** and **Delays** lists: for each segment you can set a separate length range (for example `100-200`) and a delay in milliseconds (for example `10-20` or `0`). List rows can be added and removed; previously saved single values are migrated into a one-element array automatically.
 
 #### Other form fields
 
@@ -3555,7 +3784,7 @@ Two modes (hint: *"TCP: a fast dial-only probe. HTTP: a full request through xra
 
 #### Batched testing and per-stage breakdown
 
-In HTTP mode, **Test** and **Test all** bring up a single shared temporary Xray instance per batch of outbounds, create a loopback SOCKS inbound with a rule for each one, and send a real HTTP request through each in parallel; **Test all** checks outbounds in batches. Besides success/failure, the result popup shows the HTTP response status and a time breakdown by stage: **Proxy connect** (connecting to the proxy), **TLS via outbound** (the TLS handshake through the outbound), and **First byte** (time to the first byte) — which helps pinpoint at which step the latency or failure occurred.
+In HTTP mode, **Test** and **Test all** bring up a single shared temporary Xray instance per batch of outbounds, create a loopback SOCKS inbound with a rule for each one, and send a real HTTP request through each in parallel; **Test all** checks outbounds in batches. **Test all** also checks the outbounds obtained from subscriptions (the read-only "from subscriptions" table) — their rows are highlighted with the test result too. However, the `freedom` ("direct") and `dns` outbounds are not tested in any mode (they are not proxies): their test button is disabled, **Test all** skips them, and a server-side guard rejects their HTTP test even via a direct API call. Besides success/failure, the result popup shows the HTTP response status and a time breakdown by stage: **Proxy connect** (connecting to the proxy), **TLS via outbound** (the TLS handshake through the outbound), and **First byte** (time to the first byte) — which helps pinpoint at which step the latency or failure occurred.
 
 #### Outbound traffic statistics
 
@@ -3935,7 +4164,7 @@ Each link is assigned a stable "identity" (the URI core without the remark fragm
 - If a server disappears from the subscription, its tag simply drops out of the final outbounds array; if the balancer has a `fallbackTag`, Xray uses it.
 - If the provider changed the server's UUID/host/credentials, the identity changes — this is treated as a new outbound with a new tag.
 
-Within a single fetch, tags are deduplicated with a `-N` suffix.
+Within a single fetch, tags are deduplicated with a `-N` suffix. Tags from subscriptions preserve non-ASCII characters (Cyrillic, for example) and stay readable: Unicode letters and digits are kept in the slug while punctuation is replaced with a hyphen — tags derived from Cyrillic names are no longer reduced to digits only.
 
 #### How auto-update works
 
@@ -4054,6 +4283,12 @@ When you click "Save" (both when adding and when editing), the panel **first che
 
 The token is obtained on the remote panel under **Settings → API Token**. It can also be reissued there: the **Regenerate token** button with a warning: "Regenerating invalidates the current token. Any central panel using it will lose access until updated. Continue?". After regeneration, the old token stops working in the master panel — it must be updated in the node form.
 
+#### Connection outbound
+
+The **Connection outbound** field (`outboundTag`) controls how the master's API traffic to this node leaves the server. If you pick an Xray outbound tag here, the panel's calls to the node are routed through that outbound rather than going directly; the panel automatically adds a loopback bridge inbound to the running config and applies the change live, without a restart. Hint: "Route this node's panel API traffic through the selected Xray outbound. A loopback bridge inbound is added to the running config automatically and applied live. Leave empty for a direct connection".
+
+The selector works like the panel-outbound picker: tags are grouped into **Outbounds** (regular outbounds) and **Balancers**, and blackhole outbounds are hidden from the list. An empty value (placeholder "Direct connection") = a direct connection to the node.
+
 #### Inbound import (choosing which inbounds to synchronize)
 
 The node form has an **Inbound import** setting (`inboundSyncMode`) with two modes: **All inbounds** (`all`, the default) and **Selected** (`selected`). By default the master synchronizes to the node every inbound that has this node selected; existing nodes keep working in "All inbounds" mode.
@@ -4082,7 +4317,15 @@ This group of fields specifies how the master verifies the node's HTTPS certific
 | Pin certificate (SHA-256) | `pin` | — | The CA chain is not verified, but the SHA-256 of the node's leaf certificate is compared against the stored fingerprint (constant-time comparison). Retains MITM protection for **self-signed** certificates. Requires the fingerprint field to be filled in. |
 | Skip verification | `skip` | — | Certificate verification is disabled entirely. Warning: "Skipping verification removes protection against man-in-the-middle attacks — the API token can be intercepted. Pinning the certificate is preferable". |
 
-If any value other than `skip` or `pin` is selected, normalization forces `verify`.
+In addition to the three modes above, 3.4.0 adds a fourth — **Mutual TLS (client certificate)** (`mtls`), which, like the others, applies only to the `https` scheme.
+
+| Mode (EN) | Value | Default | Description |
+|---|---|---|---|
+| Mutual TLS (client certificate) | `mtls` | — | On top of verifying the node's certificate, the master additionally proves itself to the node with a **client certificate** issued by its own CA. For a node in this mode the **API token becomes optional** — the node recognizes the master by the certificate. When this mode is selected, a hint is shown: "This node authenticates the panel with a client certificate. Copy this panel's CA from the Node mTLS section onto the node, set its Trusted parent CA, then restart it". |
+
+To enable mutual TLS for a node: on the node side set the **Mutual TLS** mode, copy the managing panel's CA from the **Node mTLS** section (see below), set it on the node as its **Trusted parent CA**, and restart the node.
+
+If any value other than `skip`, `pin`, or `mtls` is selected, normalization forces `verify`.
 
 #### Certificate pinning
 
@@ -4090,6 +4333,13 @@ When **Pin certificate** is selected, the following appear:
 
 - **SHA-256 of the pinned certificate** — an input field. It accepts a fingerprint in **base64** (the `pinnedPeerCertSha256` format from Xray) or in **hex** with or without colons (the `openssl -fingerprint` style). Hint: "The node's certificate SHA-256 in base64 or hex. Click 'Fetch' to read it from the node now". Placeholder: "SHA-256 in base64 or hex". When `pin` is selected, an empty or invalid fingerprint causes a validation error on save.
 - The **Fetch** button — connects to the node over HTTPS without verifying the certificate and reads the SHA-256 of the current leaf certificate (endpoint `POST /certFingerprint`), filling it into the field. On success — "The node's current certificate has been fetched"; on failure — "Failed to fetch the certificate". Available only for https nodes.
+
+#### Node mTLS (mutual TLS authentication between panels)
+
+The **Nodes** page has a dedicated **Node mTLS** section — settings for mutual TLS authentication that adds a second factor (a client certificate) on top of the API token for "panel → node" calls. Mutual TLS is opt-in; if the section's fields are empty, nodes keep working as before — with the **API token only** (hint: "Mutual TLS adds a client-certificate factor on top of the API token for node-to-node calls. It is opt-in: leave it empty to keep token-only auth"). The section offers two operations:
+
+- **Copy this panel's CA** (`POST /panel/api/nodes/mtls/ca`) — copies this panel's root certificate (CA) to the clipboard. Hand this CA to the nodes this panel manages so they trust the panel's client certificate; on those nodes you then set the TLS verification mode to **Mutual TLS** (hint: "Hand this CA to the nodes this panel manages, then set their TLS verification to Mutual TLS"). After copying — "CA certificate copied to clipboard".
+- **Trusted parent CA** (`POST /panel/api/nodes/mtls/trustCA`) — a field used when this panel is itself a node of an upstream (managing) panel. Paste the managing panel's CA here to require its client certificate and click **Save trust CA**. The change requires a **panel restart** (hint: "When this panel is itself a node, paste the managing panel's CA here to require its client certificate. Restart the panel to apply").
 
 **Example: the same fingerprint in two formats.** The field accepts either form — both denote one certificate:
 
@@ -4120,9 +4370,12 @@ The table columns and the fields on the node card (the observed state, populated
 | (inbounds) | How many inbounds are physically hosted on this node. |
 | (clients) | The number of clients on the node's inbounds. |
 | (online) | How many of the node's clients are currently online. |
-| (depleted) | How many of the node's clients are disabled/expired/have exhausted their traffic limit. |
+| (depleted) | How many of the node's clients have **expired or exhausted their traffic limit**. Clients disabled manually are not counted here. |
+| (speed) | The current (live) transfer speed on the inbounds hosted on the node. |
 
 The inbounds/clients/online counters are attributed to a node by its stable GUID (`panelGuid`) rather than by local id — so that a client on a sub-node is counted under the sub-node and not under the intermediate node through which it syncs.
+
+For the inbounds hosted on a node, the page shows online clients, counters, and the **current transfer speed**. Attribution by the stable GUID also correctly separates "cloned" nodes that share the same `panelGuid`.
 
 #### Node statuses
 
@@ -4169,7 +4422,7 @@ A response like "Update started on 2 nodes, 1 failed": node 12, for instance, ma
   - Confirmation: "Update {count} nodes to the latest version? Each selected node will download the latest release and restart. Only enabled, online nodes are updated".
   - **Only enabled nodes with status `online` are updated.** A disabled node is marked in the results as "node is disabled", an offline one as "node is offline". Result: "Update started on {ok} nodes, {failed} failed". If no eligible node is selected — "Select at least one enabled, online node".
 - **Set Cert from Panel** (an auxiliary action, `GET /webCert/:id`) — when creating an inbound on the node, it lets you fill in the paths to the node's **own** web-TLS certificate (rather than the central panel's), so that the files actually exist on the node. Requires the node to be enabled and reachable.
-- **Delete node** (`POST /del/:id`) — confirmation: "Delete node \"{name}\"? This will stop monitoring the node. The remote panel itself will not be affected". Deletes the node record and its accumulated traffic statistics; the remote panel keeps running as usual.
+- **Delete node** (`POST /del/:id`) — confirmation: "Delete node \"{name}\"? This will stop monitoring the node. The remote panel itself will not be affected". Deletes the node record and its accumulated traffic statistics; the remote panel keeps running as usual. **A node can be deleted only after all inbounds have been detached from it.** If at least one inbound is still attached to the node (via `node_id`), the panel refuses the delete with an error like "cannot delete node: N inbound(s) still attached to it; detach or delete them first" — first detach or delete those inbounds, then delete the node. This prevents orphaned inbounds with a dangling reference to a removed node.
 
 ### 12.6. Metric history
 
@@ -4700,6 +4953,24 @@ Each value must be an integer. An entry like `@username` or `123 456` (with a sp
 
 The `socks5://`, `http://`, and `https://` schemes are supported. If the proxy field is left empty, the bot attempts to use the panel's shared proxy (if one is set and its scheme is supported). A URL with an unsupported scheme or invalid syntax is ignored — the bot connects directly. A proxy is useful when direct access to the Telegram API from the server is blocked.
 
+#### Email notifications (SMTP)
+
+Besides Telegram, the same events can be delivered by email. The channel is configured under **Settings → Email** on the **SMTP Settings** tab:
+
+| Field (UI) | Setting key | Default value | Description |
+|---|---|---|---|
+| Enable Email Notifications | `smtpEnable` | `false` | The main toggle for email notifications via SMTP. |
+| SMTP Host | `smtpHost` | (empty) | The SMTP server hostname (for example, `smtp.gmail.com`). |
+| SMTP Port | `smtpPort` | `587` | The SMTP server port. |
+| SMTP Username | `smtpUsername` | (empty) | The username for SMTP authentication. Also used as the sender (From) address. |
+| SMTP Password | `smtpPassword` | (empty) | The password for SMTP authentication. Stored hidden; if a password is already set, the field shows a "configured" flag and may be left blank to keep the current one. |
+| Recipients | `smtpTo` | (empty) | A comma-separated list of recipients (for example, `admin@example.com, ops@example.com`). |
+| Encryption | `smtpEncryptionType` | `starttls` | The connection encryption type: `none` (no encryption), `starttls` (STARTTLS), or `tls` (implicit TLS). |
+
+The **Send Test Email** button sends a probe message and shows the result by stage: **Connection**, **Authentication**, and **Send**. If something is wrong, the diagnostics indicate at which stage the error occurred (for example, "Authentication failed — check username and password" or "Server requires STARTTLS — change encryption type"), which makes it easier to dial in the settings.
+
+On the second tab (**Notifications**) you select the events that will trigger emails — using the same group cards as for Telegram (see "Event bus and notification selection" in section 14.5).
+
 #### Telegram API server
 
 By default, the bot uses the official Telegram API. In the **Telegram API Server** field you can specify the address of your own Bot API server (`telegram-bot-api`). The URL is checked for safety; a blocked or invalid address is discarded, and the default server is used.
@@ -4799,6 +5070,20 @@ Any digit input in the wizards is limited to a value < 999999.
 
 Notifications are sent to all administrators (all User IDs from `tgBotChatId`).
 
+#### Event bus and notification selection
+
+Notifications are built on a single event bus, with two delivery channels — **Telegram** and **email (SMTP)**. For each channel you choose separately which events to be notified about. In **Settings → Telegram** this is done on the **Notifications** tab, and in **Settings → Email** on the tab of the same name.
+
+Events are grouped into cards; each group has a master toggle with a count of enabled events (n/total) and an indeterminate state when only some are selected. The available groups are:
+
+- **Outbound** — "Down" (`outbound.down`) and "Up" (`outbound.up`): an outbound going down and recovering.
+- **Xray Core** — "Crash" (`xray.crash`): a crash of the Xray core.
+- **Nodes** — "Down" (`node.down`) and "Up" (`node.up`): a node becoming unreachable or recovering.
+- **System** — "CPU high (%)" (`cpu.high`) and "Memory high (%)" (`memory.high`): high CPU and RAM load. Both events have an inline threshold field (in percent) next to them.
+- **Security** — "Login attempt" (`login.attempt`): an attempt to log in to the panel.
+
+The set of enabled events is stored separately: for Telegram in `tgEnabledEvents`, and for Email in `smtpEnabledEvents`. By default both channels have "Login attempt" and "CPU high" enabled (the value `login.attempt,cpu.high`).
+
 #### Panel login notification
 
 Controlled by the **Login notification** checkbox (`tgBotLoginNotify`, enabled by default). On every attempt to log in to the web panel, administrators receive a message:
@@ -4806,9 +5091,11 @@ Controlled by the **Login notification** checkbox (`tgBotLoginNotify`, enabled b
 - On success: "✅ Logged in to the panel successfully." + host, username, IP, time.
 - On failure: "❗️ Login attempt to the panel failed." + host, **reason** (for example, "2FA Failed" for an incorrect second factor), username, IP, time.
 
-#### CPU load exceeded
+#### CPU and memory load exceeded
 
-If the **`tgCpu`** threshold > 0, a check of the average CPU load over a minute is run every 10 seconds. When the threshold is exceeded, administrators receive: "🔴 CPU Load N% exceeds the threshold of M%".
+Once a minute the panel checks the CPU and RAM load. If the **`tgCpu`** threshold > 0 and the average CPU load over a minute exceeds it, administrators receive: "🔴 CPU Load N% exceeds the threshold of M%". The RAM load is checked the same way against the **`tgMemory`** threshold (80% by default) — the "Memory high (%)" event.
+
+Both thresholds are set via the inline fields next to the "CPU high (%)" and "Memory high (%)" events in the **System** group on the Notifications tab (see "Event bus and notification selection" below). For the email channel, separate keys `smtpCpu` and `smtpMemory` apply. When a threshold is 0, the corresponding check is disabled.
 
 #### Periodic report (scheduled)
 
@@ -4927,6 +5214,10 @@ Specifics of updating the standard files:
 - **Conditional download.** If the local file already exists, the `If-Modified-Since` header with the file's modification time is added to the request. A `304 Not Modified` server response means the file has not changed — it is not downloaded again, only the file's timestamp is updated.
 - **File name safety.** Only names from the allowlist are accepted; the name is checked to contain no `..`, no path separators `/` or `\`, no absolute paths, and must match the pattern `^[a-zA-Z0-9._-]+\.dat$`. Any name outside the list is rejected with the error "Invalid geofile name".
 - **Xray restart.** After the geo files are downloaded, Xray-core is restarted so that it re-reads the updated databases. If the restart fails, a corresponding line is added to the error message.
+
+#### Updating geo databases from the command line (x-ui)
+
+Geo databases can also be updated without the panel — through the interactive `x-ui` menu (the geo-files update item) or with the non-interactive `x-ui update-all-geofiles` command. Each file in the set (geoip/geosite, including the IR and RU sets) reports its own status: "updated", "already up to date", or "download failed". On a failed download no false success message is printed. Xray is restarted (which drops active connections) only if at least one file was actually updated; if no file changed (all returned `304 Not Modified`), neither the panel nor Xray is restarted.
 
 ### 15.3. Geodata auto-update via Xray (Geodata Auto-Update)
 
@@ -5110,6 +5401,8 @@ Hints in the interface:
 
 Technically, the export is a `GET /panel/api/server/getDb` request. The attachment name is set by the server (`Content-Disposition`) depending on the engine.
 
+The backup file name is derived from the server's address rather than always being `x-ui.db` / `x-ui.dump`. When downloaded from a browser, it is taken from the panel's address in the address bar (the request host); otherwise from the configured web domain, and if there is none, from the server's public IP (IPv4 first, then IPv6), falling back to `x-ui`. This makes backups from different servers easy to tell apart. The extension stays `.db` for SQLite and `.dump` for PostgreSQL; backups sent via Telegram are named by the same domain/IP.
+
 **Example: downloading a backup via the API.** The same export can be fetched from the console — for instance, for an automatic backup script. An authenticated session (login cookie) is required:
 
 ```bash
@@ -5242,6 +5535,8 @@ The logging parameters of Xray itself are set on the **"Xray Configurations"** p
 
 > Note that an empty access log affects only this window. The online-client list on the Dashboard and the IP-count limit in the client form do **not** depend on the access log — the panel detects online clients and counts their IP addresses through the Xray core's online-stats API (connection statistics). On older core versions that lack this API, the panel automatically falls back to the previous method (reading the access log), in which case an access log path here is still required for the IP limit.
 
+> **The IP-count limit and fail2ban.** The per-client IP-count limit itself (the "IP Limit" field in the client form and in bulk add) is enforced on the server only if **fail2ban** is installed — fail2ban is what bans addresses that exceed the limit. The panel probes for fail2ban (`GET /panel/api/server/fail2banStatus`); if it is absent, the "IP Limit" field becomes disabled with an explanatory hint (on Windows — a separate message), and any limits previously set on such servers are automatically cleared, since they had no effect anyway. The fail2ban ban now covers both TCP and UDP. On regular servers fail2ban is now installed automatically during panel install and update (see section 16.5).
+
 **Example: a `log` block that makes the "Xray logs" window show records.** In the Xray JSON configuration it looks like this:
 
 ```json
@@ -5306,6 +5601,18 @@ After starting — a pop-up message "Panel update started" (`Panel update starte
 If the script regenerated a new random web panel base path (Web Base Path) during the update, the `x-ui` service is restarted automatically so that the new path takes effect immediately. (Without the restart, the server would keep serving the old path while the UI shows the new one, leaving the new address unreachable until a manual restart.)
 
 > On nodes, the panel of this same 3x-ui is updated centrally via `POST /panel/api/nodes/updatePanel` — see the section on nodes.
+
+#### Automatic fail2ban setup
+
+So that the per-client IP-count limit (section 16.3) works out of the box, on a regular server `fail2ban` is now installed and configured automatically during panel install and update (previously this happened only in the Docker image). The behavior is controlled by the `XUI_ENABLE_FAIL2BAN` environment variable: the setup runs if the variable is unset or equals `true`. It can be triggered manually with the `x-ui setup-fail2ban` command. A failure of the fail2ban setup does not interrupt the panel install or update.
+
+#### Install and update on IPv6-only hosts
+
+The `install.sh` and `update.sh` scripts now work correctly on IPv6-only servers: downloading the release, the `x-ui.sh` script, and the service files no longer forces IPv4 (`curl -4`) and instead uses whichever protocol is available. The panel can therefore be installed and updated on a host without an IPv4 address.
+
+#### Overriding the panel port with `XUI_PORT`
+
+The web panel's listening port can be overridden with the `XUI_PORT` environment variable — it applies only for the duration of the current process and does **not** change the stored `webPort` value in the database. Allowed values are from `1` to `65535`; an empty, invalid, or out-of-range value is ignored (the `webPort` is used) with a warning in the log. This is handy for deployments, primarily Docker: with a bridge network the container's published port must match `XUI_PORT` — for example, `XUI_PORT=8080` and `ports: "8080:8080"`.
 
 #### Updating and switching the Xray-core version
 
@@ -5395,6 +5702,7 @@ All available subcommands:
 | `x-ui disable` | Disable autostart |
 | `x-ui log` | View logs |
 | `x-ui banlog` | View Fail2ban ban logs |
+| `x-ui setup-fail2ban` | Install and configure fail2ban for the IP limit (see 16.5) |
 | `x-ui update` | Update the panel |
 | `x-ui update-all-geofiles` | Update all geo files (followed by a restart) |
 | `x-ui migrateDB [file]` | Convert the database `.db ⇄ .dump` (SQLite) |
@@ -5403,6 +5711,8 @@ All available subcommands:
 | `x-ui uninstall` | Uninstall the panel |
 
 > The `x-ui update` command downloads and runs the official `update.sh` (the same one as the web update from section 16.5), asking for confirmation: "This function will update all x-ui components to the latest version, and the data will not be lost." Upon completion, the panel automatically restarts.
+
+> **The `-webCert` / `-webCertKey` flags in the `setting` subcommand.** The paths to the web panel's certificate and private key can be set directly in the `x-ui setting -webCert <path> -webCertKey <path>` subcommand — passing either flag saves the corresponding path (just like the dedicated `cert` subcommand), and the panel switches to HTTPS right away.
 
 #### Retrieving an API token via the CLI
 
