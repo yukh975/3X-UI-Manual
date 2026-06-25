@@ -58,10 +58,14 @@ for L in en uk zh-CN zh-TW fa ar tr pt es ja id vi; do
   python3 scripts/lib/assemble.py "$L" "/tmp/tr/$L"                  # unchanged chunks reused + changed re-translated
 done
 python3 scripts/lib/switcher.py
+# READMEs (all 13 languages): bump the version literal in readme-shells.json, then:
+python3 scripts/lib/build_readmes.py scripts/lib/readme-shells.json
 ```
-Never note that anything is translated from Russian. Update the README contents
-table if needed. (The first multi-language set was a one-time FULL bootstrap; all
-later bumps use this incremental path.)
+Never note that anything is translated from Russian. `build_readmes.py` rebuilds
+every `README.<code>.md` (en = README.md) with the switcher, contents table, and
+each language's new "What's new" summary (pulled from its manual); the README
+shell prose is stable across bumps, so it is not re-translated. (The first
+multi-language set was a one-time FULL bootstrap; all later bumps are incremental.)
 
 ## 6. Build all PDFs + ship
 ```bash
