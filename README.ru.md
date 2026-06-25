@@ -1,8 +1,8 @@
 # 3X-UI Manual
 
-Руководство пользователя панели [3x-ui](https://github.com/MHSanaei/3x-ui) — подробный гайд, написанный под панель **v3.4.0**.
+🇸🇦 [العربية](README.ar.md) · 🇬🇧 [English](README.md) · 🇪🇸 [Español](README.es.md) · 🇮🇷 [فارسی](README.fa.md) · 🇮🇩 [Bahasa Indonesia](README.id.md) · 🇯🇵 [日本語](README.ja.md) · 🇧🇷 [Português](README.pt.md) · 🇷🇺 Русский · 🇹🇷 [Türkçe](README.tr.md) · 🇺🇦 [Українська](README.uk.md) · 🇻🇳 [Tiếng Việt](README.vi.md) · 🇨🇳 [简体中文](README.zh-CN.md) · 🇹🇼 [繁體中文](README.zh-TW.md)
 
-🇬🇧 [Версия на английском](README.md)
+Руководство пользователя панели [3x-ui](https://github.com/MHSanaei/3x-ui) — подробный гайд, написанный под панель **v3.4.0**.
 
 > **Зеркало только для чтения.** Этот репозиторий на GitHub — одностороннее зеркало: исходник руководства лежит в приватном GitLab и пушится сюда автоматически, поэтому всегда актуален. Нашли ошибку или неточность? Откройте, пожалуйста, [Issue](https://github.com/yukh975/3X-UI-Manual/issues). **Pull request'ы не принимаются** (закрываются автоматически) — правки вносятся в исходник.
 
