@@ -1,6 +1,6 @@
 # Посібник користувача панелі 3X-UI
 
-🇬🇧 [English](3X-UI-MANUAL.en.md) · 🇷🇺 [Русский](3X-UI-MANUAL.ru.md) · 🇺🇦 Українська · 🇨🇳 [简体中文](3X-UI-MANUAL.zh-CN.md) · 🇹🇼 [繁體中文](3X-UI-MANUAL.zh-TW.md)
+🇸🇦 [العربية](3X-UI-MANUAL.ar.md) · 🇬🇧 [English](3X-UI-MANUAL.en.md) · 🇪🇸 [Español](3X-UI-MANUAL.es.md) · 🇮🇷 [فارسی](3X-UI-MANUAL.fa.md) · 🇮🇩 [Bahasa Indonesia](3X-UI-MANUAL.id.md) · 🇯🇵 [日本語](3X-UI-MANUAL.ja.md) · 🇷🇺 [Русский](3X-UI-MANUAL.ru.md) · 🇺🇦 Українська · 🇨🇳 [简体中文](3X-UI-MANUAL.zh-CN.md) · 🇹🇼 [繁體中文](3X-UI-MANUAL.zh-TW.md)
 
 **Версія 3X-UI: 3.4.0.** Посібник складено за цією версією та є актуальним для неї. Зведення змін 3.4.0 відносно 3.3.1 — у розділі [«Що нового у 3.4.0»](#що-нового-у-340).
 

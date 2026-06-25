@@ -1,6 +1,6 @@
 # 3X-UI Panel — User Manual
 
-🇬🇧 English · 🇷🇺 [Русский](3X-UI-MANUAL.ru.md) · 🇺🇦 [Українська](3X-UI-MANUAL.uk.md) · 🇨🇳 [简体中文](3X-UI-MANUAL.zh-CN.md) · 🇹🇼 [繁體中文](3X-UI-MANUAL.zh-TW.md)
+🇸🇦 [العربية](3X-UI-MANUAL.ar.md) · 🇬🇧 English · 🇪🇸 [Español](3X-UI-MANUAL.es.md) · 🇮🇷 [فارسی](3X-UI-MANUAL.fa.md) · 🇮🇩 [Bahasa Indonesia](3X-UI-MANUAL.id.md) · 🇯🇵 [日本語](3X-UI-MANUAL.ja.md) · 🇷🇺 [Русский](3X-UI-MANUAL.ru.md) · 🇺🇦 [Українська](3X-UI-MANUAL.uk.md) · 🇨🇳 [简体中文](3X-UI-MANUAL.zh-CN.md) · 🇹🇼 [繁體中文](3X-UI-MANUAL.zh-TW.md)
 
 **3X-UI version: 3.4.0.** This manual is written for and applies to that version. A summary of 3.4.0 changes relative to 3.3.1 is in the ["What's new in 3.4.0"](#whats-new-in-340) section.
 

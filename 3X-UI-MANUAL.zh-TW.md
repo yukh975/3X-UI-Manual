@@ -1,6 +1,6 @@
 # 3X-UI 面板使用手冊
 
-🇬🇧 [English](3X-UI-MANUAL.en.md) · 🇷🇺 [Русский](3X-UI-MANUAL.ru.md) · 🇺🇦 [Українська](3X-UI-MANUAL.uk.md) · 🇨🇳 [简体中文](3X-UI-MANUAL.zh-CN.md) · 🇹🇼 繁體中文
+🇸🇦 [العربية](3X-UI-MANUAL.ar.md) · 🇬🇧 [English](3X-UI-MANUAL.en.md) · 🇪🇸 [Español](3X-UI-MANUAL.es.md) · 🇮🇷 [فارسی](3X-UI-MANUAL.fa.md) · 🇮🇩 [Bahasa Indonesia](3X-UI-MANUAL.id.md) · 🇯🇵 [日本語](3X-UI-MANUAL.ja.md) · 🇷🇺 [Русский](3X-UI-MANUAL.ru.md) · 🇺🇦 [Українська](3X-UI-MANUAL.uk.md) · 🇨🇳 [简体中文](3X-UI-MANUAL.zh-CN.md) · 🇹🇼 繁體中文
 
 **3X-UI 版本：3.4.0。** 本手冊依據此版本編寫並針對該版本保持最新。3.4.0 相對於 3.3.1 的變更摘要請見[「3.4.0 的新功能」](#340-的新功能)一節。
 
