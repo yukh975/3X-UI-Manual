@@ -42,17 +42,26 @@ refactors/CI/deps/internal). Output JSON of changes per section.
 - Integrate features into the body — WORKFLOW (one agent per section → anchored
   edit ops), then `python3 scripts/lib/apply_ops.py ops.json 3X-UI-MANUAL.ru.md 3X-UI-MANUAL.en.md`.
 
-## 5. Regenerate ALL languages from RU — WORKFLOW
+## 5. Translate ONLY the changed sections into every language — INCREMENTAL, WORKFLOW
+Full re-translation is forbidden on a bump (huge waste). Re-translate only the
+sections that changed; reuse every already-translated section verbatim.
 ```bash
-python3 scripts/lib/split.py 3X-UI-MANUAL.ru.md /tmp/src   # chunk the updated RU
-# translation workflow: 11 langs × 17 chunks -> /tmp/tr/<code>/chunk-NN.md
-for L in uk zh-CN zh-TW fa ar tr pt es ja id vi; do
-  python3 scripts/lib/assemble.py "$L" "/tmp/tr/$L"        # -> 3X-UI-MANUAL.<L>.md
+git show <vPREV-commit>:3X-UI-MANUAL.ru.md > /tmp/ru.prev.md         # previous RU
+CH=$(python3 scripts/lib/changed_chunks.py /tmp/ru.prev.md 3X-UI-MANUAL.ru.md)  # e.g. "00 06 08 11 16"
+python3 scripts/lib/split.py 3X-UI-MANUAL.ru.md /tmp/src             # new RU chunks (source)
+for L in en uk zh-CN zh-TW fa ar tr pt es ja id vi; do
+  python3 scripts/lib/split.py 3X-UI-MANUAL.$L.md /tmp/tr/$L         # seed with L's CURRENT chunks
 done
-python3 scripts/lib/switcher.py                            # flag+native-name switcher in all files
+# translation workflow: spawn agents ONLY for (language × changed-chunk) pairs ($CH),
+#   each writing /tmp/tr/<L>/chunk-<NN>.md (overwriting just the changed ones).
+for L in en uk zh-CN zh-TW fa ar tr pt es ja id vi; do
+  python3 scripts/lib/assemble.py "$L" "/tmp/tr/$L"                  # unchanged chunks reused + changed re-translated
+done
+python3 scripts/lib/switcher.py
 ```
-EN is also re-translated/updated from RU. Never note that anything is translated
-from Russian. Update the README contents table to list all 13 langs + their PDFs.
+Never note that anything is translated from Russian. Update the README contents
+table if needed. (The first multi-language set was a one-time FULL bootstrap; all
+later bumps use this incremental path.)
 
 ## 6. Build all PDFs + ship
 ```bash
