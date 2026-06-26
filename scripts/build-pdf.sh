@@ -58,7 +58,13 @@ build_one() {
   case "$code" in ar|fa) rtl=1; dir=rtl;; *) rtl=0; dir=ltr;; esac
   out="pdf/3X-UI-MANUAL.${code}.pdf"
   body="$(mktemp -t xuibody).html"; full="$(mktemp -t xuifull).html"
-  pandoc -f gfm -t html5 "$md" -o "$body"
+  # GitHub keeps the zero-width joiners (U+200C/U+200D) in heading anchors but
+  # pandoc strips them, so fa link targets (which keep them, for GitHub) wouldn't
+  # resolve in the PDF. Drop them from link targets only — heading/body text keeps
+  # them so Persian still shapes correctly.
+  src="$(mktemp -t xuisrc).md"
+  python3 -c 'import sys,re; s=open(sys.argv[1],encoding="utf-8").read(); open(sys.argv[2],"w",encoding="utf-8").write(re.sub(r"\]\(#([^)]+)\)", lambda m:"](#"+m.group(1).replace("‌","").replace("‍","")+")", s))' "$md" "$src"
+  pandoc -f gfm -t html5 "$src" -o "$body"; rm -f "$src"
   {
     printf '<!DOCTYPE html><html lang="%s" dir="%s"><head><meta charset="utf-8"><style>\n' "$code" "$dir"
     css "$rtl"

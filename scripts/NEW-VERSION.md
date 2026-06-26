@@ -58,9 +58,29 @@ for L in en uk zh-CN zh-TW fa ar tr pt es ja id vi; do
   python3 scripts/lib/assemble.py "$L" "/tmp/tr/$L"                  # unchanged chunks reused + changed re-translated
 done
 python3 scripts/lib/switcher.py
+python3 scripts/lib/toc.py                                          # rebuild every TOC from its headings (anchors can't drift)
+PYTHONPATH=scripts/lib python3 scripts/lib/fixlinks.py             # repair stale in-body cross-refs after renumbering
+python3 scripts/lib/checklinks.py                                  # GATE: every #anchor must resolve (CommonMark+GitHub rules) — must print all OK
 # READMEs (all 13 languages): bump the version literal in readme-shells.json, then:
 python3 scripts/lib/build_readmes.py scripts/lib/readme-shells.json
 ```
+**`checklinks.py` is the release gate — it must report every language OK before you build PDFs/commit.** It models GitHub exactly: CommonMark fences (an info-string fence ```lang only OPENS — only a bare ``` closes) and GitHub's slug (keeps letters/numbers/**combining marks**/`_`/`-`/ZWNJ/ZWJ, drops punctuation, dup → -1/-2). Two real-bug classes it catches: (1) **swallowed headings** — an unclosed/ info-string-only fence runs on and renders later headings *as code* (they get no anchor); a one-off `scripts/lib/fixfence.py` closed such a fence in §10 that had hidden §11/11.1/11.2. Re-run `fixfence.py` only if `checklinks` shows whole sections missing. (2) **Unicode anchors** — GitHub keeps Persian ZWNJ **and** combining diacritics (kasra/hamza) and the Turkish dotted-i mark; pandoc keeps the marks but strips ZWNJ, so the committed Markdown keeps everything (GitHub) and `build-pdf.sh` strips only ZWNJ from link targets on its temp copy (PDF). If `checklinks` is green, both surfaces resolve.
+**Anchor integrity (always run `toc.py` + `fixlinks.py` after assembly; expect 0 broken links).**
+The TOC (chunk-00) and section headings (chunk-NN) are translated by separate
+agents, so their wording drifts apart and the TOC's `#anchor` stops matching the
+heading — `toc.py` rebuilds each TOC straight from the headings so they can't.
+Gotchas it accounts for: (a) the "What's new" summary's `### N.` items reuse the
+section titles, so on GitHub the **section** heading's anchor gets a `-1` suffix
+(the summary item grabbed the bare slug first) — which sections collide changes
+per release, so the anchors are computed dynamically, never hardcoded; (b) **fa
+ZWNJ** (U+200C): GitHub *keeps* the zero-width joiner in anchors, pandoc *strips*
+it — the committed Markdown keeps it (GitHub is primary), and `build-pdf.sh`
+strips it from link targets on its temp copy so the PDF resolves too. `fixlinks.py`
+re-points body refs left stale by renumbering (e.g. WireGuard 11.7→11.8) by
+matching the anchor's topic (hyphen-insensitive for CJK), falling back to the
+section number in the link text. Also normalize any localized digits a translator
+introduced (e.g. fa Persian-Indic ۰-۹ → ASCII) — versions/ports/section numbers
+must stay ASCII.
 Never note that anything is translated from Russian. `build_readmes.py` rebuilds
 every `README.<code>.md` (en = README.md) with the switcher, contents table, and
 each language's new "What's new" summary (pulled from its manual); the README
