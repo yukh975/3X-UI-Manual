@@ -1,0 +1,15 @@
+{
+  "ru": "Изменения в разделе {n} — {title}",
+  "en": "Changes in section {n} — {title}",
+  "es": "Cambios en la sección {n} — {title}",
+  "pt": "Alterações na seção {n} — {title}",
+  "uk": "Зміни в розділі {n} — {title}",
+  "id": "Perubahan di bagian {n} — {title}",
+  "vi": "Thay đổi ở phần {n} — {title}",
+  "tr": "Bölüm {n} değişiklikleri — {title}",
+  "fa": "تغییرات بخش {n} — {title}",
+  "ar": "تغييرات القسم {n} — {title}",
+  "ja": "セクション{n}の変更 — {title}",
+  "zh-CN": "第 {n} 节的更改 — {title}",
+  "zh-TW": "第 {n} 節的變更 — {title}"
+}

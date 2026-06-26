@@ -32,38 +32,43 @@ Multi-agent over `git -C ~/git/3x-ui log vPREV..vNEW`: 5 area agents + a
 completeness critic → user-facing changes mapped to the 16 sections (skip
 refactors/CI/deps/internal). Output JSON of changes per section.
 
-## 4. Edit RU (canonical) on main
-- Write the **"Что нового в vNEW"** summary (RU), translate to EN, insert after the
-  TOC; **remove the old "Что нового в vPREV"** section — match the FULL heading
-  `"\n## 1. <title>\n"` (a bare `## 1.` also matches the summary's `### 1.`
-  subsection!); fix dead `#что-нового-в-*` anchors.
-- Bump the version note + README version to vNEW; **embed the full vNEW summary in
-  the README** (RU+EN).
-- Integrate features into the body — WORKFLOW (one agent per section → anchored
-  edit ops), then `python3 scripts/lib/apply_ops.py ops.json 3X-UI-MANUAL.ru.md 3X-UI-MANUAL.en.md`.
+## 4. Edit RU (canonical) on main — as CHANGE OPS, not section rewrites
+- Write the **"Что нового в vNEW"** summary (RU): one `### N. <section title>` item per
+  changed section, each with the bullets of what changed. Insert after the TOC and
+  **remove the old "Что нового в vPREV"** section — match the FULL heading
+  `"\n## 1. <title>\n"` (a bare `## 1.` also matches a summary `### 1.` item!). Bump the
+  version note + README version to vNEW. (`whatsnew.py` later reformats the item headings
+  to "<changes in section> N — <title>", so the section numbers don't look out of order.)
+- Integrate features into the RU body as **change ops** — WORKFLOW (one agent per changed
+  section) emitting `{section, where, anchor, text:{ru:…}}` where `section` is a heading
+  number and `anchor` is a VERBATIM token (code span / field / API path present once in
+  that section — identical in every language). `where` ∈ append|after|before|replace.
+  Apply to RU only: `python3 scripts/lib/apply_change_ops.py ops.json ru`. **Keep ops.json —
+  step 5 reuses it.**
 
-## 5. Translate ONLY the changed sections into every language — INCREMENTAL, WORKFLOW
-Full re-translation is forbidden on a bump (huge waste). Re-translate only the
-sections that changed; reuse every already-translated section verbatim.
+## 5. Translate ONLY the inserted changes into every language — CHANGE-LEVEL, WORKFLOW
+Never re-translate whole changed sections (mostly-unchanged text — huge waste). Translate
+ONLY each op's payload + the small header prose, then drop them into each language IN
+PLACE via the same language-neutral anchors; untouched prose is never rewritten.
 ```bash
-git show <vPREV-commit>:3X-UI-MANUAL.ru.md > /tmp/ru.prev.md         # previous RU
-CH=$(python3 scripts/lib/changed_chunks.py /tmp/ru.prev.md 3X-UI-MANUAL.ru.md)  # e.g. "00 06 08 11 16"
-python3 scripts/lib/split.py 3X-UI-MANUAL.ru.md /tmp/src             # new RU chunks (source)
-for L in en uk zh-CN zh-TW fa ar tr pt es ja id vi; do
-  python3 scripts/lib/split.py 3X-UI-MANUAL.$L.md /tmp/tr/$L         # seed with L's CURRENT chunks
-done
-# translation workflow: spawn agents ONLY for (language × changed-chunk) pairs ($CH),
-#   each writing /tmp/tr/<L>/chunk-<NN>.md (overwriting just the changed ones).
-for L in en uk zh-CN zh-TW fa ar tr pt es ja id vi; do
-  python3 scripts/lib/assemble.py "$L" "/tmp/tr/$L"                  # unchanged chunks reused + changed re-translated
-done
+# 1) translate payloads only: workflow fills ops.json text{} for the other 11 languages
+#    (ch.text.ru -> en/uk/zh-CN/zh-TW/fa/ar/tr/pt/es/ja/id/vi). Bytes translated ≈ bytes changed.
+# 2) apply the SAME ops to the 12 non-RU languages in place (RU already done in step 4):
+python3 scripts/lib/apply_change_ops.py ops.json en uk zh-CN zh-TW fa ar tr pt es ja id vi
+# 3) per-version header bits still need translating into each chunk-00: the "What's new"
+#    bullets + version-note line (small workflow). Item TITLES = the section's existing
+#    translated heading (copy it — do NOT re-translate). Then:
+python3 scripts/lib/whatsnew.py        # reformat summary items -> "<changes in section> N — <title>" (localized)
 python3 scripts/lib/switcher.py
-python3 scripts/lib/toc.py                                          # rebuild every TOC from its headings (anchors can't drift)
-PYTHONPATH=scripts/lib python3 scripts/lib/fixlinks.py             # repair stale in-body cross-refs after renumbering
-python3 scripts/lib/checklinks.py                                  # GATE: every #anchor must resolve (CommonMark+GitHub rules) — must print all OK
-# READMEs (all 13 languages): bump the version literal in readme-shells.json, then:
+python3 scripts/lib/toc.py             # rebuild every TOC from its headings (anchors can't drift)
+PYTHONPATH=scripts/lib python3 scripts/lib/fixlinks.py   # repair body cross-refs after renumbering
+python3 scripts/lib/checklinks.py      # GATE: every #anchor must resolve — must print all OK
+# READMEs (all 13): bump the version literal in readme-shells.json, then:
 python3 scripts/lib/build_readmes.py scripts/lib/readme-shells.json
 ```
+Fallback only: if a section was reworked so heavily that change ops don't fit, re-translate
+that one section via the old chunk path (`changed_chunks.py` → `split.py` → translate that
+chunk → `assemble.py`). Prefer ops — they keep the translated bytes ≈ the changed bytes.
 **`checklinks.py` is the release gate — it must report every language OK before you build PDFs/commit.** It models GitHub exactly: CommonMark fences (an info-string fence ```lang only OPENS — only a bare ``` closes) and GitHub's slug (keeps letters/numbers/**combining marks**/`_`/`-`/ZWNJ/ZWJ, drops punctuation, dup → -1/-2). Two real-bug classes it catches: (1) **swallowed headings** — an unclosed/ info-string-only fence runs on and renders later headings *as code* (they get no anchor); a one-off `scripts/lib/fixfence.py` closed such a fence in §10 that had hidden §11/11.1/11.2. Re-run `fixfence.py` only if `checklinks` shows whole sections missing. (2) **Unicode anchors** — GitHub keeps Persian ZWNJ **and** combining diacritics (kasra/hamza) and the Turkish dotted-i mark; pandoc keeps the marks but strips ZWNJ, so the committed Markdown keeps everything (GitHub) and `build-pdf.sh` strips only ZWNJ from link targets on its temp copy (PDF). If `checklinks` is green, both surfaces resolve.
 **Anchor integrity (always run `toc.py` + `fixlinks.py` after assembly; expect 0 broken links).**
 The TOC (chunk-00) and section headings (chunk-NN) are translated by separate

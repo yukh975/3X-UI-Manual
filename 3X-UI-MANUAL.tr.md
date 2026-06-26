@@ -13,7 +13,7 @@
 ## İçindekiler
 
 - [3.4.1'deki Yenilikler](#341deki-yenilikler)
-- [1. Giriş, Gereksinimler ve Kurulum](#1-giriş-gereksinimler-ve-kurulum-1)
+- [1. Giriş, Gereksinimler ve Kurulum](#1-giriş-gereksinimler-ve-kurulum)
   - [1.1. 3X-UI Nedir](#11-3x-ui-nedir)
   - [1.2. Desteklenen İşletim Sistemleri ve Mimariler](#12-desteklenen-i̇şletim-sistemleri-ve-mimariler)
   - [1.3. Kurulum Yöntemleri](#13-kurulum-yöntemleri)
@@ -30,7 +30,7 @@
   - [2.5. Gizli Yol (URI yolu / webBasePath) ve Panel Portu](#25-gizli-yol-uri-yolu--webbasepath-ve-panel-portu)
   - [2.6. Oturum Ömrü (zaman aşımı)](#26-oturum-ömrü-zaman-aşımı)
   - [2.7. LDAP (Senkronizasyon ve Kimlik Doğrulama)](#27-ldap-senkronizasyon-ve-kimlik-doğrulama)
-- [3. Genel Bakış / Gösterge Paneli](#3-genel-bakış--gösterge-paneli-1)
+- [3. Genel Bakış / Gösterge Paneli](#3-genel-bakış--gösterge-paneli)
   - [3.1. Veri Toplama Genel İlkeleri](#31-veri-toplama-genel-i̇lkeleri)
   - [3.2. İşlemci (CPU)](#32-i̇şlemci-cpu)
   - [3.3. Bellek (RAM)](#33-bellek-ram)
@@ -55,7 +55,7 @@
   - [4.6. Periyodik trafik sıfırlama](#46-periyodik-trafik-sıfırlama)
   - [4.7. inbound JSON (gelişmiş)](#47-inbound-json-gelişmiş)
   - [4.8. inbound işlemleri: QR / Edit / Reset / Delete ve istatistikler](#48-inbound-işlemleri-qr--edit--reset--delete-ve-istatistikler)
-- [5. Protokoller](#5-protokoller-1)
+- [5. Protokoller](#5-protokoller)
   - [5.1. Desteklenen protokol listesi](#51-desteklenen-protokol-listesi)
   - [5.2. Hangi protokoller TLS / REALITY / aktarımı destekler](#52-hangi-protokoller-tls--reality--aktarımı-destekler)
   - [5.3. VLESS](#53-vless)
@@ -78,13 +78,13 @@
   - [6.7. XHTTP / SplitHTTP (`xhttpSettings`)](#67-xhttp--splithttp-xhttpsettings)
   - [6.8. Hysteria Aktarımı (`hysteriaSettings`)](#68-hysteria-aktarımı-hysteriasettings)
   - [6.9. İlgili Parametreler](#69-i̇lgili-parametreler)
-- [7. Bağlantı Güvenliği: TLS, XTLS ve REALITY](#7-bağlantı-güvenliği-tls-xtls-ve-reality-1)
+- [7. Bağlantı Güvenliği: TLS, XTLS ve REALITY](#7-bağlantı-güvenliği-tls-xtls-ve-reality)
   - [7.1. Farklar: TLS vs XTLS vs REALITY](#71-farklar-tls-vs-xtls-vs-reality)
   - [7.2. «Yok» Modu (`none`)](#72-yok-modu-none)
   - [7.3. TLS Modu](#73-tls-modu)
   - [7.4. REALITY Modu](#74-reality-modu)
   - [7.5. Yapılandırma İçin Pratik Öneriler](#75-yapılandırma-i̇çin-pratik-öneriler)
-- [8. İstemciler](#8-i̇stemciler-1)
+- [8. İstemciler](#8-i̇stemciler)
   - [8.1. İstemci Alanları](#81-i̇stemci-alanları)
   - [8.2. inbound'a Bağlama](#82-inbounda-bağlama)
   - [8.3. İstemci İşlemleri](#83-i̇stemci-i̇şlemleri)
@@ -105,13 +105,13 @@
   - [9.11. "İstemciler" Sayfasıyla İlişki](#911-i̇stemciler-sayfasıyla-i̇lişki)
   - [9.12. API Uç Noktaları Özeti](#912-api-uç-noktaları-özeti)
   - [9.13. Gruba Göre Trafik](#913-gruba-göre-trafik)
-- [10. Abonelikler (Subscription)](#10-abonelikler-subscription-1)
+- [10. Abonelikler (Subscription)](#10-abonelikler-subscription)
   - [10.1. subId nedir ve bağlantı nasıl oluşturulur](#101-subid-nedir-ve-bağlantı-nasıl-oluşturulur)
   - [10.2. Abonelik sunucusu ayarları](#102-abonelik-sunucusu-ayarları)
   - [10.3. Çıktı formatları](#103-çıktı-formatları)
   - [10.4. Abonelik bilgi sayfası ve QR kodları](#104-abonelik-bilgi-sayfası-ve-qr-kodları)
   - [10.5. Abonelik sayfası için özel şablonlar](#105-abonelik-sayfası-için-özel-şablonlar)
-- [11. Xray: yönlendirme, outbounds, DNS ve uzantılar](#11-xray-yönlendirme-outbounds-dns-ve-uzantılar-1)
+- [11. Xray: yönlendirme, outbounds, DNS ve uzantılar](#11-xray-yönlendirme-outbounds-dns-ve-uzantılar)
   - [11.1. Düzenleyici yapısı: sekmeler/modlar](#111-düzenleyici-yapısı-sekmelermodlar)
   - [11.2. Ana Ayarlar (General)](#112-ana-ayarlar-general)
   - [11.3. Yönlendirme kuralları (routing)](#113-yönlendirme-kuralları-routing)
@@ -146,7 +146,7 @@
   - [13.8. Diğer: Xray Yapılandırma Şablonu ve Test URL'si](#138-diğer-xray-yapılandırma-şablonu-ve-test-urlsi)
   - [13.9. Yönetici Hesabı ve API Token'ları](#139-yönetici-hesabı-ve-api-tokenları)
   - [13.10. 3.3.0 Sürümündeki API Değişiklikleri (entegrasyonlar için önemli)](#1310-330-sürümündeki-api-değişiklikleri-entegrasyonlar-için-önemli)
-- [14. Telegram Botu](#14-telegram-botu-1)
+- [14. Telegram Botu](#14-telegram-botu)
   - [14.1. Botu Etkinleştirme ve Yapılandırma](#141-botu-etkinleştirme-ve-yapılandırma)
   - [14.2. Ana Menü ve Düğmeler](#142-ana-menü-ve-düğmeler)
   - [14.3. Bot Komutları](#143-bot-komutları)
@@ -176,45 +176,45 @@
 
 Bu bölüm, **3.4.1** sürümünün 3.4.0'a göre panel kullanıcısı tarafından görülebilen değişikliklerini kılavuz bölümlerine göre gruplandırarak kısaca listeler. Her işlevin ayrıntıları aşağıdaki ilgili bölümde açıklanmaktadır.
 
-### 1. Giriş, Gereksinimler ve Kurulum
+### Bölüm 1 değişiklikleri — Giriş, Gereksinimler ve Kurulum
 - **Dev derlemesi kurulumu ve install.sh üzerinden belirli bir sürüm kurulumu** — install.sh kurulum betiği artık sürüm seçimi için bağımsız değişken desteklemektedir: belirli bir sürümü kurmak için bir etiket (örneğin v3.4.0) belirtin ya da rolling dev derlemesini minimum sürüm kontrolünü atlayarak en son main dalı commitinden yüklemek için 'dev-latest' (ya da kısaltması 'dev') kullanın. Bağımsız değişken belirtilmezse en son kararlı sürüm kurulur.
 
-### 3. Genel Bakış / Gösterge Paneli
+### Bölüm 3 değişiklikleri — Genel Bakış / Gösterge Paneli
 - **Gösterge paneli: sistem geçmişi ve Xray metrik grafiklerinde aralık seçimi yeniden tasarlandı** — Gösterge panelindeki geçmiş pencerelerinde zaman aralığı seçimi güncellendi. Sistem metrik grafikleri için 2m, 1h, 3h, 6h, 12h, 24h, 2d ve 7d aralıkları kullanılabilir (geçmiş artık önceki 48 saat yerine 7 güne kadar saklanmaktadır); 2 ve 7 günlük aralıklarda zaman etiketlerine tarih de eklenmektedir. Xray metrik grafikleri için 2m, 1h, 3h, 6h ve 12h aralıkları mevcuttur. Düzensiz 30m, 2h ve 5h değerleri kaldırılmıştır.
 - **Gösterge paneli: bellek kullanım kartı gerçek RSS sürecini gösteriyor** — Gösterge panelindeki panel bellek kullanımı göstergesi artık gerçek süreç RSS'ini yansıtmakta ve işletim sisteminin gösterdiği değerle örtüşmektedir. Önceden bellek tüketimini abartan ve hiç azalmayan Go iç sayacı görüntüleniyordu. Artık bellek serbest bırakıldıkça değer düşmektedir.
 
-### 5. Protokoller
+### Bölüm 5 değişiklikleri — Protokoller
 - **VLESS şifreleme: yeni anahtar üretme modları (native / xorpub / random)** — VLESS protokolüyle inbound'da şifreleme anahtarı üretim bloğu yeniden düzenlendi. «Decryption» ve «Encryption» alanlarının altındaki iki ayrı düğme (X25519 ve ML-KEM-768) yerine altı seçenekli «Anahtar Üretme» açılır listesi eklendi: X25519 ve ML-KEM-768, her biri üç modda — native, xorpub ve random. İstediğiniz modu seçin ve «Oluştur»a tıklayın: panel decryption ve encryption alanlarını hazır anahtar çiftiyle dolduracaktır. «Temizle» düğmesi üretilen değerleri siler; «Seçili» satırı mevcut anahtar türünü ve modunu gösterir.
 - **Tunnel inbound ayarlarındaki Rewrite port alanının temizlenmesi artık kaydetmeyi bozmuyor** — Hata düzeltildi: tunnel protokolüyle inbound'da «Rewrite port» alanının temizlenmesi artık kaydetme hatasına yol açmıyor. Önceden boş değer doğrulama hatası mesajına neden oluyordu; artık alan temizlendiğinde ayarlardan çıkarılıyor.
 
-### 7. Bağlantı Güvenliği: TLS, XTLS ve REALITY
+### Bölüm 7 değişiklikleri — Bağlantı Güvenliği: TLS, XTLS ve REALITY
 - **Mevcut inbound'da şifreleme etkinleştirildiğinde XTLS Vision flow geri yükleniyor** — Mevcut bir VLESS/XHTTP inbound'da istemciler eklendikten sonra şifreleme (decryption/encryption) etkinleştirilirse panel, artık uygun olan istemcilerde flow=xtls-rprx-vision'ı otomatik olarak geri yükliyor. Önceden bu durumda flow, yapılandırmalardan, bağlantılardan ve aboneliklerden sessizce kayboluyor (özellikle düğüm inbound'larında). Herhangi bir manuel işlem gerekmez — düzeltme, inbound düzenlenirken ve panel güncellemesinde bir kez otomatik olarak uygulanır.
 
-### 8. İstemciler
+### Bölüm 8 değişiklikleri — İstemciler
 - **Seçili istemcileri toplu etkinleştirme ve devre dışı bırakma** — Clients sayfasında birden fazla istemci seçildiğinde More (Daha Fazla) menüsünde Enable (Etkinleştir) ve Disable (Devre Dışı Bırak) toplu eylemleri kullanılabilir. Etkinleştirme, seçilen her istemciyi bağlı tüm inbound'larda etkinleştirir; trafik kotası tüketilmiş veya süresi dolmuş istemciler otomatik olarak yeniden devre dışı bırakılır. Devre dışı bırakma istemcilerin erişimini hemen kaldırır, ancak kayıtları ve birikmiş trafik değerleri korunur. Panel işlemden önce onay ister; işlem sonrasında işlenen istemci sayısını ve varsa başarısız olanların sayısını içeren bir bildirim gösterir.
 - **Adjust diyaloğunda XTLS flow toplu ayarı** — Toplu düzenleme Adjust diyaloğuna Set flow alanı eklendi; bu alan seçilen tüm istemcilerde XTLS flow'u aynı anda ayarlamak veya sıfırlamak için kullanılır. Varsayılan olarak No change (değişiklik yok) seçilidir. Disable (clear flow) flow'u sıfırlar; xtls-rprx-vision ve xtls-rprx-vision-udp443 değerleri ilgili vision-flow'u ayarlar. Vision-flow yalnızca flow destekleyen inbound'lara uygulanır; uygun olmayan inbound'lar değiştirilmez ve atlandı olarak işaretlenir, flow sıfırlama ise her zaman izin verilir. Artık diyaloğu uygulamak için gün, trafik veya flow belirtmek yeterlidir.
 - **İstemciyi yeniden adlandırma artık bağlamaları bozmuyor ve yinelenen kaydetme bildirimi kaldırıldı** — İstemci düzenleme davranışı düzeltildi: istemciyi yeniden adlandırma (email değiştirme) artık inbound bağlama ve harici bağlantı kaydetmede hataya yol açmıyor — bu işlemler artık yeni email'i kullanıyor. Ayrıca istemci kaydedilirken başarılı güncelleme bildirimi artık birden fazla kez gösterilmiyor.
 
-### 10. Abonelikler (Subscription)
+### Bölüm 10 değişiklikleri — Abonelikler (Subscription)
 - **Remark Template'de yeni «Connection» değişken grubu: {{PROTOCOL}}, {{TRANSPORT}}, {{SECURITY}}** — Remark Template değişken kümesine inbound yapılandırmasını açıklayan üç değişkenden oluşan «Connection» (Bağlantı) grubu eklendi: {{PROTOCOL}} — protokol (VLESS, VMess, Trojan vb.), {{TRANSPORT}} — taşıma ağı (tcp, ws, grpc vb.) ve {{SECURITY}} — taşıma güvenliği (TLS, REALITY, NONE; büyük harfle gösterilir). Kullanım ve süre değişkenleri gibi, bu üç değişken de yalnızca abonelik gövdesinde geçerli olup paneldeki görüntülenen bağlantılarda ve abonelik bilgi sayfasında açıklamadan otomatik olarak kaldırılır.
 - **Varsayılan remark şablonu artık {{EMAIL}} içeriyor; istemci email'i panel bağlantılarının açıklamasına geri döndü** — Varsayılan remark şablonu değiştirildi: artık istemci email'ini içeriyor — {{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D (önceden email yoktu). Ayrıca 3.4.0 davranışı da düzeltildi: panelde gösterilen bağlantılarda (Clients sayfasındaki QR kodu ve «Bilgi» pencerelerinde) ve abonelik bilgi sayfasında istemci email'i profil adında yeniden yer alıyor — host belirtilmişse «inbound-host-email», host belirtilmemişse «inbound-email». Trafik ve süre bilgileri bu görüntülenen adlara eklenmez.
 - **Incy istemci entegrasyonu: hızlı içe aktarma düğmesi ve yönlendirmeli Incy sekmesi** — Abonelik bilgi sayfasındaki uygulama menüsünde (Android ve iOS) «Incy» seçeneği eklendi — aboneliği istemciye hızlıca içe aktarmak için incy://add/<abonelik-bağlantısı> derin bağlantısını açar. Abonelik ayarlarına «Incy» sekmesi eklendi; bu sekme «Enable routing» (Yönlendirmeyi etkinleştir) geçişini ve incy://routing/onadd/<base64> biçiminde «Routing rules» (Yönlendirme kuralları) alanını içeriyor. Yönlendirme etkin ve alan doluysa bu dize abonelik gövdesine (raw biçimi) ayrı bir satır olarak eklenerek yönlendirme profilini Incy istemcisine iletir. Ayarlar yalnızca Incy istemcisi için geçerlidir.
 - **Sahipsiz trafik satırına sahip istemciler için {{TRAFFIC_USED}}'ın geri yüklenmesi** — inbound silinip yeniden oluşturulduktan sonra trafik istatistik satırı «sahipsiz» kalan istemciler için {{TRAFFIC_USED}} (ve diğer kullanım göstergeleri) değişkeninin hesaplanması düzeltildi. Önceden bu tür istemcilerde {{TRAFFIC_USED}} 0.00B gösterirken abonelik bilgi sayfasının başlığında kullanım doğru görüntüleniyordu. Panel artık istatistikleri istemci email'ine göre de arıyor ve değişken yeniden doğru kullanılan trafiği gösteriyor.
 - **Hosts sayfasında doğru sekme başlığı** — Hosts sayfasında artık genel '3X-UI' yerine doğru tarayıcı sekme başlığı görüntüleniyor. Değişiklik yalnızca kozmetik nitelikte olup yalnızca sekme etiketini etkiliyor.
 
-### 11. Xray: Yönlendirme, outbounds, DNS ve Uzantılar
+### Bölüm 11 değişiklikleri — Xray: Yönlendirme, outbounds, DNS ve Uzantılar
 - **Dialer Proxy açılır listesi artık abonelik outbound'larını listeliyor** — outbound formunun Sockopt bölümündeki «Dialer Proxy» (vekil zinciri: bu outbound'u etikete göre başka bir outbound üzerinden yönlendir) açılır listesi artık yalnızca yerel outbound'ları değil abonelik outbound etiketlerini de gösteriyor. Listeden yine blackhole-outbound ve düzenlenmekte olan outbound hariç tutulmaktadır. Doğrudan bağlantı için alanı boş bırakın.
 - **HTTP outbound: özel istek başlıkları korunuyor (ve düzenlenebilir)** — HTTP protokolüyle outbound formuna «Headers» (Başlıklar) alanı eklendi — yukarı akış HTTP vekil sunucusuna gönderilen CONNECT başlıkları için anahtar/değer çifti düzenleyicisi. Önceden bu başlıklar outbound yeniden kaydedildiğinde kayboluyordu; artık korunuyor. Not: yalnızca ayar düzeyindeki başlıklar uygulanır; sunucu düzeyindeki başlıkları xray-core görmezden gelir.
 
-### 12. Düğümler (Çok Panelli, master/slave)
+### Bölüm 12 değişiklikleri — Düğümler (Çok Panelli, master/slave)
 - **Düğüm güncellemelerinde Dev kanalı** — Düğüm güncelleme onay diyaloğuna «Dev kanalına güncelle (son commit)» onay kutusu eklendi. İşaretlenirse seçili düğümler kararlı sürüm yerine rolling dev-latest derlemesini yükler; işaretlenmezse düğüm kendi olağan kanalından güncellenir. Onay kutusunun altında dev derlemelerinin kararsız olduğuna dair bir uyarı gösterilir.
 - **İlk inbound senkronizasyonunda düğümdeki istemci trafik geçmişinin içe aktarılması** — Zaten trafik birikmiş bir düğüm eklenirken trafik hesabı düzeltildi. Önceden bir düğümden ilk inbound senkronizasyonunda genel inbound sayacı doğru aktarılıyor, ancak istemci bireysel sayaçları sıfırlanıyor ve master, düğüm bağlanmadan önceki tüm geçmiş için istemci kullanımını eksik hesaplıyordu. Artık inbound düğümle birlikte içe aktarıldığında istemci sayaçları düğümden alınan gerçek değerleri devralıyor.
 
-### 14. Telegram Botu
+### Bölüm 14 değişiklikleri — Telegram Botu
 - **Ayarlar kaydedildiğinde Telegram botu yeniden başlatılıyor** — Telegram botu ayarlarındaki değişiklikler artık panel yeniden başlatılmadan kaydedilirken hemen uygulanıyor. Token, chat ID, API sunucu adresi değiştirildiyse ya da bot etkinleştirildi/devre dışı bırakıldıysa panel botu yeni parametrelerle otomatik olarak yeniden başlatır. Token değiştirildiğinde paneli yeniden başlatma zorunluluğuna ilişkin eski kural artık geçerli değildir.
 - **Telegram botu yedek dosyasının adı webDomain/IP'ye göre belirleniyor** — Telegram botunun gönderdiği veritabanı yedek dosyaları artık sunucu adresiyle adlandırılıyor: webDomain'e göre; webDomain ayarlanmamışsa genel IP'ye göre. Önceden webDomain belirtilmediğinde bu yedekler hangi sunucudan geldiğini anlamayı güçleştiren genel x-ui adını alıyordu.
 
-### 16. İşletim: Yedeklemeler, Günlükler, Güncelleme, CLI
+### Bölüm 16 değişiklikleri — İşletim: Yedeklemeler, Günlükler, Güncelleme, CLI
 - **Tünel sağlığı izleme (ortam değişkenleri aracılığıyla xray otomatik yeniden başlatma)** — 3.4.1'de isteğe bağlı bir tünel sağlığı izleme aracı eklendi. Etkinleştirildiğinde panel belirli bir URL'nin erişilebilirliğini periyodik olarak kontrol eder ve art arda birkaç başarısız kontrolün ardından xray çekirdeğini otomatik olarak yeniden başlatır — bu, trafik iletmeyi durduran tünellerin kurtarılmasına yardımcı olur. İzleme yalnızca servisin ortam değişkenleriyle yapılandırılır (web arayüzünde ayarı yoktur) ve varsayılan olarak devre dışıdır. Temel değişken XUI_TUNNEL_HEALTH_MONITOR=true onu etkinleştirir; yalnızca sunucunun bağlantısını değil tüneli test etmek için XUI_TUNNEL_HEALTH_PROXY yerel bir xray-inbound'a yönlendirilmelidir (örneğin socks5://127.0.0.1:1080). Diğer değişkenler kontrol URL'sini (XUI_TUNNEL_HEALTH_URL), aralığı (XUI_TUNNEL_HEALTH_INTERVAL, 30s), zaman aşımını (XUI_TUNNEL_HEALTH_TIMEOUT, 10s), yeniden başlatmadan önce gereken başarısız sayısını (XUI_TUNNEL_HEALTH_FAILURES, 3) ve yeniden başlatmalar arasındaki minimum beklemeyi (XUI_TUNNEL_HEALTH_COOLDOWN, 5m) belirler. Not: xray yeniden başlatıldığında bağlı tüm istemcilerin bağlantısı kesilir.
 - **Günlük görüntüleyicilerinde otomatik yenileme** — Günlük görüntüleyici pencerelerinde (hem Xray «Erişim Günlükleri» hem de genel panel «Günlükleri») «Otomatik Yenileme» onay kutusu eklendi. Etkinleştirilirse günlük, seçili satır sayısı, düzey ve filtreler korunarak her 5 saniyede bir otomatik olarak yeniden okunur. Pencere kapatıldığında veya onay kutusu işareti kaldırıldığında sorgulama durur.
 - **Panel için Dev güncelleme kanalı (commit başına rolling derlemeler)** — Geçiş yalnızca dev derlemelerinde (ayrı commitlerde CI derlemeleri) panel güncelleme penceresinde görüntülenir. Etkinleştirildiğinde panel, main dalının her commitini izleyen ve kararlı sürüm olmayan rolling dev-latest derlemesine güncellenir; otomatik geri alma yoktur. Dev modunda pencere, sürüm numaraları yerine mevcut ve son commiti gösterir. Bu özellik yalnızca systemd'li Linux'ta kullanılabilir.

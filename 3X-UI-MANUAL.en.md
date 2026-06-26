@@ -14,7 +14,7 @@
 ## Table of Contents
 
 - [What's new in 3.4.1](#whats-new-in-341)
-- [1. Introduction, Requirements, and Installation](#1-introduction-requirements-and-installation-1)
+- [1. Introduction, Requirements, and Installation](#1-introduction-requirements-and-installation)
   - [1.1. What Is 3X-UI](#11-what-is-3x-ui)
   - [1.2. Supported Operating Systems and Architectures](#12-supported-operating-systems-and-architectures)
   - [1.3. Installation Methods](#13-installation-methods)
@@ -31,7 +31,7 @@
   - [2.5. Secret path (URI path / webBasePath) and panel port](#25-secret-path-uri-path--webbasepath-and-panel-port)
   - [2.6. Session lifetime (timeout)](#26-session-lifetime-timeout)
   - [2.7. LDAP (synchronization and authentication)](#27-ldap-synchronization-and-authentication)
-- [3. Overview / Dashboard](#3-overview--dashboard-1)
+- [3. Overview / Dashboard](#3-overview--dashboard)
   - [3.1. General data-collection principles](#31-general-data-collection-principles)
   - [3.2. CPU](#32-cpu)
   - [3.3. RAM](#33-ram)
@@ -56,7 +56,7 @@
   - [4.6. Periodic traffic reset](#46-periodic-traffic-reset)
   - [4.7. Inbound JSON (advanced)](#47-inbound-json-advanced)
   - [4.8. Inbound actions: QR / Edit / Reset / Delete and statistics](#48-inbound-actions-qr--edit--reset--delete-and-statistics)
-- [5. Protocols](#5-protocols-1)
+- [5. Protocols](#5-protocols)
   - [5.1. List of Supported Protocols](#51-list-of-supported-protocols)
   - [5.2. Which Protocols Support TLS / REALITY / Transport](#52-which-protocols-support-tls--reality--transport)
   - [5.3. VLESS](#53-vless)
@@ -79,13 +79,13 @@
   - [6.7. XHTTP / SplitHTTP (`xhttpSettings`)](#67-xhttp--splithttp-xhttpsettings)
   - [6.8. Hysteria transport (`hysteriaSettings`)](#68-hysteria-transport-hysteriasettings)
   - [6.9. Related parameters](#69-related-parameters)
-- [7. Connection Security: TLS, XTLS, and REALITY](#7-connection-security-tls-xtls-and-reality-1)
+- [7. Connection Security: TLS, XTLS, and REALITY](#7-connection-security-tls-xtls-and-reality)
   - [7.1. The Difference: TLS vs XTLS vs REALITY](#71-the-difference-tls-vs-xtls-vs-reality)
   - [7.2. None Mode (`none`)](#72-none-mode-none)
   - [7.3. TLS Mode](#73-tls-mode)
   - [7.4. REALITY Mode](#74-reality-mode)
   - [7.5. Practical Configuration Recommendations](#75-practical-configuration-recommendations)
-- [8. Clients](#8-clients-1)
+- [8. Clients](#8-clients)
   - [8.1. Client fields](#81-client-fields)
   - [8.2. Inbound binding](#82-inbound-binding)
   - [8.3. Per-client operations](#83-per-client-operations)
@@ -112,7 +112,7 @@
   - [10.3. Output formats](#103-output-formats)
   - [10.4. Subscription info page and QR codes](#104-subscription-info-page-and-qr-codes)
   - [10.5. Custom subscription page templates](#105-custom-subscription-page-templates)
-- [11. Xray: routing, outbounds, DNS, and extensions](#11-xray-routing-outbounds-dns-and-extensions-1)
+- [11. Xray: routing, outbounds, DNS, and extensions](#11-xray-routing-outbounds-dns-and-extensions)
   - [11.1. Editor structure: tabs/modes](#111-editor-structure-tabsmodes)
   - [11.2. General Settings](#112-general-settings)
   - [11.3. Routing Rules (routing)](#113-routing-rules-routing)
@@ -126,7 +126,7 @@
   - [11.11. Saving, restart, and automatic transformations](#1111-saving-restart-and-automatic-transformations)
   - [11.12. Subscription outbounds (with auto-update)](#1112-subscription-outbounds-with-auto-update)
   - [11.13. IP rotation in WARP](#1113-ip-rotation-in-warp)
-- [12. Nodes (multi-panel, master/slave)](#12-nodes-multi-panel-masterslave-1)
+- [12. Nodes (multi-panel, master/slave)](#12-nodes-multi-panel-masterslave)
   - [12.1. Summary at the top of the list](#121-summary-at-the-top-of-the-list)
   - [12.2. Adding and editing a node](#122-adding-and-editing-a-node)
   - [12.3. TLS verification (for https nodes)](#123-tls-verification-for-https-nodes)
@@ -147,7 +147,7 @@
   - [13.8. Other: Xray configuration template and test URL](#138-other-xray-configuration-template-and-test-url)
   - [13.9. Administrator account and API tokens](#139-administrator-account-and-api-tokens)
   - [13.10. API changes in 3.3.0 (important for integrations)](#1310-api-changes-in-330-important-for-integrations)
-- [14. Telegram Bot](#14-telegram-bot-1)
+- [14. Telegram Bot](#14-telegram-bot)
   - [14.1. Enabling and configuring the bot](#141-enabling-and-configuring-the-bot)
   - [14.2. Main menu and buttons](#142-main-menu-and-buttons)
   - [14.3. Bot commands](#143-bot-commands)
@@ -177,45 +177,45 @@
 
 This section briefly lists the changes in version **3.4.1** relative to 3.4.0 that are visible to panel users, grouped by manual section. Details on each feature are in the corresponding section below.
 
-### 1. Introduction, requirements and installation
+### Changes in section 1 — Introduction, requirements and installation
 - **Installing a dev build and installing a specific version via install.sh** — The install.sh installation script now supports a version selection argument: specify a tag (e.g. v3.4.0) to install a specific version, or 'dev-latest' (alias 'dev') to install a rolling dev build from the latest main branch commit, bypassing the minimum version check. Without an argument, the latest stable release is installed.
 
-### 3. Overview / Dashboard
+### Changes in section 3 — Overview / Dashboard
 - **Dashboard: redesigned range selector in system history and Xray metrics charts** — The time range selector has been updated in the history windows on the dashboard. For system metrics charts, the available ranges are 2m, 1h, 3h, 6h, 12h, 24h, 2d and 7d (history is now stored for up to 7 days instead of the previous 48 hours), and on 2-day and 7-day ranges the time labels include the date. For Xray metrics charts, the available ranges are 2m, 1h, 3h, 6h and 12h. The irregular values 30m, 2h and 5h have been removed.
 - **Dashboard: memory usage card shows the real process RSS** — The panel memory usage indicator on the dashboard now reflects the actual process RSS and matches the value shown by the operating system. Previously, an internal Go counter was displayed which overstated memory usage and never decreased. The number now drops as memory is freed.
 
-### 5. Protocols
+### Changes in section 5 — Protocols
 - **VLESS encryption: new key generation modes (native / xorpub / random)** — In an inbound with the VLESS protocol, the encryption key generation block is now structured differently. Instead of two separate buttons (X25519 and ML-KEM-768) under the "Decryption" and "Encryption" fields, there is now a "Key Generation" dropdown with six options: X25519 and ML-KEM-768, each in three modes — native, xorpub and random. Select the desired mode and click "Generate": the panel will fill the decryption and encryption fields with a ready key pair. The "Clear" button removes the generated values, and the "Selected" line shows the current key type and mode.
 - **Clearing the Rewrite port field in tunnel-inbound settings no longer breaks saving** — A bug has been fixed: in an inbound with the tunnel protocol, clearing the "Rewrite port" field no longer causes a save error. Previously, an empty value triggered a validation error message; now the field is simply omitted from the settings when cleared.
 
-### 7. Connection security: TLS, XTLS and REALITY
+### Changes in section 7 — Connection security: TLS, XTLS and REALITY
 - **Restoring XTLS Vision flow when encryption is enabled on an existing inbound** — If encryption (decryption/encryption) is enabled on an existing VLESS/XHTTP inbound after clients have already been added, the panel now automatically restores flow=xtls-rprx-vision for clients that require it. Previously, the flow would silently disappear from configs, links and subscriptions in this case (especially on node inbounds). No manual action is required — the fix is applied automatically when editing the inbound and once upon panel update.
 
-### 8. Clients
+### Changes in section 8 — Clients
 - **Bulk enabling and disabling selected clients** — When multiple clients are selected on the Clients page, the More menu offers bulk Enable and Disable actions. Enable activates each selected client on all bound inbounds; clients with an exhausted traffic quota or expired term will be automatically disabled again. Disable immediately removes client access, but their records and accumulated traffic are preserved. Before executing, the panel asks for confirmation, and after the operation shows a notification with the number of clients processed and, where applicable, the number for which the action failed.
 - **Bulk setting of XTLS flow in the Adjust dialog** — A Set flow field has been added to the bulk Adjust dialog to set or clear the XTLS flow for all selected clients at once. By default, No change is selected. The Disable (clear flow) option clears the flow, while xtls-rprx-vision and xtls-rprx-vision-udp443 set the corresponding vision flow. Setting the vision flow applies only to inbounds that support flow; unsuitable inbounds are left unchanged and marked as skipped, whereas clearing the flow is always permitted. The dialog can now be applied by specifying just days, traffic or flow.
 - **Renaming a client no longer breaks bindings and the duplicate save toast has been removed** — Client editing behavior has been fixed: renaming a client (changing its email) no longer causes an error when saving inbound bindings and external links — these operations now use the new email. Also, when saving a client, the successful update notification no longer appears multiple times.
 
-### 10. Subscriptions
+### Changes in section 10 — Subscriptions
 - **New Remark Template variable group "Connection": {{PROTOCOL}}, {{TRANSPORT}}, {{SECURITY}}** — A "Connection" group with three variables describing the inbound configuration has been added to the remark template variable set: {{PROTOCOL}} — the protocol (VLESS, VMess, Trojan, etc.), {{TRANSPORT}} — the transport network (tcp, ws, grpc, etc.) and {{SECURITY}} — the transport security (TLS, REALITY, NONE; displayed in uppercase). Like the usage and expiry variables, these three variables only take effect in the subscription body and are automatically stripped from the remark in displayed links in the panel and on the subscription info page.
 - **Default remark template now includes {{EMAIL}}; client email is back in panel link remarks** — The default remark template has changed: it now includes the client email — {{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D (previously email was absent). Additionally, a 3.4.0 regression has been fixed: in links shown in the panel (QR code and "Info" windows on the Clients page) and on the subscription info page, the client email is again present in the profile name — "inbound-host-email" when a host is set, or "inbound-email" without a host. Traffic and expiry information is not substituted into these displayed names.
 - **Incy client integration: quick import button and Incy tab with routing** — The "Incy" entry has been added to the app menu (Android and iOS) on the subscription info page — it opens the deep-link incy://add/<subscription-link> for quick subscription import into the Incy client. An "Incy" tab has been added to subscription settings with an "Enable routing" toggle and a "Routing rules" field in incy://routing/onadd/<base64> format. When routing is enabled and the field is filled, this string is appended as a separate line to the subscription body (raw format), delivering the routing profile to the Incy client. The settings apply only to the Incy client.
 - **Restoring {{TRAFFIC_USED}} for clients with an orphaned traffic row** — The calculation of the {{TRAFFIC_USED}} variable (and other usage indicators) in the remark has been fixed for clients whose traffic statistics row became "orphaned" after the inbound was deleted and recreated. Previously, such clients showed 0.00B for {{TRAFFIC_USED}}, even though the subscription info page header displayed the correct usage. The panel now additionally searches for statistics by the client's email, and the variable again shows the correct used traffic.
 - **Correct browser tab title on the Hosts page** — The Hosts page now correctly displays the browser tab title instead of the generic '3X-UI'. This is a cosmetic change that only affects the tab label.
 
-### 11. Xray: routing, outbounds, DNS and extensions
+### Changes in section 11 — Xray: routing, outbounds, DNS and extensions
 - **Dialer Proxy dropdown now lists subscription outbounds** — In the Sockopt section of the outbound form, the "Dialer Proxy" dropdown (proxy chaining: route this outbound through another by tag) now shows not only local outbounds but also outbound tags from subscriptions. The blackhole outbound and the outbound being edited are still excluded from the list. Leave the field empty for a direct connection.
 - **HTTP outbound: custom request headers preserved (and editable)** — A "Headers" field — a key/value pair editor for CONNECT headers sent to the upstream HTTP proxy — has been added to the outbound form with the HTTP protocol. Previously, these headers were lost when the outbound was saved again; they are now preserved. Note: only settings-level headers are applied; xray-core ignores server-level headers.
 
-### 12. Nodes (multi-panel, master/slave)
+### Changes in section 12 — Nodes (multi-panel, master/slave)
 - **Dev channel when updating nodes** — A 'Update to development channel (latest commit)' checkbox has been added to the node update confirmation dialog. If checked, the selected nodes will install the rolling dev-latest build instead of the stable release; if unchecked, the node updates via its normal channel. A warning that dev builds are unstable is shown below the checkbox.
 - **Importing client traffic history on first inbound sync from a node** — Traffic accounting has been fixed when adding a node that already has accumulated traffic. Previously, on the first inbound sync from a node, the overall inbound counter was transferred correctly, but individual client counters were reset to zero, causing the master to undercount client usage by the entire history prior to connecting the node. Now, when importing inbounds together with a node, client counters inherit the real values from the node.
 
-### 14. Telegram bot
+### Changes in section 14 — Telegram bot
 - **Telegram bot reloads on settings save** — Telegram bot settings changes now take effect immediately upon saving, without restarting the panel. If you changed the token, chat ID, API server address, or toggled the bot on/off, the panel will automatically restart the bot with the new parameters. The previous rule about needing to restart the panel after changing the token no longer applies.
 - **Telegram bot backup filename is based on webDomain/IP** — Database backup files sent by the Telegram bot are now named after the server address: by webDomain, or by public IP if webDomain is not set. Previously, when webDomain was not set, such backups received the generic name x-ui, making it difficult to tell which server the file came from.
 
-### 16. Operations: backups, logs, updates, CLI
+### Changes in section 16 — Operations: backups, logs, updates, CLI
 - **Tunnel health monitor (automatic xray restart via environment variables)** — Version 3.4.1 introduces an optional tunnel health monitor. When enabled, the panel periodically checks the availability of a specified URL and, after several consecutive failed checks, automatically restarts the xray core — this helps recover a tunnel that has stopped passing traffic. The monitor is configured only via service environment variables (there are no web interface settings for it) and is disabled by default. The key variable XUI_TUNNEL_HEALTH_MONITOR=true enables it; XUI_TUNNEL_HEALTH_PROXY should point to a local xray inbound (e.g. socks5://127.0.0.1:1080), otherwise only server connectivity is checked rather than the tunnel itself. Other variables set the check URL (XUI_TUNNEL_HEALTH_URL), interval (XUI_TUNNEL_HEALTH_INTERVAL, 30s), timeout (XUI_TUNNEL_HEALTH_TIMEOUT, 10s), number of failures before restart (XUI_TUNNEL_HEALTH_FAILURES, 3) and the minimum pause between restarts (XUI_TUNNEL_HEALTH_COOLDOWN, 5m). Note: restarting xray disconnects all connected clients.
 - **Auto-update in log viewers** — An 'Auto-update' checkbox has been added to the log viewer windows (both the Xray 'Access Logs' and the general panel 'Logs'). When enabled, the log is automatically re-read every 5 seconds, preserving the selected line count, level and filters. Polling stops as soon as the window is closed or the checkbox is unchecked.
 - **Dev update channel for the panel (rolling builds by commit)** — The toggle is displayed in the panel update window only on dev builds (CI builds from individual commits). When enabled, the panel will update to the rolling dev-latest build, which tracks every commit on the main branch and is not a stable release; there is no automatic rollback. In dev mode, the window shows the current and latest commit instead of version numbers. The feature is available only on Linux with systemd.

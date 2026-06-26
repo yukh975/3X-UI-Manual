@@ -14,7 +14,7 @@
 ## Contenido
 
 - [Qué hay de nuevo en 3.4.1](#qué-hay-de-nuevo-en-341)
-- [1. Introducción, requisitos e instalación](#1-introducción-requisitos-e-instalación-1)
+- [1. Introducción, requisitos e instalación](#1-introducción-requisitos-e-instalación)
   - [1.1. Qué es 3X-UI](#11-qué-es-3x-ui)
   - [1.2. Sistemas operativos y arquitecturas compatibles](#12-sistemas-operativos-y-arquitecturas-compatibles)
   - [1.3. Métodos de instalación](#13-métodos-de-instalación)
@@ -56,7 +56,7 @@
   - [4.6. Reinicio periódico del tráfico](#46-reinicio-periódico-del-tráfico)
   - [4.7. JSON del entrante (avanzado)](#47-json-del-entrante-avanzado)
   - [4.8. Acciones sobre el inbound: QR / Edit / Reset / Delete y estadísticas](#48-acciones-sobre-el-inbound-qr--edit--reset--delete-y-estadísticas)
-- [5. Protocolos](#5-protocolos-1)
+- [5. Protocolos](#5-protocolos)
   - [5.1. Lista de protocolos admitidos](#51-lista-de-protocolos-admitidos)
   - [5.2. Qué protocolos admiten TLS / REALITY / transporte](#52-qué-protocolos-admiten-tls--reality--transporte)
   - [5.3. VLESS](#53-vless)
@@ -79,13 +79,13 @@
   - [6.7. XHTTP / SplitHTTP (`xhttpSettings`)](#67-xhttp--splithttp-xhttpsettings)
   - [6.8. Transporte Hysteria (`hysteriaSettings`)](#68-transporte-hysteria-hysteriasettings)
   - [6.9. Parámetros complementarios](#69-parámetros-complementarios)
-- [7. Seguridad de la conexión: TLS, XTLS y REALITY](#7-seguridad-de-la-conexión-tls-xtls-y-reality-1)
+- [7. Seguridad de la conexión: TLS, XTLS y REALITY](#7-seguridad-de-la-conexión-tls-xtls-y-reality)
   - [7.1. Diferencias: TLS vs XTLS vs REALITY](#71-diferencias-tls-vs-xtls-vs-reality)
   - [7.2. Modo «Ninguno» (`none`)](#72-modo-ninguno-none)
   - [7.3. Modo TLS](#73-modo-tls)
   - [7.4. Modo REALITY](#74-modo-reality)
   - [7.5. Recomendaciones prácticas de configuración](#75-recomendaciones-prácticas-de-configuración)
-- [8. Clientes](#8-clientes-1)
+- [8. Clientes](#8-clientes)
   - [8.1. Campos del cliente](#81-campos-del-cliente)
   - [8.2. Vinculación al inbound](#82-vinculación-al-inbound)
   - [8.3. Operaciones sobre el cliente](#83-operaciones-sobre-el-cliente)
@@ -106,13 +106,13 @@
   - [9.11. Relación con la página «Clientes»](#911-relación-con-la-página-clientes)
   - [9.12. Resumen de endpoints de API](#912-resumen-de-endpoints-de-api)
   - [9.13. Tráfico por grupo](#913-tráfico-por-grupo)
-- [10. Suscripciones (Subscription)](#10-suscripciones-subscription-1)
+- [10. Suscripciones (Subscription)](#10-suscripciones-subscription)
   - [10.1. Qué es subId y cómo se forma el enlace](#101-qué-es-subid-y-cómo-se-forma-el-enlace)
   - [10.2. Configuración del servidor de suscripciones](#102-configuración-del-servidor-de-suscripciones)
   - [10.3. Formatos de salida](#103-formatos-de-salida)
   - [10.4. Página de información de la suscripción y códigos QR](#104-página-de-información-de-la-suscripción-y-códigos-qr)
   - [10.5. Plantillas personalizadas de la página de suscripción](#105-plantillas-personalizadas-de-la-página-de-suscripción)
-- [11. Xray: enrutamiento, outbounds, DNS y extensiones](#11-xray-enrutamiento-outbounds-dns-y-extensiones-1)
+- [11. Xray: enrutamiento, outbounds, DNS y extensiones](#11-xray-enrutamiento-outbounds-dns-y-extensiones)
   - [11.1. Estructura del editor: pestañas/modos](#111-estructura-del-editor-pestañasmodos)
   - [11.2. Configuración principal (General)](#112-configuración-principal-general)
   - [11.3. Reglas de enrutamiento (routing)](#113-reglas-de-enrutamiento-routing)
@@ -126,7 +126,7 @@
   - [11.11. Guardado, reinicio y transformaciones automáticas](#1111-guardado-reinicio-y-transformaciones-automáticas)
   - [11.12. Outbound de suscripción (con actualización automática)](#1112-outbound-de-suscripción-con-actualización-automática)
   - [11.13. Rotación de IP en WARP](#1113-rotación-de-ip-en-warp)
-- [12. Nodos (multipanel, master/slave)](#12-nodos-multipanel-masterslave-1)
+- [12. Nodos (multipanel, master/slave)](#12-nodos-multipanel-masterslave)
   - [12.1. Resumen en la parte superior de la lista](#121-resumen-en-la-parte-superior-de-la-lista)
   - [12.2. Añadir y editar un nodo](#122-añadir-y-editar-un-nodo)
   - [12.3. Verificación TLS (para nodos https)](#123-verificación-tls-para-nodos-https)
@@ -147,7 +147,7 @@
   - [13.8. Otros: plantilla de configuración de Xray y URL de verificación](#138-otros-plantilla-de-configuración-de-xray-y-url-de-verificación)
   - [13.9. Cuenta de administrador y tokens de API](#139-cuenta-de-administrador-y-tokens-de-api)
   - [13.10. Cambios de API en 3.3.0 (importante para integraciones)](#1310-cambios-de-api-en-330-importante-para-integraciones)
-- [14. Bot de Telegram](#14-bot-de-telegram-1)
+- [14. Bot de Telegram](#14-bot-de-telegram)
   - [14.1. Activación y configuración del bot](#141-activación-y-configuración-del-bot)
   - [14.2. Menú principal y botones](#142-menú-principal-y-botones)
   - [14.3. Comandos del bot](#143-comandos-del-bot)
@@ -177,45 +177,45 @@
 
 Esta sección enumera brevemente los cambios de la versión **3.4.1** respecto a 3.4.0 visibles para el usuario del panel, agrupados por secciones del manual. Los detalles de cada función se encuentran en la sección correspondiente a continuación.
 
-### 1. Introducción, requisitos e instalación
+### Cambios en la sección 1 — Introducción, requisitos e instalación
 - **Instalación de la compilación dev e instalación de una versión específica mediante install.sh** — El script de instalación install.sh ahora admite un argumento para seleccionar la versión: especifique una etiqueta (por ejemplo, v3.4.0) para instalar una versión concreta, o 'dev-latest' (alias 'dev') para instalar la compilación rolling dev según el último commit de main, omitiendo la comprobación de versión mínima. Sin argumento se instala el último lanzamiento estable.
 
-### 3. Resumen / Panel de control
+### Cambios en la sección 3 — Resumen / Panel de control
 - **Panel de control: rediseño del selector de rango en los gráficos de historial del sistema y métricas de Xray** — En las ventanas de historial del panel de control se ha renovado la selección del intervalo de tiempo. Para los gráficos de métricas del sistema están disponibles los rangos 2m, 1h, 3h, 6h, 12h, 24h, 2d y 7d (el historial se almacena hasta 7 días en lugar de las anteriores 48 horas), y en los rangos de 2 y 7 días las etiquetas de tiempo incluyen la fecha. Para los gráficos de métricas de Xray están disponibles los rangos 2m, 1h, 3h, 6h y 12h. Los valores irregulares 30m, 2h y 5h se han eliminado.
 - **Panel de control: la tarjeta de uso de memoria muestra el RSS real del proceso** — El indicador de uso de memoria RAM del panel en el panel de control ahora refleja el RSS real del proceso y coincide con el valor que muestra el sistema operativo. Anteriormente se mostraba el contador interno de Go, que sobreestimaba el consumo de memoria y nunca disminuía. Ahora el número baja a medida que se libera memoria.
 
-### 5. Protocolos
+### Cambios en la sección 5 — Protocolos
 - **Cifrado VLESS: nuevos modos de generación de claves (native / xorpub / random)** — En el inbound con protocolo VLESS el bloque de generación de claves de cifrado ha cambiado. En lugar de dos botones separados (X25519 y ML-KEM-768) bajo los campos «Descifrado» y «Cifrado» aparece una lista desplegable «Generación de claves» con seis opciones: X25519 y ML-KEM-768, cada una en tres modos — native, xorpub y random. Seleccione el modo deseado y pulse «Generar»: el panel rellenará los campos decryption y encryption con el par de claves generado. El botón «Limpiar» borra los valores generados y la línea «Seleccionado» muestra el tipo y modo de clave actuales.
 - **Limpiar el campo Rewrite port en la configuración del tunnel-inbound ya no rompe el guardado** — Se ha corregido un error: en el inbound con protocolo tunnel, limpiar el campo «Puerto de reescritura» (Rewrite port) ya no provoca un error al guardar. Anteriormente el valor vacío generaba un mensaje de error de validación; ahora el campo simplemente se excluye de la configuración al limpiarlo.
 
-### 7. Seguridad de la conexión: TLS, XTLS y REALITY
+### Cambios en la sección 7 — Seguridad de la conexión: TLS, XTLS y REALITY
 - **Restauración del flow XTLS Vision al activar el cifrado en un inbound existente** — Si se activa el cifrado (decryption/encryption) en un inbound VLESS/XHTTP existente después de que ya se hayan añadido clientes, el panel ahora restaura automáticamente flow=xtls-rprx-vision en los clientes que lo requieren. Antes, el flow desaparecía silenciosamente de las configuraciones, enlaces y suscripciones en este caso (especialmente en los inbounds de nodos). No se requiere ninguna acción manual: la corrección se aplica automáticamente al editar el inbound y una vez al actualizar el panel.
 
-### 8. Clientes
+### Cambios en la sección 8 — Clientes
 - **Activación y desactivación masiva de clientes seleccionados** — Al seleccionar varios clientes en la página Clients, en el menú More (Más) están disponibles las acciones masivas Enable (Activar) y Disable (Desactivar). La activación habilita cada cliente seleccionado en todos los inbounds vinculados; los clientes con cuota de tráfico agotada o plazo vencido se desactivarán automáticamente de nuevo. La desactivación priva inmediatamente a los clientes del acceso, pero sus registros y el tráfico acumulado se conservan. Antes de ejecutar la acción el panel solicita confirmación, y tras la operación muestra una notificación con el número de clientes procesados y, si los hay, con el número de aquellos para los que la acción no tuvo éxito.
 - **Configuración masiva de XTLS flow en el diálogo Adjust** — En el diálogo de ajuste masivo Adjust ha aparecido el campo Set flow para establecer o restablecer el XTLS flow en todos los clientes seleccionados a la vez. Por defecto se selecciona No change (sin cambios). La opción Disable (clear flow) restablece el flow, y los valores xtls-rprx-vision y xtls-rprx-vision-udp443 establecen el vision-flow correspondiente. La configuración del vision-flow solo se aplica a los inbounds que admiten flow; los inbounds incompatibles permanecen sin cambios y se marcan como omitidos, mientras que el restablecimiento del flow siempre está permitido. Ahora basta con especificar días, tráfico o flow para aplicar el diálogo.
 - **Renombrar un cliente ya no rompe los vínculos y se ha eliminado el toast duplicado de guardado** — Se ha corregido el comportamiento al editar un cliente: renombrar un cliente (cambiar su email) ya no provoca un error al guardar los vínculos de inbounds y los enlaces externos, pues estas operaciones ahora utilizan el nuevo email. Además, al guardar un cliente la notificación de actualización exitosa ya no aparece varias veces.
 
-### 10. Suscripciones (Subscription)
+### Cambios en la sección 10 — Suscripciones (Subscription)
 - **Nuevo grupo de variables de Remark Template «Connection»: {{PROTOCOL}}, {{TRANSPORT}}, {{SECURITY}}** — Al conjunto de variables de la plantilla de remark (Remark Template) se ha añadido el grupo «Conexión» (Connection) con tres variables que describen la configuración del inbound: {{PROTOCOL}} — protocolo (VLESS, VMess, Trojan, etc.), {{TRANSPORT}} — red de transporte (tcp, ws, grpc, etc.) y {{SECURITY}} — seguridad del transporte (TLS, REALITY, NONE; se muestra en mayúsculas). Al igual que las variables de consumo y plazo, estas tres variables solo actúan en el cuerpo de la suscripción y se eliminan automáticamente del remark en los enlaces mostrados en el panel y en la página de información de suscripción.
 - **La plantilla de remark por defecto ahora incluye {{EMAIL}}; el email del cliente ha vuelto al remark de los enlaces del panel** — La plantilla de remark por defecto ha cambiado: ahora incluye el email del cliente — {{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D (antes el email no estaba presente). Además, se ha corregido el comportamiento de la versión 3.4.0: en los enlaces mostrados en el panel (código QR y ventanas «Información» en la página «Clientes») y en la página de información de suscripción, el email del cliente vuelve a estar presente en el nombre del perfil — «inbound-host-email» si el host está definido o «inbound-email» sin host. La información de tráfico y plazo no se incluye en estos nombres mostrados.
 - **Integración del cliente Incy: botón de importación rápida y pestaña Incy con enrutamiento** — En la página de información de suscripción, en el menú de aplicaciones (Android e iOS), ha aparecido el elemento «Incy» que abre el deep-link incy://add/<enlace-de-suscripción> para la importación rápida de la suscripción en el cliente. En la configuración de suscripción se ha añadido la pestaña «Incy» con el interruptor «Activar enrutamiento» (Enable routing) y el campo «Reglas de enrutamiento» (Routing rules) en formato incy://routing/onadd/<base64>. Cuando el enrutamiento está activado y el campo está relleno, esta cadena se añade como línea independiente al cuerpo de la suscripción (formato raw), entregando el perfil de enrutamiento al cliente Incy. La configuración solo afecta al cliente Incy.
 - **Restauración de {{TRAFFIC_USED}} para clientes con registro de tráfico huérfano** — Se ha corregido el cálculo de la variable {{TRAFFIC_USED}} (y otros indicadores de consumo) en el remark para los clientes cuyo registro de estadísticas de tráfico quedó «huérfano» tras eliminar y volver a crear el inbound. Anteriormente, en estos clientes {{TRAFFIC_USED}} mostraba 0.00B, aunque el consumo se mostraba correctamente en el encabezado de la página de información de suscripción. Ahora el panel busca también las estadísticas por email del cliente y la variable vuelve a mostrar el tráfico utilizado correcto.
 - **Título correcto de la pestaña en la página Hosts** — En la página Hosts ahora se muestra correctamente el título de la pestaña del navegador, en lugar del genérico '3X-UI'. El cambio es puramente estético y solo afecta a la etiqueta de la pestaña.
 
-### 11. Xray: enrutamiento, outbounds, DNS y extensiones
+### Cambios en la sección 11 — Xray: enrutamiento, outbounds, DNS y extensiones
 - **El desplegable Dialer Proxy ahora lista los outbounds de suscripciones** — En la sección Sockopt del formulario de outbound, la lista desplegable «Dialer Proxy» (cadena de proxy: enrutar este outbound a través de otro por etiqueta) ahora muestra no solo los outbounds locales, sino también las etiquetas de outbounds de suscripciones. De la lista siguen excluidos el blackhole-outbound y el propio outbound en edición. Deje el campo vacío para una conexión directa.
 - **HTTP outbound: se conservan (y editan) las cabeceras de solicitud personalizadas** — En el formulario de outbound con protocolo HTTP se ha añadido el campo «Headers» (Cabeceras) — un editor de pares clave/valor para las cabeceras CONNECT enviadas al proxy HTTP superior. Anteriormente estas cabeceras se perdían al volver a guardar el outbound; ahora se conservan. Tenga en cuenta: solo se aplican las cabeceras a nivel de configuración; las cabeceras a nivel de servidor individual las ignora xray-core.
 
-### 12. Nodos (multipanel, master/slave)
+### Cambios en la sección 12 — Nodos (multipanel, master/slave)
 - **Canal Dev al actualizar nodos** — En el diálogo de confirmación de actualización de nodos ha aparecido la casilla 'Actualizar al canal de desarrollo (último commit)'. Si se marca, los nodos seleccionados instalarán la compilación rolling dev-latest en lugar del lanzamiento estable; si se desmarca, el nodo se actualiza por su canal habitual. Bajo la casilla se muestra una advertencia sobre la inestabilidad de las compilaciones dev.
 - **Importación del historial de tráfico de clientes en la primera sincronización del inbound desde un nodo** — Se ha corregido el cálculo del tráfico al añadir un nodo en el que ya se había acumulado tráfico. Anteriormente, en la primera sincronización del inbound desde el nodo, el contador general del inbound se transfería correctamente, pero los contadores individuales de los clientes se ponían a cero, y el maestro subestimaba el consumo de los clientes en todo el historial anterior a la conexión del nodo. Ahora, al importar el inbound junto con el nodo, los contadores de los clientes heredan los valores reales del nodo.
 
-### 14. Bot de Telegram
+### Cambios en la sección 14 — Bot de Telegram
 - **Reinicio del bot de Telegram al guardar la configuración** — Los cambios en la configuración del bot de Telegram ahora se aplican inmediatamente al guardar, sin necesidad de reiniciar el panel. Si cambió el token, el chat ID, la dirección del servidor de API o activó/desactivó el bot, el panel reiniciará automáticamente el bot con los nuevos parámetros. La regla anterior sobre la necesidad de reiniciar el panel tras cambiar el token ya no está vigente.
 - **Nombre del archivo de copia de seguridad del bot de Telegram — por webDomain/IP** — Los archivos de copia de seguridad de la base de datos que envía el bot de Telegram ahora se nombran según la dirección del servidor: por webDomain, y si no está definido, por la IP pública. Anteriormente, cuando webDomain no estaba definido, dichas copias recibían el nombre genérico x-ui, lo que dificultaba saber de qué servidor provenía el archivo.
 
-### 16. Operación: copias de seguridad, registros, actualización, CLI
+### Cambios en la sección 16 — Operación: copias de seguridad, registros, actualización, CLI
 - **Monitor de salud del túnel (reinicio automático de xray mediante variables de entorno)** — En 3.4.1 apareció un monitor de salud del túnel opcional. Si está activado, el panel verifica periódicamente la disponibilidad de una URL determinada y, tras varios fallos consecutivos, reinicia automáticamente el núcleo xray, lo que ayuda a recuperar el túnel que ha dejado de pasar tráfico. El monitor se configura solo mediante variables de entorno del servicio (no hay configuración en la interfaz web) y está desactivado por defecto. La variable clave XUI_TUNNEL_HEALTH_MONITOR=true lo activa; XUI_TUNNEL_HEALTH_PROXY debe apuntar al inbound local de xray (por ejemplo socks5://127.0.0.1:1080), de lo contrario solo se verifica la conectividad del propio servidor, no el túnel. Las demás variables establecen la URL de verificación (XUI_TUNNEL_HEALTH_URL), el intervalo (XUI_TUNNEL_HEALTH_INTERVAL, 30s), el tiempo de espera (XUI_TUNNEL_HEALTH_TIMEOUT, 10s), el número de fallos antes del reinicio (XUI_TUNNEL_HEALTH_FAILURES, 3) y la pausa mínima entre reinicios (XUI_TUNNEL_HEALTH_COOLDOWN, 5m). Tenga en cuenta: el reinicio de xray interrumpe las conexiones de todos los clientes conectados.
 - **Actualización automática en los visores de registros** — En las ventanas de visualización de registros (tanto en «Registros de acceso» de Xray como en los «Registros» generales del panel) ha aparecido la casilla «Actualización automática». Si se activa, el registro se vuelve a leer automáticamente cada 5 segundos manteniendo el número de líneas, nivel y filtros seleccionados. El sondeo se detiene en cuanto se cierra la ventana o se desmarca la casilla.
 - **Canal de actualización Dev para el panel (compilaciones rolling por commits)** — El interruptor se muestra en la ventana de actualización del panel solo en compilaciones dev (compilaciones de CI por commits individuales). Al activarlo, el panel se actualizará a la compilación rolling dev-latest, que sigue cada commit de la rama main y no es un lanzamiento estable; no hay reversión automática. En modo dev, la ventana muestra el commit actual y el último en lugar de los números de versión. La función solo está disponible en Linux con systemd.

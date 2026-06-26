@@ -14,7 +14,7 @@
 ## Daftar Isi
 
 - [Apa yang Baru di 3.4.1](#apa-yang-baru-di-341)
-- [1. Pendahuluan, Persyaratan, dan Instalasi](#1-pendahuluan-persyaratan-dan-instalasi-1)
+- [1. Pendahuluan, Persyaratan, dan Instalasi](#1-pendahuluan-persyaratan-dan-instalasi)
   - [1.1. Apa Itu 3X-UI](#11-apa-itu-3x-ui)
   - [1.2. Sistem Operasi dan Arsitektur yang Didukung](#12-sistem-operasi-dan-arsitektur-yang-didukung)
   - [1.3. Metode Instalasi](#13-metode-instalasi)
@@ -56,7 +56,7 @@
   - [4.6. Reset lalu lintas berkala](#46-reset-lalu-lintas-berkala)
   - [4.7. JSON inbound (lanjutan)](#47-json-inbound-lanjutan)
   - [4.8. Tindakan pada inbound: QR / Edit / Reset / Delete dan statistik](#48-tindakan-pada-inbound-qr--edit--reset--delete-dan-statistik)
-- [5. Protokol](#5-protokol-1)
+- [5. Protokol](#5-protokol)
   - [5.1. Daftar Protokol yang Didukung](#51-daftar-protokol-yang-didukung)
   - [5.2. Protokol Mana yang Mendukung TLS / REALITY / Transport](#52-protokol-mana-yang-mendukung-tls--reality--transport)
   - [5.3. VLESS](#53-vless)
@@ -79,13 +79,13 @@
   - [6.7. XHTTP / SplitHTTP (`xhttpSettings`)](#67-xhttp--splithttp-xhttpsettings)
   - [6.8. Transport Hysteria (`hysteriaSettings`)](#68-transport-hysteria-hysteriasettings)
   - [6.9. Parameter Pelengkap](#69-parameter-pelengkap)
-- [7. Keamanan Koneksi: TLS, XTLS, dan REALITY](#7-keamanan-koneksi-tls-xtls-dan-reality-1)
+- [7. Keamanan Koneksi: TLS, XTLS, dan REALITY](#7-keamanan-koneksi-tls-xtls-dan-reality)
   - [7.1. Apa Perbedaannya: TLS vs XTLS vs REALITY](#71-apa-perbedaannya-tls-vs-xtls-vs-reality)
   - [7.2. Mode «Tidak Ada» (`none`)](#72-mode-tidak-ada-none)
   - [7.3. Mode TLS](#73-mode-tls)
   - [7.4. Mode REALITY](#74-mode-reality)
   - [7.5. Rekomendasi Praktis untuk Konfigurasi](#75-rekomendasi-praktis-untuk-konfigurasi)
-- [8. Klien](#8-klien-1)
+- [8. Klien](#8-klien)
   - [8.1. Kolom Klien](#81-kolom-klien)
   - [8.2. Tautan ke Inbound](#82-tautan-ke-inbound)
   - [8.3. Operasi pada Klien](#83-operasi-pada-klien)
@@ -106,13 +106,13 @@
   - [9.11. Hubungan dengan halaman "Klien"](#911-hubungan-dengan-halaman-klien)
   - [9.12. Ringkasan endpoint API](#912-ringkasan-endpoint-api)
   - [9.13. Traffic per grup](#913-traffic-per-grup)
-- [10. Langganan (Subscription)](#10-langganan-subscription-1)
+- [10. Langganan (Subscription)](#10-langganan-subscription)
   - [10.1. Apa itu subId dan bagaimana tautan dibentuk](#101-apa-itu-subid-dan-bagaimana-tautan-dibentuk)
   - [10.2. Pengaturan server langganan](#102-pengaturan-server-langganan)
   - [10.3. Format output](#103-format-output)
   - [10.4. Halaman informasi langganan dan kode QR](#104-halaman-informasi-langganan-dan-kode-qr)
   - [10.5. Template halaman langganan kustom](#105-template-halaman-langganan-kustom)
-- [11. Xray: routing, outbounds, DNS, dan ekstensi](#11-xray-routing-outbounds-dns-dan-ekstensi-1)
+- [11. Xray: routing, outbounds, DNS, dan ekstensi](#11-xray-routing-outbounds-dns-dan-ekstensi)
   - [11.1. Struktur editor: tab/mode](#111-struktur-editor-tabmode)
   - [11.2. Pengaturan Utama (General)](#112-pengaturan-utama-general)
   - [11.3. Aturan routing (routing)](#113-aturan-routing-routing)
@@ -126,7 +126,7 @@
   - [11.11. Penyimpanan, mulai ulang, dan transformasi otomatis](#1111-penyimpanan-mulai-ulang-dan-transformasi-otomatis)
   - [11.12. Outbound dari langganan (dengan pembaruan otomatis)](#1112-outbound-dari-langganan-dengan-pembaruan-otomatis)
   - [11.13. Rotasi IP di WARP](#1113-rotasi-ip-di-warp)
-- [12. Node (multipanel, master/slave)](#12-node-multipanel-masterslave-1)
+- [12. Node (multipanel, master/slave)](#12-node-multipanel-masterslave)
   - [12.1. Ringkasan di bagian atas daftar](#121-ringkasan-di-bagian-atas-daftar)
   - [12.2. Menambah dan mengedit node](#122-menambah-dan-mengedit-node)
   - [12.3. Verifikasi TLS (untuk node https)](#123-verifikasi-tls-untuk-node-https)
@@ -147,7 +147,7 @@
   - [13.8. Lainnya: Template Konfigurasi Xray dan URL Pengujian](#138-lainnya-template-konfigurasi-xray-dan-url-pengujian)
   - [13.9. Akun Administrator dan Token API](#139-akun-administrator-dan-token-api)
   - [13.10. Perubahan API di 3.3.0 (penting untuk integrasi)](#1310-perubahan-api-di-330-penting-untuk-integrasi)
-- [14. Bot Telegram](#14-bot-telegram-1)
+- [14. Bot Telegram](#14-bot-telegram)
   - [14.1. Mengaktifkan dan mengonfigurasi bot](#141-mengaktifkan-dan-mengonfigurasi-bot)
   - [14.2. Menu utama dan tombol](#142-menu-utama-dan-tombol)
   - [14.3. Perintah bot](#143-perintah-bot)
@@ -177,45 +177,45 @@
 
 Bagian ini secara singkat mencantumkan perubahan versi **3.4.1** dibandingkan 3.4.0 yang terlihat oleh pengguna panel, dikelompokkan berdasarkan bagian panduan. Detail setiap fitur tersedia di bagian yang sesuai di bawah.
 
-### 1. Pendahuluan, Persyaratan, dan Instalasi
+### Perubahan di bagian 1 — Pendahuluan, Persyaratan, dan Instalasi
 - **Instalasi build dev dan instalasi versi tertentu melalui install.sh** — Skrip instalasi install.sh kini mendukung argumen untuk memilih versi: tentukan tag (misalnya v3.4.0) untuk memasang versi tertentu, atau 'dev-latest' (alias 'dev') untuk menginstal rolling dev-build berdasarkan commit terbaru di main dengan melewati pemeriksaan versi minimum. Tanpa argumen, rilis stabil terbaru akan diinstal.
 
-### 3. Ikhtisar / Dashboard
+### Perubahan di bagian 3 — Ikhtisar / Dashboard
 - **Dashboard: pemilihan rentang waktu pada grafik riwayat sistem dan metrik Xray telah didesain ulang** — Di jendela riwayat pada dashboard, pemilihan rentang waktu telah diperbarui. Untuk grafik metrik sistem tersedia rentang 2m, 1h, 3h, 6h, 12h, 24h, 2d, dan 7d (riwayat kini disimpan hingga 7 hari, bukan 48 jam sebelumnya), dan pada rentang 2 serta 7 hari label waktu dilengkapi dengan tanggal. Untuk grafik metrik Xray tersedia rentang 2m, 1h, 3h, 6h, dan 12h. Nilai tidak beraturan 30m, 2h, dan 5h telah dihapus.
 - **Dashboard: kartu penggunaan memori menampilkan RSS proses yang sebenarnya** — Indikator penggunaan RAM panel di dashboard kini mencerminkan RSS proses yang sebenarnya dan sesuai dengan nilai yang ditampilkan sistem operasi. Sebelumnya, yang ditampilkan adalah penghitung internal Go yang melebih-lebihkan penggunaan memori dan tidak pernah berkurang. Kini angkanya turun seiring dengan dibebaskannya memori.
 
-### 5. Protokol
+### Perubahan di bagian 5 — Protokol
 - **Enkripsi VLESS: mode generasi kunci baru (native / xorpub / random)** — Di inbound dengan protokol VLESS, blok generasi kunci enkripsi kini memiliki tampilan berbeda. Sebagai pengganti dua tombol terpisah (X25519 dan ML-KEM-768) di bawah field «Decryption» dan «Encryption», kini terdapat dropdown «Generasi Kunci» dengan enam pilihan: X25519 dan ML-KEM-768, masing-masing dalam tiga mode — native, xorpub, dan random. Pilih mode yang diinginkan dan klik «Hasilkan»: panel akan mengisi field decryption dan encryption dengan pasangan kunci yang siap digunakan. Tombol «Hapus» menghapus nilai yang dihasilkan, dan baris «Dipilih» menampilkan tipe dan mode kunci saat ini.
 - **Menghapus field Rewrite port pada pengaturan tunnel-inbound tidak lagi merusak penyimpanan** — Perbaikan bug: pada inbound dengan protokol tunnel, mengosongkan field «Rewrite port» tidak lagi menyebabkan kesalahan penyimpanan. Sebelumnya, nilai kosong memunculkan pesan kesalahan validasi; kini field yang dikosongkan cukup dikecualikan dari pengaturan.
 
-### 7. Keamanan Koneksi: TLS, XTLS, dan REALITY
+### Perubahan di bagian 7 — Keamanan Koneksi: TLS, XTLS, dan REALITY
 - **Pemulihan flow XTLS Vision saat enkripsi diaktifkan pada inbound yang sudah ada** — Jika pada inbound VLESS/XHTTP yang sudah ada diaktifkan enkripsi (decryption/encryption) setelah klien ditambahkan, panel kini secara otomatis memulihkan flow=xtls-rprx-vision pada klien yang memerlukannya. Sebelumnya, flow diam-diam hilang dari konfigurasi, tautan, dan langganan (terutama pada inbound node). Tidak diperlukan tindakan manual — perbaikan diterapkan secara otomatis saat mengedit inbound dan sekali saat pembaruan panel.
 
-### 8. Klien
+### Perubahan di bagian 8 — Klien
 - **Mengaktifkan dan menonaktifkan klien terpilih secara massal** — Saat beberapa klien dipilih di halaman Clients, menu More (Lainnya) menawarkan tindakan massal Enable (Aktifkan) dan Disable (Nonaktifkan). Mengaktifkan akan mengaktifkan setiap klien terpilih di semua inbound yang terikat; klien yang kuota lalu lintasnya habis atau masa berlakunya berakhir akan dinonaktifkan kembali secara otomatis. Menonaktifkan langsung mencabut akses klien, tetapi catatan dan lalu lintas yang terkumpul tetap tersimpan. Sebelum pelaksanaan, panel meminta konfirmasi, dan setelah operasi menampilkan notifikasi dengan jumlah klien yang diproses dan, jika ada, jumlah klien yang gagal diproses.
 - **Pengaturan XTLS flow secara massal di dialog Adjust** — Di dialog penyesuaian massal Adjust, ditambahkan field Set flow untuk mengatur atau mereset XTLS flow pada semua klien terpilih sekaligus. Secara default dipilih No change (tanpa perubahan). Pilihan Disable (clear flow) mereset flow, sedangkan nilai xtls-rprx-vision dan xtls-rprx-vision-udp443 menetapkan vision-flow yang sesuai. Pengaturan vision-flow hanya diterapkan pada inbound yang mendukung flow; inbound yang tidak sesuai dibiarkan tanpa perubahan dan ditandai sebagai dilewati, sedangkan reset flow selalu diizinkan. Kini untuk menerapkan dialog, cukup atur hari, lalu lintas, atau flow.
 - **Mengganti nama klien tidak lagi merusak pengikatan, dan toast penyimpanan duplikat dihapus** — Perilaku saat mengedit klien telah diperbaiki: mengganti nama klien (mengubah email-nya) tidak lagi menyebabkan kesalahan saat menyimpan pengikatan inbound dan tautan eksternal — operasi ini kini menggunakan email baru. Selain itu, notifikasi pembaruan berhasil tidak lagi muncul beberapa kali saat menyimpan klien.
 
-### 10. Langganan (Subscription)
+### Perubahan di bagian 10 — Langganan (Subscription)
 - **Grup variabel Remark Template «Connection» baru: {{PROTOCOL}}, {{TRANSPORT}}, {{SECURITY}}** — Ke dalam kumpulan variabel template remark (Remark Template) ditambahkan grup «Connection» dengan tiga variabel yang mendeskripsikan konfigurasi inbound: {{PROTOCOL}} — protokol (VLESS, VMess, Trojan, dll.), {{TRANSPORT}} — jaringan transport (tcp, ws, grpc, dll.), dan {{SECURITY}} — keamanan transport (TLS, REALITY, NONE; ditampilkan dalam huruf kapital). Seperti variabel penggunaan dan masa berlaku, ketiga variabel ini hanya berlaku di badan langganan dan secara otomatis dihapus dari remark di tautan yang ditampilkan di panel dan di halaman info langganan.
 - **Template remark default kini menyertakan {{EMAIL}}; email klien kembali hadir di remark tautan panel** — Template remark default telah diubah: kini menyertakan email klien — {{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D (sebelumnya email tidak ada). Selain itu, perilaku versi 3.4.0 telah diperbaiki: pada tautan yang ditampilkan di panel (kode QR dan jendela «Info» di halaman «Klien») dan di halaman info langganan, email klien kembali hadir dalam nama profil — «inbound-host-email» jika host ditentukan, atau «inbound-email» tanpa host. Informasi lalu lintas dan masa berlaku tidak dimasukkan ke dalam nama yang ditampilkan ini.
 - **Integrasi klien Incy: tombol impor cepat dan tab Incy dengan routing** — Di halaman info langganan dalam menu aplikasi (Android dan iOS), muncul item «Incy» — ia membuka deep-link incy://add/<subscription-link> untuk impor cepat langganan ke klien. Di pengaturan langganan ditambahkan tab «Incy» dengan sakelar «Enable routing» dan field «Routing rules» berformat incy://routing/onadd/<base64>. Bila routing diaktifkan dan field diisi, string ini ditambahkan sebagai baris terpisah ke badan langganan (format raw), mengantarkan profil routing ke klien Incy. Pengaturan ini hanya berlaku untuk klien Incy.
 - **Pemulihan {{TRAFFIC_USED}} untuk klien dengan baris lalu lintas yang «terpita»** — Diperbaiki perhitungan variabel {{TRAFFIC_USED}} (dan indikator penggunaan lainnya) dalam remark untuk klien yang baris statistik lalu lintasnya «terpita» setelah inbound dihapus dan dibuat ulang. Sebelumnya, pada klien seperti itu {{TRAFFIC_USED}} menampilkan 0.00B, meskipun penggunaan yang benar ditampilkan di header halaman info langganan. Kini panel juga mencari statistik berdasarkan email klien, dan variabel kembali menampilkan lalu lintas yang digunakan secara akurat.
 - **Judul tab yang benar di halaman Hosts** — Di halaman Hosts kini ditampilkan judul tab browser yang benar, bukan '3X-UI' secara umum. Perubahan ini hanya bersifat kosmetik dan hanya mempengaruhi label tab.
 
-### 11. Xray: Routing, Outbounds, DNS, dan Ekstensi
+### Perubahan di bagian 11 — Xray: Routing, Outbounds, DNS, dan Ekstensi
 - **Dialer Proxy dropdown now lists subscription outbounds** — Di bagian Sockopt pada formulir outbound, dropdown «Dialer Proxy» (rantai proksi: arahkan outbound ini melalui outbound lain berdasarkan tag) kini menampilkan tidak hanya outbound lokal, tetapi juga tag outbound dari langganan. Dari daftar tetap dikecualikan blackhole-outbound dan outbound yang sedang diedit. Kosongkan field untuk koneksi langsung.
 - **HTTP outbound: custom request headers preserved (and editable)** — Pada formulir outbound dengan protokol HTTP ditambahkan field «Headers» (Header) — editor pasangan kunci/nilai untuk header CONNECT yang dikirim ke proksi HTTP upstream. Sebelumnya header ini hilang saat outbound disimpan ulang; kini tersimpan. Perlu diperhatikan: hanya header di level pengaturan yang diterapkan; header di level server individual diabaikan oleh xray-core.
 
-### 12. Node (multipanel, master/slave)
+### Perubahan di bagian 12 — Node (multipanel, master/slave)
 - **Saluran Dev saat memperbarui node** — Di dialog konfirmasi pembaruan node muncul kotak centang 'Perbarui ke saluran pengembangan (commit terbaru)'. Jika dicentang, node terpilih akan menginstal rolling-build dev-latest alih-alih rilis stabil; jika tidak dicentang, node diperbarui melalui salurannya yang biasa. Di bawah kotak centang ditampilkan peringatan bahwa build dev tidak stabil.
 - **Impor riwayat lalu lintas klien saat sinkronisasi inbound pertama dari node** — Diperbaiki perhitungan lalu lintas saat menambahkan node yang sudah memiliki lalu lintas terakumulasi. Sebelumnya, saat sinkronisasi inbound pertama dari node, penghitung inbound keseluruhan dipindahkan dengan benar, tetapi penghitung klien individual direset ke nol, dan master meremehkan penggunaan klien selama seluruh riwayat sebelum node terhubung. Kini saat mengimpor inbound bersama dengan node, penghitung klien mewarisi nilai nyata dari node.
 
-### 14. Bot Telegram
+### Perubahan di bagian 14 — Bot Telegram
 - **Restart bot Telegram saat menyimpan pengaturan** — Perubahan pengaturan bot Telegram kini diterapkan segera saat disimpan, tanpa perlu merestart panel. Jika Anda mengubah token, chat ID, alamat server API, atau mengaktifkan/menonaktifkan bot, panel secara otomatis akan merestart bot dengan parameter baru. Aturan lama yang mengharuskan restart panel setelah mengganti token tidak lagi berlaku.
 - **Nama file cadangan dari bot Telegram — berdasarkan webDomain/IP** — File cadangan database yang dikirim oleh bot Telegram kini diberi nama berdasarkan alamat server: berdasarkan webDomain, atau jika tidak ditentukan — berdasarkan IP publik. Sebelumnya, jika webDomain tidak ditentukan, cadangan tersebut mendapat nama generik x-ui, sehingga sulit diketahui dari server mana file tersebut berasal.
 
-### 16. Operasional: Cadangan, Log, Pembaruan, CLI
+### Perubahan di bagian 16 — Operasional: Cadangan, Log, Pembaruan, CLI
 - **Monitor kesehatan tunnel (restart xray otomatis melalui variabel lingkungan)** — Di versi 3.4.1 hadir monitor kesehatan tunnel yang bersifat opsional. Jika diaktifkan, panel secara berkala memeriksa ketersediaan URL yang ditentukan dan, setelah beberapa kali pemeriksaan gagal berturut-turut, secara otomatis merestart inti xray — ini membantu memulihkan tunnel yang berhenti meneruskan lalu lintas. Monitor hanya dapat dikonfigurasi melalui variabel lingkungan layanan (tidak ada pengaturan di antarmuka web) dan dinonaktifkan secara default. Variabel utama XUI_TUNNEL_HEALTH_MONITOR=true mengaktifkannya; XUI_TUNNEL_HEALTH_PROXY harus diarahkan ke inbound xray lokal (misalnya socks5://127.0.0.1:1080), jika tidak, hanya konektivitas server itu sendiri yang diperiksa, bukan tunnel. Variabel lain menentukan URL pemeriksaan (XUI_TUNNEL_HEALTH_URL), interval (XUI_TUNNEL_HEALTH_INTERVAL, 30s), timeout (XUI_TUNNEL_HEALTH_TIMEOUT, 10s), jumlah kegagalan sebelum restart (XUI_TUNNEL_HEALTH_FAILURES, 3), dan jeda minimum antar restart (XUI_TUNNEL_HEALTH_COOLDOWN, 5m). Perlu diperhatikan: restart xray memutus koneksi semua klien yang terhubung.
 - **Pembaruan otomatis di penampil log** — Di jendela penampil log (baik 'Log Akses' Xray maupun 'Log' umum panel) muncul kotak centang 'Pembaruan otomatis'. Jika diaktifkan, log secara otomatis dibaca ulang setiap 5 detik dengan mempertahankan jumlah baris, level, dan filter yang dipilih. Polling berhenti segera setelah jendela ditutup atau kotak centang dinonaktifkan.
 - **Saluran pembaruan Dev untuk panel (rolling-build per commit)** — Sakelar ditampilkan di jendela pembaruan panel hanya pada build dev (build CI per commit individual). Jika diaktifkan, panel akan diperbarui ke rolling-build dev-latest, yang mengikuti setiap commit di cabang main dan bukan merupakan rilis stabil; tidak ada rollback otomatis. Dalam mode dev, jendela menampilkan commit saat ini dan terbaru, bukan nomor versi. Fitur ini hanya tersedia di Linux dengan systemd.
