@@ -80,3 +80,5 @@
 ---
 
 根据面板源文件分析整理。Yuriy Khachaturian（[yukh.net](https://yukh.net)）
+
+_Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)._

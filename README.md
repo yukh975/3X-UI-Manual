@@ -80,3 +80,5 @@ This section briefly lists the changes in version **3.4.1** relative to 3.4.0 th
 ---
 
 Created from an analysis of the panel's source files. Yuriy Khachaturian ([yukh.net](https://yukh.net))
+
+_Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)._

@@ -80,3 +80,5 @@ Bu bölüm, **3.4.1** sürümünün 3.4.0'a göre panel kullanıcısı tarafınd
 ---
 
 Panel kaynak dosyalarının analizinden oluşturulmuştur. Yuriy Khachaturian ([yukh.net](https://yukh.net))
+
+_Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)._

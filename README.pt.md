@@ -80,3 +80,5 @@ Esta seção resume brevemente as alterações da versão **3.4.1** em relação
 ---
 
 Criado a partir de uma análise dos arquivos-fonte do painel. Yuriy Khachaturian ([yukh.net](https://yukh.net))
+
+_Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)._

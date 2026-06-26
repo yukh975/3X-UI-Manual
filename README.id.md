@@ -80,3 +80,5 @@ Bagian ini secara singkat mencantumkan perubahan versi **3.4.1** dibandingkan 3.
 ---
 
 Dibuat berdasarkan analisis file sumber panel. Yuriy Khachaturian ([yukh.net](https://yukh.net))
+
+_Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)._

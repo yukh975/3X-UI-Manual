@@ -55,6 +55,7 @@ for code, flag, native in LANGS:
         continue
     s = shells[code]
     content = (f"# 3X-UI Manual\n\n{switcher(code)}\n\n{s['intro']}\n\n> {s['mirrorNote']}\n\n"
-               f"## {s['contents']}\n\n{table(s)}\n\n{summary(code)}\n\n---\n\n{s['footer']}\n")
+               f"## {s['contents']}\n\n{table(s)}\n\n{summary(code)}\n\n---\n\n{s['footer']}\n\n"
+               "_Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)._\n")
     open(readme_path(code), "w", encoding="utf-8").write(content)
     print("  ✓", readme_path(code))
