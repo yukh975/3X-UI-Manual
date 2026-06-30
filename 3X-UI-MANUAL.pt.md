@@ -2,7 +2,7 @@
 
 🇸🇦 [العربية](3X-UI-MANUAL.ar.md) · 🇬🇧 [English](3X-UI-MANUAL.en.md) · 🇪🇸 [Español](3X-UI-MANUAL.es.md) · 🇮🇷 [فارسی](3X-UI-MANUAL.fa.md) · 🇮🇩 [Bahasa Indonesia](3X-UI-MANUAL.id.md) · 🇯🇵 [日本語](3X-UI-MANUAL.ja.md) · 🇧🇷 Português · 🇷🇺 [Русский](3X-UI-MANUAL.ru.md) · 🇹🇷 [Türkçe](3X-UI-MANUAL.tr.md) · 🇺🇦 [Українська](3X-UI-MANUAL.uk.md) · 🇻🇳 [Tiếng Việt](3X-UI-MANUAL.vi.md) · 🇨🇳 [简体中文](3X-UI-MANUAL.zh-CN.md) · 🇹🇼 [繁體中文](3X-UI-MANUAL.zh-TW.md)
 
-**Versão do 3X-UI: 3.4.1.** O manual foi elaborado com base nesta versão e é válido para ela. Um resumo das alterações da versão 3.4.1 em relação à 3.4.0 encontra-se na seção [«O que há de novo na 3.4.1»](#o-que-há-de-novo-na-341).
+**Versão do 3X-UI: 3.4.2.** O manual foi elaborado com base nesta versão e é válido para ela. Um resumo das alterações da versão 3.4.2 em relação à 3.4.1 encontra-se na seção [«O que há de novo na 3.4.2»](#o-que-há-de-novo-na-342).
 
 > Manual detalhado em português do painel web **3X-UI** (gerenciamento do
 > Xray-core): funções, configuração e operação, com explicação de cada campo e
@@ -13,7 +13,7 @@
 
 ## Sumário
 
-- [O que há de novo na 3.4.1](#o-que-há-de-novo-na-341)
+- [O que há de novo na 3.4.2](#o-que-há-de-novo-na-342)
 - [1. Introdução, requisitos e instalação](#1-introdução-requisitos-e-instalação)
   - [1.1. O que é o 3X-UI](#11-o-que-é-o-3x-ui)
   - [1.2. Sistemas operacionais e arquiteturas suportados](#12-sistemas-operacionais-e-arquiteturas-suportados)
@@ -173,58 +173,70 @@
   - [16.8. Remoção do painel](#168-remoção-do-painel)
   - [16.9. Comando `x-ui migrateDB`](#169-comando-x-ui-migratedb)
 
-## O que há de novo na 3.4.1
+## O que há de novo na 3.4.2
 
-Esta seção resume brevemente as alterações da versão **3.4.1** em relação à 3.4.0 visíveis ao usuário do painel, agrupadas pelas seções do manual. Os detalhes de cada função estão na seção correspondente abaixo.
+A versão 3.4.2 é uma grande atualização: o WireGuard foi migrado para o modelo multicliente, o REALITY ganhou um scanner de destinos ao vivo, os balanceadores receberam as abas Observatory/Burst Observatory e foi adicionada a confirmação de configurações sensíveis com o código 2FA. A seguir, as alterações em relação à 3.4.1, agrupadas pelas seções do manual.
 
 ### Alterações na seção 1 — Introdução, requisitos e instalação
-- **Instalação de build dev e instalação de versão específica via install.sh** — O script de instalação install.sh agora suporta um argumento para escolha de versão: informe uma tag (por exemplo, v3.4.0) para instalar uma versão específica, ou 'dev-latest' (alias 'dev') para instalar a build rolling dev-latest pelo último commit da main, ignorando a verificação de versão mínima. Sem argumento, instala o último release estável.
+
+- No menu lateral (e na gaveta móvel) apareceu o botão **«Documentação»** (ícone de livro) — abre a documentação oficial `https://docs.sanaei.dev/`.
+- A versão mínima do Xray para a qual o painel atualiza foi elevada para **26.6.27** (o núcleo Xray 26.6.27 vem incluído).
+
+### Alterações na seção 2 — Acesso ao painel e segurança de acesso
+
+- Com a 2FA ativada, a alteração de login/senha do administrador e a desativação da 2FA agora exigem **inserir o código atual** do aplicativo autenticador (confirmação de alterações sensíveis).
+- LDAP: novo interruptor **«Pular verificação do certificado TLS»** (`ldapInsecureSkipVerify`) — desativa a verificação do certificado no LDAPS; disponível apenas quando «Usar TLS (LDAPS)» está ativado.
 
 ### Alterações na seção 3 — Visão geral / Dashboard
-- **Dashboard: seleção de intervalo reformulada nos gráficos de histórico do sistema e métricas do Xray** — Nas janelas de histórico do dashboard foi atualizada a seleção de intervalo de tempo. Para os gráficos de métricas do sistema estão disponíveis os intervalos 2m, 1h, 3h, 6h, 12h, 24h, 2d e 7d (o histórico agora é armazenado por até 7 dias em vez das anteriores 48 horas), sendo que nos intervalos de 2 e 7 dias os rótulos de tempo incluem a data. Para os gráficos de métricas do Xray estão disponíveis os intervalos 2m, 1h, 3h, 6h e 12h. Os valores irregulares 30m, 2h e 5h foram removidos.
-- **Dashboard: o cartão de uso de memória exibe o RSS real do processo** — O indicador de uso de memória RAM pelo painel no dashboard agora reflete o RSS real do processo e coincide com o valor exibido pelo sistema operacional. Antes, exibia um contador interno do Go que superestimava o consumo e nunca diminuía. Agora o valor reduz à medida que a memória é liberada.
+
+- O botão de versão do painel agora sempre abre a janela de atualização (veja a seção 16 — canal dev).
+- Melhoria transversal de **acessibilidade**: rótulos aria para ícones e ativação de elementos por Enter/Space (para leitores de tela e navegação por teclado).
+
+### Alterações na seção 4 — Inbounds: criação e parâmetros gerais
+
+- A ação **«Exportar todos os links»** agora gera os links pelo motor de assinaturas — aplica o modelo de remark a cada cliente e prefere os endpoints Host gerenciados (antes havia um remark fixo `inbound-email`).
 
 ### Alterações na seção 5 — Protocolos
-- **VLESS encryption: novos modos de geração de chaves (native / xorpub / random)** — No inbound com protocolo VLESS, o bloco de geração de chaves de criptografia foi reestruturado. Em vez de dois botões separados (X25519 e ML-KEM-768) sob os campos «Decryption» e «Encryption», aparece uma lista suspensa «Geração de chaves» com seis opções: X25519 e ML-KEM-768, cada um em três modos — native, xorpub e random. Selecione o modo desejado e clique em «Gerar»: o painel preencherá os campos decryption e encryption com o par de chaves gerado. O botão «Limpar» remove os valores gerados, e a linha «Selecionado» exibe o tipo e modo de chave atual.
-- **Limpar o campo Rewrite port nas configurações de tunnel-inbound não quebra mais o salvamento** — Corrigido um bug: no inbound com protocolo tunnel, limpar o campo «Rewrite port» não gera mais erro ao salvar. Anteriormente, um valor vazio causava uma mensagem de erro de validação; agora o campo simplesmente é excluído das configurações ao ser limpo.
+
+- **O WireGuard foi migrado para o modelo multicliente.** Os peers agora são clientes comuns (com atribuição automática de endereço no túnel, suporte a assinaturas, limites de tráfego/prazo e grupos); a lista inline «Peers» do formulário do inbound foi removida.
+- No inbound WireGuard foi adicionado o campo configurável **DNS** (padrão `1.1.1.1, 1.0.0.1`) e um **cartão de configuração do cliente** — copiar/baixar/QR do `.conf` completo e do link `wireguard://`/`wg://`.
+
+### Alterações na seção 6 — Transporte (Stream Settings)
+
+- No XHTTP, para novos inbounds, o parâmetro `maxConnections` no **xmux** agora tem padrão **6** (era `0` — sem limite). Os inbounds existentes mantêm seu valor.
 
 ### Alterações na seção 7 — Segurança da conexão: TLS, XTLS e REALITY
-- **Restauração do flow XTLS Vision ao ativar criptografia em um inbound existente** — Se a criptografia (decryption/encryption) for habilitada em um inbound VLESS/XHTTP existente depois que clientes já foram adicionados, o painel agora restaura automaticamente o flow=xtls-rprx-vision nos clientes que o necessitam. Antes, o flow simplesmente desaparecia silenciosamente das configurações, links e assinaturas nesse caso (especialmente em inbounds de nós). Nenhuma ação manual é necessária — a correção é aplicada automaticamente ao editar o inbound e uma única vez durante a atualização do painel.
+
+- Foi adicionado um **scanner de destinos REALITY ao vivo**: os botões **«Escanear»** (verificar o destino atual «ao vivo») e **«Buscar destinos»** (escanear um domínio ou faixa **IP/CIDR** e selecionar destinos adequados pelos seus certificados). Os campos «Destino» e SNI agora ficam vazios na primeira seleção do REALITY.
 
 ### Alterações na seção 8 — Clientes
-- **Ativação e desativação em massa de clientes selecionados** — Ao selecionar vários clientes na página Clients, no menu More (Mais) estão disponíveis as ações em massa Enable (Ativar) e Disable (Desativar). A ativação habilita cada cliente selecionado em todos os inbounds vinculados; clientes com cota de tráfego esgotada ou prazo vencido serão desativados automaticamente novamente. A desativação remove imediatamente o acesso dos clientes, mas seus registros e tráfego acumulado são preservados. Antes de executar, o painel solicita confirmação e, após a operação, exibe uma notificação com o número de clientes processados e, quando houver, o número de clientes para os quais a ação falhou.
-- **Configuração em massa do XTLS flow no diálogo Adjust** — No diálogo de ajuste em massa Adjust, foi adicionado o campo Set flow para definir ou redefinir o XTLS flow de todos os clientes selecionados de uma vez. Por padrão, está selecionado No change (sem alterações). A opção Disable (clear flow) redefine o flow, enquanto os valores xtls-rprx-vision e xtls-rprx-vision-udp443 configuram o vision-flow correspondente. A configuração do vision-flow é aplicada somente aos inbounds que suportam flow; os inbounds incompatíveis permanecem sem alteração e são marcados como ignorados, enquanto a redefinição do flow é sempre permitida. Agora, para aplicar o diálogo, é suficiente definir dias, tráfego ou flow.
-- **Renomear cliente não quebra mais vinculações e foi removida a toast de salvamento duplicada** — Corrigido o comportamento ao editar cliente: renomear um cliente (alterar seu email) não gera mais erro ao salvar as vinculações de inbounds e links externos — essas operações agora usam o novo email. Além disso, ao salvar o cliente, a notificação de atualização bem-sucedida não aparece mais várias vezes.
+
+- A extensão de prazo/cota via `bulkAdjust` agora **reativa automaticamente** um cliente desativado apenas por esgotamento (prazo vencido ou cota excedida), se a extensão o devolver aos limites. Os desativados manualmente ou ainda esgotados permanecem desligados.
+
+### Alterações na seção 9 — Grupos de clientes
+
+- **«Zerar tráfego»** de um grupo agora zera **apenas o contador do próprio grupo**; os contadores, cotas e o estado dos clientes individuais não são afetados, e não é necessário reiniciar o Xray. Esta é uma mudança em relação ao comportamento anterior (antes, o tráfego de todos os clientes do grupo era zerado).
 
 ### Alterações na seção 10 — Assinaturas (Subscription)
-- **Novo grupo de variáveis Remark Template «Connection»: {{PROTOCOL}}, {{TRANSPORT}}, {{SECURITY}}** — Ao conjunto de variáveis do modelo de remark (Remark Template) foi adicionado o grupo «Connection» com três variáveis que descrevem a configuração do inbound: {{PROTOCOL}} — protocolo (VLESS, VMess, Trojan etc.), {{TRANSPORT}} — rede de transporte (tcp, ws, grpc etc.) e {{SECURITY}} — segurança do transporte (TLS, REALITY, NONE; exibido em maiúsculas). Assim como as variáveis de consumo e prazo, estas três variáveis funcionam apenas no corpo da assinatura e são automaticamente removidas do remark nos links exibidos no painel e na página de informações da assinatura.
-- **O modelo de remark padrão agora inclui {{EMAIL}}; o email do cliente voltou ao remark dos links do painel** — O modelo de remark padrão foi alterado: agora inclui o email do cliente — {{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D (antes o email estava ausente). Além disso, foi corrigido o comportamento da versão 3.4.0: nos links exibidos no painel (QR-code e janelas «Informações» na página «Clientes») e na página de informações da assinatura, o email do cliente está novamente presente no nome do perfil — «inbound-host-email» quando o host está definido ou «inbound-email» sem host. Informações de tráfego e prazo não são inseridas nesses nomes exibidos.
-- **Integração do cliente Incy: botão de importação rápida e aba Incy com roteamento** — Na página de informações da assinatura, no menu de aplicativos (Android e iOS), aparece o item «Incy» — ele abre o deep-link incy://add/<link-da-assinatura> para importação rápida da assinatura no cliente. Nas configurações de assinatura foi adicionada a aba «Incy» com o interruptor «Enable routing» (Ativar roteamento) e o campo «Routing rules» (Regras de roteamento) no formato incy://routing/onadd/<base64>. Quando o roteamento está ativado e o campo preenchido, essa string é adicionada como uma linha separada no corpo da assinatura (formato raw), entregando o perfil de roteamento ao cliente Incy. As configurações se aplicam apenas ao cliente Incy.
-- **Restauração de {{TRAFFIC_USED}} para clientes com linha de tráfego órfã** — Corrigido o cálculo da variável {{TRAFFIC_USED}} (e outros indicadores de consumo) no remark para clientes cuja linha de estatística de tráfego ficou «órfã» após a exclusão e recriação do inbound. Antes, esses clientes mostravam {{TRAFFIC_USED}} como 0.00B, embora o consumo exibido no cabeçalho da página de informações da assinatura estivesse correto. Agora o painel busca adicionalmente as estatísticas pelo email do cliente, e a variável volta a exibir o tráfego utilizado corretamente.
-- **Título correto da aba na página Hosts** — Na página Hosts, o título da aba do navegador agora é exibido corretamente, em vez do genérico '3X-UI'. A alteração é puramente cosmética e afeta apenas o rótulo da aba.
+
+- Nos **hosts gerenciados**, o campo **VLESS route** foi redefinido: agora é um único valor `0-65535` (e não uma lista de portas), que é realmente «embutido» no UUID de cada assinatura (raw/JSON/Clash).
+- A variável `{{EMAIL}}` (e seu sinônimo `{{USERNAME}}`) no modelo de remark agora é exibida apenas no **primeiro link** do cliente — assim como o bloco de tráfego/prazo.
 
 ### Alterações na seção 11 — Xray: roteamento, outbounds, DNS e extensões
-- **Dialer Proxy dropdown now lists subscription outbounds** — Na seção Sockopt do formulário de outbound, a lista suspensa «Dialer Proxy» (encadeamento de proxies: encaminhar este outbound por outro pelo tag) agora exibe não apenas os outbounds locais, mas também os tags de outbounds de assinaturas. O blackhole-outbound e o próprio outbound em edição continuam excluídos da lista. Deixe o campo vazio para conexão direta.
-- **HTTP outbound: custom request headers preserved (and editable)** — No formulário de outbound com protocolo HTTP foi adicionado o campo «Headers» (Cabeçalhos) — editor de pares chave/valor para cabeçalhos CONNECT enviados ao proxy HTTP upstream. Antes, esses cabeçalhos se perdiam ao salvar o outbound novamente; agora são preservados. Atenção: somente os cabeçalhos no nível de configurações são aplicados; cabeçalhos no nível de servidor individual são ignorados pelo xray-core.
+
+- **Balanceadores**: a página foi dividida nas abas **«Configurações do balanceador»** e **«Observatory»**; em vez de JSON bruto — formulários Observatory e Burst Observatory (no Burst foi adicionado o campo **«Método HTTP»**). Um balanceador Random/Round-robin com `fallbackTag` agora cria automaticamente um Burst Observatory.
+- Ao excluir um outbound ou balanceador, o painel limpa por si só as referências relacionadas no roteamento e exibe uma **prévia das consequências** no diálogo de confirmação.
+- Nas regras de roteamento, o critério de rede **L4** é gravado no config em minúsculas (`tcp`/`udp`) e exibido em maiúsculas na tabela.
+- Os erros no formulário de adição/edição de balanceador agora são adiados até o primeiro toque no campo ou a tentativa de salvar.
 
 ### Alterações na seção 12 — Nós (multipainel, master/slave)
-- **Canal Dev na atualização de nós** — Na caixa de diálogo de confirmação de atualização de nós apareceu a caixa de seleção 'Atualizar para o canal de desenvolvimento (último commit)'. Se marcada, os nós selecionados instalarão a build rolling dev-latest em vez do release estável; com a caixa desmarcada, o nó é atualizado pelo seu canal habitual. Abaixo da caixa aparece um aviso de que as builds dev são instáveis.
-- **Importação do histórico de tráfego dos clientes na primeira sincronização de inbound de um nó** — Corrigido o cálculo de tráfego ao adicionar um nó que já acumulou tráfego. Antes, na primeira sincronização de inbound de um nó, o contador geral do inbound era transferido corretamente, mas os contadores individuais dos clientes eram zerados, e o master subestimava o consumo dos clientes por todo o histórico anterior à conexão do nó. Agora, ao importar o inbound junto com o nó, os contadores dos clientes herdam os valores reais do nó.
 
-### Alterações na seção 14 — Bot do Telegram
-- **Reinicialização do bot do Telegram ao salvar configurações** — As alterações nas configurações do bot do Telegram agora são aplicadas imediatamente ao salvar, sem reiniciar o painel. Se você alterou o token, chat ID, endereço do servidor de API ou ativou/desativou o bot, o painel reiniciará automaticamente o bot com os novos parâmetros. A regra anterior sobre a necessidade de reiniciar o painel após trocar o token não se aplica mais.
-- **Nome do arquivo de backup do bot do Telegram — por webDomain/IP** — Os arquivos de backup do banco de dados enviados pelo bot do Telegram agora recebem o nome pelo endereço do servidor: pelo webDomain ou, se não definido, pelo IP público. Antes, quando o webDomain não estava definido, esses backups recebiam o nome genérico x-ui, dificultando identificar de qual servidor o arquivo havia chegado.
+- A notificação «salvo localmente, nó offline — será sincronizado depois» agora só é exibida quando o nó está realmente offline ou desligado (antes — a cada salvamento em um nó online).
 
 ### Alterações na seção 16 — Operação: backups, logs, atualização, CLI
-- **Monitor de saúde do túnel (reinicialização automática do xray por variáveis de ambiente)** — Na versão 3.4.1 foi adicionado um monitor de saúde do túnel opcional. Quando ativado, o painel verifica periodicamente a acessibilidade de uma URL definida e, após várias verificações consecutivas com falha, reinicia automaticamente o núcleo xray — isso ajuda a recuperar um túnel que parou de passar tráfego. O monitor é configurado apenas por variáveis de ambiente do serviço (não há configurações na interface web) e está desativado por padrão. A variável principal XUI_TUNNEL_HEALTH_MONITOR=true o ativa; XUI_TUNNEL_HEALTH_PROXY deve apontar para um inbound xray local (por exemplo socks5://127.0.0.1:1080), caso contrário apenas a conectividade do próprio servidor é verificada, e não o túnel. As demais variáveis definem a URL de verificação (XUI_TUNNEL_HEALTH_URL), o intervalo (XUI_TUNNEL_HEALTH_INTERVAL, 30s), o timeout (XUI_TUNNEL_HEALTH_TIMEOUT, 10s), o número de falhas antes da reinicialização (XUI_TUNNEL_HEALTH_FAILURES, 3) e a pausa mínima entre reinicializações (XUI_TUNNEL_HEALTH_COOLDOWN, 5m). Atenção: a reinicialização do xray interrompe as conexões de todos os clientes conectados.
-- **Atualização automática nos visualizadores de logs** — Nas janelas de visualização de logs (tanto nos «Logs de acesso» do Xray quanto nos «Logs» gerais do painel) apareceu a caixa de seleção «Atualização automática». Se ativada, o log é relido automaticamente a cada 5 segundos, preservando o número de linhas selecionado, o nível e os filtros. A consulta é interrompida assim que a janela é fechada ou a caixa é desmarcada.
-- **Canal de atualização Dev para o painel (builds rolling por commits)** — O interruptor é exibido na janela de atualização do painel apenas em builds dev (builds de CI por commits individuais). Quando ativado, o painel será atualizado para a build rolling dev-latest, que acompanha cada commit da branch main e não é um release estável; não há rollback automático. No modo dev, a janela exibe o commit atual e o mais recente em vez de números de versão. A função está disponível apenas no Linux com systemd.
-- **Atualização para o canal Dev no menu x-ui e comando x-ui update-dev** — No menu de gerenciamento do script x-ui foi adicionado um item para atualização para o canal de desenvolvimento ('Update to Dev Channel (latest commit)'), que instala a build rolling dev-latest após confirmação, bem como o comando 'x-ui update-dev'. Por causa disso, os itens do menu foram renumerados: agora há 28 itens no total, e a entrada de seleção é no intervalo 0-28. Se o manual cita a numeração dos itens do menu, ela precisa ser verificada novamente.
-- **Remoção do PostgreSQL ao desinstalar o painel** — Ao remover o painel, se ele usava PostgreSQL, o script agora pergunta adicionalmente se é necessário remover também o servidor PostgreSQL junto com todos os seus bancos de dados. A solicitação requer confirmação explícita (padrão — recusar) e é acompanhada de aviso: a remoção afetará TODOS os bancos de dados PostgreSQL da máquina, incluindo os de outras aplicações, e é irreversível. Se recusado, o PostgreSQL e seus dados são preservados.
-- **O visualizador de logs de acesso do Xray foi renomeado para 'Logs de acesso'** — O visualizador de access-logs do Xray e o botão de chamada no cartão de status do Xray agora se chamam 'Logs de acesso' (antes — simplesmente 'Logs'). Isso foi feito para não confundir com o visualizador geral de logs do painel.
-- **Seleção do número de linhas de log: adicionado 1000, removido 10** — Nas duas janelas de logs, a lista de seleção do número de linhas foi alterada: o valor 10 foi removido e 1000 foi adicionado. Agora é possível selecionar 20, 50, 100, 500 ou 1000 linhas.
-- **Identificador de build dev (dev+<commit>) na interface, bot e CLI** — Nas builds dev, o painel exibe sua versão como 'dev+<commit>' em vez do número da versão estável — no badge da barra lateral, no dashboard, na janela de atualização, no relatório do bot do Telegram e na saída de 'x-ui -v'. Nos releases estáveis, a forma da versão não mudou.
-- **Visualizador de logs: notificações simples exibidas como estão, sem distorção para formato de data** — O visualizador de logs do painel agora exibe corretamente notificações simples sem marcação de tempo e nível (por exemplo, a mensagem de sistema 'Syslog is not supported') — integralmente, sem cortar o texto. Antes, essas linhas eram erroneamente analisadas como registro de log com data e nível, e parte do texto se perdia.
+
+- Os nomes dos arquivos de backup agora contêm o endereço do servidor e a **data-hora**: `{host}_AAAA-MM-DD_HHMMSS.db` (`.dump` para PostgreSQL), por exemplo `panel.example.com_2026-06-27_000000.db` — tanto ao baixar do painel quanto nos backups enviados pelo bot do Telegram.
+- É possível ativar o **canal dev** de atualizações a partir de uma build estável: o botão de versão sempre abre a janela de atualização, e apareceu o interruptor **«Canal Dev»** com aviso sobre instabilidade e ausência de rollback automático.
 
 ## 1. Introdução, requisitos e instalação
 
@@ -620,7 +632,7 @@ Importante: as alterações na seção de configurações são aplicadas pelo bo
 
 #### Como desabilitar a 2FA
 
-Pressionar a alternância novamente abre a janela «Отключить двухфакторную аутентификацию» com a dica «Введите код из приложения, чтобы отключить двухфакторную аутентификацию.». Após inserir o código correto, o sinalizador e o segredo são apagados, e é exibida a mensagem «Двухфакторная аутентификация была успешно удалена».
+Pressionar a alternância novamente abre a janela «Отключить двухфакторную аутентификацию» com a dica «Введите код из приложения, чтобы отключить двухфакторную аутентификацию.». Após inserir o código correto (a partir da 3.4.2 ele é verificado **no servidor**), o sinalizador e o segredo são apagados, e é exibida a mensagem «Двухфакторная аутентификация была успешно удалена».
 
 #### Verificação do código no login
 
@@ -692,6 +704,8 @@ Lógica e mensagens do servidor:
 - Se «Текущий логин» não corresponder ao real ou «Текущий пароль» estiver incorreto — «Произошла ошибка при изменении учетных данных администратора.» com a explicação «Неверное имя пользователя или пароль».
 - Se o novo login ou a nova senha estiver vazio — explicação «Новое имя пользователя и новый пароль должны быть заполнены».
 - Em caso de sucesso — «Вы успешно изменили учетные данные администратора.». A senha é armazenada como hash bcrypt.
+
+**Confirmação com código 2FA (a partir da 3.4.2).** Se a autenticação de dois fatores estiver ativada no painel, a alteração de login/senha exige adicionalmente **inserir o código atual** do aplicativo autenticador. Abre-se a janela **«Alteração de credenciais»** com a dica «Insira o código do aplicativo para alterar as credenciais do administrador.»; o código (`twoFactorCode`) é verificado no servidor e, se for incorreto ou estiver vazio, a alteração não é aplicada. A mesma confirmação agora também é exigida ao desativar a 2FA (veja [2.2](#22-autenticação-de-dois-fatores-2fa--totp)).
 
 **Exemplo: alteração de credenciais via API.** A requisição requer um cookie de sessão ativo (obtido no login) e a confirmação do login/senha atuais:
 
@@ -777,7 +791,8 @@ Campos da seção:
 | Включить LDAP-синхронизацию | «Включить LDAP-синхронизацию» (`enable`) | **false** | Interruptor principal da integração LDAP. |
 | LDAP-хост | «LDAP-хост» (`host`) | vazio | Endereço do servidor LDAP. |
 | Порт LDAP | «Порт LDAP» (`port`) | **389** | Porta. Para LDAPS, normalmente 636. |
-| Использовать TLS (LDAPS) | «Использовать TLS (LDAPS)» (`useTls`) | **false** | Quando habilitado, utiliza o esquema `ldaps://` com verificação do certificado do servidor (sem pular a verificação). |
+| Использовать TLS (LDAPS) | «Использовать TLS (LDAPS)» (`useTls`) | **false** | Quando habilitado, utiliza o esquema `ldaps://` (por padrão — com verificação do certificado do servidor). |
+| Pular verificação do certificado TLS | «Пропускать проверку TLS-сертификата» (`ldapInsecureSkipVerify`) | **false** | Adicionado na 3.4.2. Desativa a verificação do certificado do servidor no LDAPS — para CAs internas/autoassinadas. Dica: «Inseguro — desativa a verificação do certificado do servidor. Use apenas com CAs internas/não confiáveis». O interruptor está disponível **apenas** quando «Usar TLS (LDAPS)» está ativado. |
 | Bind DN | «Bind DN» (`bindDn`) | vazio | DN da conta de serviço para bind/busca inicial. Se vazio — o bind não é realizado (busca anônima). |
 | Пароль bind | dicas: «Настроено; оставьте пустым, чтобы сохранить текущий пароль.» / «Не настроено.» / «Настроено — введите новое значение для замены» | vazio | Senha para `Bind DN`. Armazenada separadamente; para manter a senha atual, deixe o campo vazio. |
 | Base DN | «Base DN» (`baseDn`) | vazio | Raiz da subárvore em que a busca é realizada (busca recursiva em toda a subárvore). |
@@ -823,6 +838,8 @@ Com essa configuração, a cada 5 minutos o painel percorrerá a subárvore `OU=
 O Dashboard (*Overview* na interface em inglês) é a página inicial do painel. Ele exibe em tempo real o estado do servidor e do processo Xray. Todos os indicadores vêm do lado do servidor. Um agendador em segundo plano reconstrói o snapshot **a cada 2 segundos** e o distribui para todas as abas abertas via WebSocket; a cada minuto, as séries de métricas acumuladas são salvas em disco. O endpoint HTTP `GET /status` retorna o último snapshot em cache.
 
 A seguir, cada indicador e cada elemento de controle da página são descritos em detalhes.
+
+No menu lateral do painel (e na gaveta móvel), a partir da versão 3.4.2 há o botão **«Documentação»** (ícone de livro) — abre a documentação oficial `https://docs.sanaei.dev/`. Também na 3.4.2 foi feita uma melhoria transversal de **acessibilidade**: os ícones-botão e os elementos clicáveis ganharam rótulos aria e ativação por Enter/Space (para leitores de tela e navegação por teclado).
 
 ### 3.1. Princípios gerais de coleta de dados
 
@@ -946,7 +963,7 @@ curl -X POST 'https://panel.example.com:2053/xpanel/installXray/v25.6.8' \
   -b cookie.txt
 ```
 
-Aqui `v25.6.8` é a tag da lista retornada por `GET /getXrayVersion`. A versão deve estar presente nessa lista, caso contrário o painel retornará uma recusa.
+Aqui `v25.6.8` é a tag da lista retornada por `GET /getXrayVersion`. A versão deve estar presente nessa lista, caso contrário o painel retornará uma recusa. A partir da versão 3.4.2, a versão mínima do Xray permitida para instalação foi elevada para **26.6.27** (o núcleo Xray 26.6.27 vem incluído), portanto builds mais antigas ficam indisponíveis para atualização.
 1. A versão selecionada é verificada na lista atual de releases (caso contrário — recusa).
 2. O Xray é parado.
 3. O arquivo `Xray-<os>-<arch>.zip` correspondente ao SO e arquitetura atuais é baixado do GitHub (suportados: amd64/64, arm64-v8a, arm32-v7a/v6/v5, 386/32, s390x; para Windows — `xray.exe`). O tamanho do arquivo e do binário é limitado a 200 MB.
@@ -1206,7 +1223,7 @@ Indicador de atividade do inbound. A alternância desse sinalizador na lista é 
 | Rótulo | **«Implantar em»**, **«Painel local»** |
 | Padrão | vazio (painel local) |
 
-Seleção de onde o inbound opera fisicamente: no painel local ou em um dos nós registrados. Detalhe de implementação: `nodeId = 0` é normalizado para `nil`, pois `0` não é um id de nó válido, mas sim um artefato do binding do formulário; `nil`/`0` significa painel local. Ao salvar um inbound em um nó offline, pode aparecer um toast «a alteração será sincronizada quando o nó se reconectar».
+Seleção de onde o inbound opera fisicamente: no painel local ou em um dos nós registrados. Detalhe de implementação: `nodeId = 0` é normalizado para `nil`, pois `0` não é um id de nó válido, mas sim um artefato do binding do formulário; `nil`/`0` significa painel local. Ao salvar um inbound em um nó offline, pode aparecer um toast «a alteração será sincronizada quando o nó se reconectar». A partir da versão 3.4.2, esse toast só é exibido quando o nó está realmente offline ou desligado (antes, ele podia aparecer também ao salvar em um nó online).
 
 #### Estratégia de endereço para links (Share address strategy)
 
@@ -1405,7 +1422,7 @@ No resumo de clientes na página de inbounds, o status é determinado pela prior
 
 - **«Detalhes»** — expande os links de conexão e de assinatura.
 - QR code do cliente: dica **«Clique no QR code para copiar»**.
-- **«Copiar link»** (ing. *Copy URL*), **«Exportar links»**.
+- **«Copiar link»** (ing. *Copy URL*), **«Exportar links»**. A partir da versão 3.4.2, a ação de página **«Exportar todos os links»** (`GET /panel/api/inbounds/allLinks`; janela «Exportar todos os links do inbound», arquivo «All-Inbounds») gera os links pelo motor de assinaturas — aplica o modelo de remark a cada cliente e prefere os endpoints Host gerenciados (antes era usado um remark fixo `inbound-email`).
 
 #### Edit (Modificar)
 
@@ -1749,40 +1766,42 @@ Quando escolher SOCKS/HTTP: para acesso proxy local ou de serviço sem disfarce 
 
 ### 5.9. WireGuard (inbound)
 
-Finalidade: inbound WireGuard. Ao contrário dos protocolos proxy, ele não opera com «clientes» — em vez disso, são configurados **peers** (dispositivos que o servidor aceita). Transporte e TLS/REALITY não se aplicam a ele.
+Finalidade: inbound WireGuard — um túnel VPN WireGuard, e não um proxy com disfarce. Transporte e TLS/REALITY não se aplicam a ele.
 
-Campos do bloco `settings`:
+**A partir da versão 3.4.2 o WireGuard foi migrado para o modelo multicliente** (como VLESS/VMess/Trojan/Shadowsocks/Hysteria). O próprio inbound armazena apenas a parte do servidor; os dispositivos-peers agora são adicionados como **clientes** comuns (veja a seção 8) — com atribuição automática de endereço no túnel, suporte a assinaturas, limites de tráfego/prazo e grupos. A antiga lista inline «Peers / Adicionar peer» do formulário do inbound foi removida: um novo inbound é criado sem peers, e cada cliente recebe um endereço automaticamente.
+
+Campos do inbound (bloco `settings`):
 
 | Campo | Valor padrão | Descrição |
 |---|---|---|
-| `secretKey` | — | Chave privada do servidor (obrigatória). Ao lado há botão de geração; a chave pública é exibida automaticamente (campo somente leitura) |
-| `mtu` | (opcional) | MTU da interface |
-| `noKernelTun` | `false` (desligado) | «TUN sem kernel» (em inglês «No-kernel TUN») — usar TUN em userspace em vez do kernel |
-| `domainStrategy` | (opcional) | «Domain Strategy» — estratégia de resolução de domínios: `ForceIP`, `ForceIPv4`, `ForceIPv4v6`, `ForceIPv6`, `ForceIPv6v4` |
-| `peers` | `[]` | Lista de peers |
+| `secretKey` | — | Chave privada do servidor (obrigatória). Ao lado há botão de geração; a chave pública (`Public Key`) é derivada dela automaticamente (somente leitura; o `pubKey` armazenado separadamente foi removido) |
+| `mtu` | `1420` | MTU da interface |
+| `dns` | `1.1.1.1, 1.0.0.1` | **Novo na 3.4.2.** DNS gravado na linha `DNS =` do `.conf` do cliente |
+| `noKernelTun` | `false` (desligado) | «TUN sem kernel» — TUN em userspace em vez do kernel |
+| `domainStrategy` | (opcional) | «Domain Strategy»: `ForceIP`, `ForceIPv4`, `ForceIPv4v6`, `ForceIPv6`, `ForceIPv6v4` |
 
-Campos de cada peer:
+**Parâmetros WireGuard do cliente** — aba **«Credenciais»** na janela de adição/edição do cliente (exibidos quando o inbound vinculado é WireGuard):
 
-| Campo do peer | Valor padrão | Descrição |
-|---|---|---|
-| `privateKey` | (opcional) | Chave privada do cliente — armazenada para que o painel possa renderizar o config para o usuário (apenas em peers de inbound) |
-| `publicKey` | — | Chave pública do peer (obrigatória) |
-| `preSharedKey` (PSK) | (opcional) | Chave compartilhada adicional |
-| `allowedIPs` | `[]` | IPs permitidos. Ao adicionar um novo peer, o painel automaticamente sugere o próximo endereço disponível (padrão `10.0.0.2/32`) |
-| `keepAlive` | (opcional) | «Keep-alive» — intervalo de manutenção da conexão |
-| `comment` | (opcional) | «Comment» — rótulo arbitrário do peer; exibido ao lado do cabeçalho «Peer N» e inserido no link de compartilhamento e no `remark` do arquivo `.conf` |
+| Campo | Descrição |
+|---|---|
+| «Chave privada WireGuard» | Chave privada do cliente (editável, há botão «Regenerar»); ao digitar, a chave pública é derivada dela automaticamente |
+| «Chave pública WireGuard» | Somente leitura; calculada a partir da privada |
+| «Chave compartilhada WireGuard» (PSK) | Chave compartilhada adicional opcional |
+| «IPs permitidos WireGuard» | Somente leitura (no modo de edição): o endereço atribuído ao cliente no túnel, por exemplo `10.0.0.2/32` |
 
-O botão «Adicionar peer» gera um novo par de chaves e insere o próximo `allowedIPs`. Cada peer pode ser removido (a remoção do único peer restante não está disponível).
-
-O campo «Comment» do peer ajuda a distinguir dispositivos: seu texto é exibido no formulário ao lado do cabeçalho «Peer N», e também aparece no link de compartilhamento e no `remark` do arquivo `.conf` gerado, facilitando a identificação do dispositivo no aplicativo cliente. Este campo é do painel — o xray-core ignora campos desconhecidos do peer.
+O endereço no túnel é atribuído pelo servidor automaticamente a partir da sub-rede do inbound (padrão `10.0.0.0/24`: o servidor ocupa o `.1`, os clientes — a partir do `.2`); se os clientes existentes usam outra `/24`, os novos endereços são atribuídos na mesma sub-rede.
 
 #### Domain Strategy e aba Transport
 
-Além dos peers, o inbound WireGuard tem o campo **Domain Strategy** (estratégia de resolução de domínios: `ForceIP`, `ForceIPv4`, `ForceIPv4v6`, `ForceIPv6`, `ForceIPv6v4`). O campo é opcional e é gravado no config apenas se definido.
+Além dos listados, o inbound WireGuard tem o campo **Domain Strategy** (estratégia de resolução de domínios: `ForceIP`, `ForceIPv4`, `ForceIPv4v6`, `ForceIPv6`, `ForceIPv6v4`). O campo é opcional e é gravado no config apenas se definido.
 
 > O campo **Workers** (`workers`, número de threads de trabalho) foi removido dos formulários WireGuard (tanto inbound quanto outbound): a partir do xray-core v26.6.22, o motor não o utiliza mais e se baseia no mecanismo interno do wireguard-go. Configs salvos anteriormente funcionam sem alterações — ao analisar, o campo é simplesmente descartado, sem necessidade de migração.
 
 Para WireGuard também está disponível a aba **«Transport»** — mas em forma reduzida: nela são configurados apenas `sockopt` e a ofuscação **Finalmask**. O menu suspenso de seleção de transporte (`network`) está oculto, pois WireGuard sempre escuta via UDP. Nos registros de ruído (noise) do Finalmask, um campo separado define o **Rand Range** (faixa de bytes 0–255, com validação), e como método de ofuscação para WireGuard e Hysteria está disponível o **Salamander**.
+
+#### Configuração e compartilhamento do cliente WireGuard
+
+No cliente WireGuard, nas janelas «Informações»/QR, está disponível um **cartão de configuração recolhível**: o `.conf` completo (`[Interface]` com `PrivateKey`/`Address`/`DNS`/`MTU` e `[Peer]` com `PublicKey`/`PresharedKey`/`AllowedIPs = 0.0.0.0/0, ::/0`/`Endpoint`/`PersistentKeepalive`) com os botões **Copiar**, **Baixar** e **QR**. Também é suportado um link no formato `wireguard://`/`wg://`, que o aplicativo cliente interpreta como um `.conf` pronto.
 
 Quando escolher WireGuard: quando é necessário exatamente um túnel VPN WireGuard, e não um proxy com disfarce.
 
@@ -2196,7 +2215,7 @@ O alternador **XMUX** (`enableXmux`) ativa uma camada de multiplexação que dis
 | Campo | Chave | Padrão | Descrição |
 | --- | --- | --- | --- |
 | Max Concurrency | `maxConcurrency` | `16-32` | Máximo de requisições simultâneas por conexão (faixa `mín-máx`) |
-| Max Connections | `maxConnections` | `0` | Máximo de conexões físicas (`0` — sem limite) |
+| Max Connections | `maxConnections` | `6` | Máximo de conexões físicas (`0` — sem limite). A partir da versão 3.4.2, novos inbounds são criados com o valor `6`; os criados anteriormente mantêm o seu. |
 | Max Reuse Times | `cMaxReuseTimes` | `""` (vazio) | Quantas vezes reutilizar uma conexão |
 | Max Request Times | `hMaxRequestTimes` | `600-900` | Máximo de requisições por conexão (faixa) |
 | Max Reusable Secs | `hMaxReusableSecs` | `1800-3000` | Tempo durante o qual a conexão pode ser reutilizada (segundos, faixa) |
@@ -2431,15 +2450,24 @@ Campos do bloco `realitySettings`. REALITY não usa certificado SSL: em vez diss
 | **Mostrar** (`show`) | desativado (`false`) | Saída de depuração do REALITY nos logs do Xray. Normalmente mantido desativado. |
 | **Xver** (`xver`) | `0` | Versão do protocolo PROXY transmitida ao backend (`0` — desativado). Mínimo `0`. |
 | **uTLS** (`settings.fingerprint`) | `chrome` | Impressão digital TLS imitada (mesma lista do TLS, mas sem a opção vazia None). |
-| **Destino** (`target`) | `""` (o painel preenche aleatoriamente ao ativar) | **Campo obrigatório.** Domínio real cujo handshake TLS o REALITY toma emprestado. Dica literal: «*Obrigatório. Deve conter a porta (ex.: example.com:443). Sem a porta, o Xray-core não inicia.*» A validação do painel verifica a presença e validade da porta; caso contrário, são exibidos os erros «Destino REALITY é obrigatório» / «Destino REALITY deve conter a porta…» / «O destino REALITY tem uma porta inválida». O botão de atualização ao lado preenche um par aleatório da lista interna. |
-| **SNI** (`serverNames`) | `[]` (preenchido junto com o destino) | Lista de SNIs permitidos (entrada múltipla por tags). Deve corresponder ao domínio em **Destino**. O botão de atualização preenche o SNI junto com o destino aleatório. |
+| **Destino** (`target`) | `""` (a partir da 3.4.2 permanece vazio ao ativar o REALITY) | **Campo obrigatório.** Domínio real cujo handshake TLS o REALITY toma emprestado. Dica literal: «*Obrigatório. Deve conter a porta (ex.: example.com:443). Sem a porta, o Xray-core não inicia.*» A validação do painel verifica a presença e validade da porta; caso contrário, são exibidos os erros «Destino REALITY é obrigatório» / «Destino REALITY deve conter a porta…» / «O destino REALITY tem uma porta inválida». Ao lado do campo há os botões **«Escanear»** (verificar o destino atual «ao vivo») e **«Buscar destinos»** (abrir o scanner de destinos REALITY); veja abaixo. |
+| **SNI** (`serverNames`) | `[]` (preenchido junto com o destino) | Lista de SNIs permitidos (entrada múltipla por tags). Deve corresponder ao domínio em **Destino**. Ao escanear o destino com sucesso, o SNI é preenchido pelo certificado dele. |
 | **Diferença de tempo máxima (ms)** (`maxTimediff`) | `0` | Diferença máxima permitida de relógio entre cliente e servidor em milissegundos (`0` — sem restrição). Mínimo `0`. |
 | **Versão mínima do cliente** (`minClientVer`) | `""` | Versão mínima do cliente Xray (placeholder `25.9.11`). Vazio — sem restrição. |
 | **Versão máxima do cliente** (`maxClientVer`) | `""` | Versão máxima do cliente Xray. Vazio — sem restrição. |
 | **Short IDs** (`shortIds`) | `[]` (gerados ao ativar) | Lista de identificadores curtos (hex) que diferenciam os clientes. Entrada múltipla por tags; o botão de atualização gera um conjunto aleatório. |
 | **SpiderX** (`settings.spiderX`) | `/` | Caminho do «spider» (parte do cliente do REALITY), usado ao imitar o acesso ao site externo. É incluído no link de convite. |
 
-**Destino** (`target`) e **SNI** (`serverNames`) ao ativar o REALITY e pelo botão de atualização são preenchidos com um par aleatório da lista interna do painel: `www.amazon.com`, `aws.amazon.com`, `www.oracle.com`, `www.nvidia.com`, `www.amd.com`, `www.intel.com`, `www.sony.com` (cada um com a porta `:443`). Escolha um site HTTPS externo «robusto» e estável que não esteja hospedado no seu próprio servidor.
+A partir da versão 3.4.2, **Destino** (`target`) e **SNI** (`serverNames`) ao ativar o REALITY **não** são mais preenchidos automaticamente — ambos os campos permanecem vazios, e o destino é selecionado pelo scanner ao vivo (veja abaixo). Escolha um site HTTPS externo «robusto» e estável com suporte a TLS 1.3 e HTTP/2 que não esteja hospedado no seu próprio servidor.
+
+#### Busca de destino REALITY (scanner ao vivo)
+
+A partir da versão 3.4.2, o antigo botão «destino aleatório» (com a lista interna estática) foi substituído por duas ações ao lado do campo **Destino**:
+
+- **«Escanear»** — verifica «ao vivo» o destino atual: estabelece uma conexão TLS e, se o destino for adequado, preenche o SNI pelo certificado dele. Toasts: «Destino adequado — destino e SNI preenchidos.» / «Destino acessível, mas não adequado para REALITY.» / «Não foi possível escanear o destino REALITY.».
+- **«Buscar destinos»** — abre a janela **«Scanner de destinos REALITY»**: é possível indicar um domínio, **IP ou faixa CIDR** (então o painel encontra destinos pelos certificados dos hosts ativos) ou deixar o campo vazio (são verificados os candidatos internos). Os resultados são classificados; as colunas são «Status»/«Adequado», «Troca de chaves», «Certificado», `TLS`, `ALPN`, «Latência». Com o botão **«Usar»**, a linha selecionada é preenchida nos campos do inbound.
+
+Um destino é considerado **adequado** se o servidor negociar **TLS 1.3**, **HTTP/2 (ALPN h2)**, troca de chaves **X25519/X25519MLKEM768** e apresentar um certificado **confiável** (não wildcard). O scan é executado do lado do servidor do painel (`POST /panel/api/server/scanRealityTarget` e `…/scanRealityTargets`).
 
 **Exemplo: bloco `streamSettings` para REALITY na rede `tcp`** (VLESS). Nenhum certificado é necessário — em vez disso, um domínio emprestado e um par de chaves X25519:
 
@@ -2710,6 +2738,7 @@ Na lista de clientes é possível marcar vários registros (**Selecionar todos**
   - **Prazo:** clientes com prazo ilimitado (`expiryTime == 0`) são ignorados ("unlimited expiry"); para clientes com data, o prazo é deslocado pelo número de dias informado; para clientes no modo "após o primeiro uso" (prazo negativo), a duração de espera é ajustada. Reduções que ultrapassem o saldo restante são ignoradas ("reduction exceeds remaining time/delay window").
   - **Tráfego:** clientes com tráfego ilimitado (`totalGB == 0`) são ignorados ("unlimited traffic"); caso contrário, a cota é alterada pelo volume informado, sem descer abaixo de zero.
   - **Flow:** a lista suspensa **Set flow** permite definir ou remover o XTLS flow de todos os clientes selecionados de uma vez. Por padrão está selecionado **No change** (sem alterações). A opção **Disable (clear flow)** remove o flow, e os valores `xtls-rprx-vision` e `xtls-rprx-vision-udp443` definem o vision-flow correspondente. A definição do vision-flow é aplicada somente aos inbound que suportam flow; os inbound incompatíveis permanecem inalterados e são marcados como ignorados, enquanto a remoção do flow é sempre permitida.
+  - **Reativação automática (a partir da 3.4.2):** um cliente desativado **apenas por esgotamento** (prazo vencido ou cota excedida), ao ser estendido, é reativado automaticamente — localmente e no seu nó — se o ajuste o devolver aos limites. Os desativados manualmente ou ainda esgotados permanecem desligados (o campo `enable` agora é gravado explicitamente, por isso o estado é preservado mesmo em clientes sem inbound).
   - Se não forem informados nem dias, nem tráfego, nem flow: "Informe dias, tráfego ou flow antes de aplicar.". Toast: "Editados: {count}" / "Editados: {ok}, ignorados: {skipped}".
 
 **Exemplo: estender os clientes selecionados por 30 dias e adicionar 50 GB.** No diálogo **Editar**, informe **Adicionar dias** = `30`, **Adicionar tráfego (GB)** = `50`. Para, ao contrário, subtrair uma semana e reduzir a cota em 10 GB, insira valores negativos: **Adicionar dias** = `-7`, **Adicionar tráfego (GB)** = `-10` (clientes com prazo ilimitado ou sem limite de tráfego no campo correspondente serão ignorados).
@@ -2926,11 +2955,13 @@ Botão **Zerar tráfego**.
 
 Diálogo de confirmação:
 - Título: **«Zerar tráfego do grupo {name}?»**
-- Texto: **«Isso zerará up/down de todos os {count} cliente(s) neste grupo.»**
+- Texto: **«Apenas o contador de tráfego do grupo é zerado. Os contadores dos clientes individuais não são afetados.»**
 
-Comportamento: para todos os emails dos membros do grupo, os campos `up` e `down` na tabela de tráfego são zerados e o campo `enable` é definido como `true` (o cliente é habilitado). A operação é executada em lotes dentro de uma transação.
+Comportamento: é zerado **apenas o contador exibido do próprio grupo** — o painel memoriza a soma atual de `up/down` do grupo como marca de base e, na lista de grupos, passa a exibir `max(0, soma − marca de base)`. Os contadores `up`/`down`, as cotas e o campo `enable` dos clientes individuais **não são alterados**, e não é necessário reiniciar o Xray. Esta é uma mudança de comportamento em relação às versões anteriores, em que o reset zerava o tráfego de todos os clientes do grupo.
 
-Mensagem de sucesso: **«Tráfego zerado para {count} cliente(s).»**
+Requisição: `POST /panel/api/clients/groups/resetTraffic` com o corpo `{"name": "<nome do grupo>"}`.
+
+Mensagem de sucesso: **«Tráfego do grupo {name} zerado.»**
 
 ### 9.10. Exclusão do grupo e exclusão dos clientes do grupo
 
@@ -3053,7 +3084,7 @@ Particularidades dos valores:
 
 #### Ações relacionadas
 
-A partir da tabela de grupos ainda estão disponíveis ações sobre o grupo inteiro, incluindo **«Zerar tráfego»** — zera `up`/`down` de todos os clientes do grupo selecionado. Após esse reset, a coluna "Tráfego utilizado" para esse grupo exibe `0`.
+A partir da tabela de grupos ainda estão disponíveis ações sobre o grupo inteiro, incluindo **«Zerar tráfego»** — zera **apenas o contador do próprio grupo** (a marca de base), sem tocar no tráfego dos clientes individuais (veja [9.9](#99-zerar-tráfego-do-grupo)). Após esse reset, a coluna "Tráfego utilizado" para esse grupo exibe `0`.
 
 ---
 
@@ -3148,7 +3179,7 @@ As variáveis são agrupadas nas seções **Client**, **Traffic** e **Time & sta
 
 Variáveis disponíveis:
 
-- **Identificação do cliente:** `{{EMAIL}}`, `{{INBOUND}}` (remark do próprio inbound), `{{HOST}}` (remark do host), `{{ID}}` (UUID), `{{SHORT_ID}}` (primeiros 8 caracteres do UUID), `{{SUB_ID}}`, `{{COMMENT}}`, `{{TELEGRAM_ID}}`, `{{PROTOCOL}}`, `{{TRANSPORT}}`.
+- **Identificação do cliente:** `{{EMAIL}}` (sinônimo — `{{USERNAME}}`), `{{INBOUND}}` (remark do próprio inbound), `{{HOST}}` (remark do host), `{{ID}}` (UUID), `{{SHORT_ID}}` (primeiros 8 caracteres do UUID), `{{SUB_ID}}`, `{{COMMENT}}`, `{{TELEGRAM_ID}}`, `{{PROTOCOL}}`, `{{TRANSPORT}}`.
 - **Tráfego:** `{{TRAFFIC_USED}}`, `{{TRAFFIC_LEFT}}`, `{{TRAFFIC_TOTAL}}` (e suas variantes `*_BYTES` em bytes exatos), `{{UP}}`, `{{DOWN}}`, `{{USAGE_PERCENTAGE}}`.
 - **Prazo e status:** `{{DAYS_LEFT}}`, `{{TIME_LEFT}}`, `{{EXPIRE_DATE}}` (`AAAA-MM-DD`), `{{JALALI_EXPIRE_DATE}}` (data no calendário jalali), `{{EXPIRE_UNIX}}`, `{{CREATED_UNIX}}`, `{{RESET_DAYS}}`, `{{STATUS}}` (active / expired / disabled / depleted), `{{STATUS_EMOJI}}`.
 - **Conexão (Connection):** `{{PROTOCOL}}` — protocolo (VLESS, VMess, Trojan, etc.), `{{TRANSPORT}}` — rede de transporte (tcp, ws, grpc, etc.), `{{SECURITY}}` — segurança do transporte (TLS, REALITY, NONE; exibido em maiúsculas). Assim como as variáveis de consumo e prazo, essas três variáveis funcionam apenas no corpo da assinatura e são automaticamente removidas do remark nos links exibidos no painel (QR/«Informações») e na página de informações da assinatura.
@@ -3156,6 +3187,8 @@ Variáveis disponíveis:
 O modelo pode ser dividido em segmentos com a barra vertical `|`. Um segmento no qual uma variável fornece um valor «ilimitado» (`∞`) — por exemplo `{{TRAFFIC_LEFT}}` ou `{{DAYS_LEFT}}` para um cliente sem restrições — é automaticamente ocultado. Além disso, o bloco com consumo de tráfego e prazo é exibido uma vez, no primeiro link do cliente, para não ser duplicado em cada configuração.
 
 **Exemplo.** O modelo `{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D` para um cliente com 42 GB restantes e 7 dias resultará no nome `ivan@vpn 📊42.00GB ⏳7D`, e para um cliente ilimitado — simplesmente `ivan@vpn` (segmentos com `∞` omitidos).
+
+A partir da versão 3.4.2, a variável `{{EMAIL}}` (e o sinônimo `{{USERNAME}}`) é exibida apenas no **primeiro** link do cliente no corpo da assinatura — assim como o bloco de tráfego/prazo restante; nos demais links do mesmo cliente ela é omitida.
 
 Nos links exibidos no painel (QR-code e janelas «Informações» na página «Clientes») e na página de informações da assinatura, o e-mail do cliente está presente no nome do perfil: no formato «inbound-host-email» quando um host está definido, ou «inbound-email» sem host. As informações de tráfego e prazo (bem como as variáveis do grupo «Conexão») não são substituídas nesses nomes exibidos — elas funcionam apenas no corpo da assinatura que o cliente VPN recebe.
 
@@ -3231,6 +3264,8 @@ Cada host possui:
 - Aba **Clash (mihomo)** — versão IP, Mihomo X25519, embaralhamento de hosts (Shuffle host).
 
 Os hosts são ordenados dentro do seu inbound e suportam habilitação, desabilitação e exclusão em massa. Os hosts gerenciados substituem o antigo array External Proxy.
+
+**Rota VLESS (VLESS route).** A partir da versão 3.4.2 este é um único número `0-65535` (e não uma lista de portas; a dica é — «um único valor VLESS route (0-65535), embutido no UUID, por exemplo 443; vazio — sem ele», placeholder `443`). O valor definido é realmente «embutido» no UUID de cada assinatura gerada (raw / JSON / Clash): o Xray lê os bytes 6-7 do UUID e os mascara antes da autenticação, por isso o cliente continua coincidindo. Um valor vazio ou inválido não altera o UUID.
 
 #### Links comuns (SUB) — Base64 / texto simples
 
@@ -3532,7 +3567,7 @@ A regra de serviço de estatísticas (`inboundTag: ["api"] → outboundTag: "api
 | Origem | **Origem** | `source` | Endereços IP/sub-redes de origem. Lista separada por vírgulas. |
 | Porta de origem | **Porta de origem** | `sourcePort` | Porta(s) de origem. |
 | Destino | **Destino** | `domain` + `ip` + `port` | Domínios, IPs e portas de destino. Os domínios suportam prefixos `domain:`, `full:`, `regexp:`, `keyword:`, bem como `geosite:*`; IPs — `geoip:*` e CIDR. |
-| Rede | — | `network` | `tcp`, `udp` ou `tcp,udp`. |
+| Rede | — | `network` | `tcp`, `udp` ou `tcp,udp`. A partir da 3.4.2 é gravado no config em minúsculas (`tcp`/`udp`) e exibido em maiúsculas na tabela de rotas (`TCP`/`UDP`); vazio — qualquer rede. |
 | Protocolo | — | `protocol` | `http`, `tls`, `bittorrent` (detectado por sniffing). |
 | Usuário | **Usuário** | `user` | Filtro por e-mail/identificador do usuário. |
 | Atributos / Valor | **Atributos** / **Valor** | `attrs` | Atributos de cabeçalhos HTTP para correspondência. |
@@ -3760,7 +3795,7 @@ Resultado: o tráfego irá principalmente através de `A` (com latências próxi
 
 As estratégias `leastPing` e `leastLoad` não medem nada por si mesmas — precisam de dados sobre a latência e disponibilidade de cada outbound. Esses dados são coletados pelo **observer** (observatory): ele «pinga» periodicamente cada outbound monitorado e registra o tempo de resposta e a disponibilidade. Os mesmos dados são mostrados na aba **«Observatório»** (estados **Ativo / Indisponível**, **«Última atividade»**, **«Última tentativa»**).
 
-Não há um formulário separado para o observer no painel — o bloco é adicionado **manualmente** no editor de configuração do Xray, no nível superior da configuração (ao lado de `routing` e `outbounds`), após o que é necessário **reiniciar o Xray**.
+**A partir da versão 3.4.2**, a página «Balanceadores» foi dividida nas abas **«Configurações do balanceador»** (tabela e adição) e **«Observatory»**, e o observer é editado por um **formulário estruturado** (o antigo editor de JSON bruto foi removido). O painel cria e remove observers conforme necessário: um `observatory` comum — para a estratégia **Least Ping**, um `burstObservatory` estendido — para **Least Load**, bem como para **Random/Round-robin com `fallbackTag` definido** (o xray-core exige isso; ao limpar o último `fallbackTag`, o observer é removido). Criar ou remover um observer exige um reinício completo do Xray.
 
 Há duas variantes disponíveis:
 
@@ -3792,15 +3827,22 @@ Finalidade dos campos:
 | `pingConfig.connectivity` | (opcional) URL de verificação da **conectividade básica** do próprio servidor. Se inacessível — o problema está na rede do servidor, e o observer **não** marca o outbound como indisponível (proteção contra falsos positivos em caso de falha local). Normalmente também um endpoint com resposta `204`. |
 | `pingConfig.timeout` | Quanto aguardar a resposta de um ping antes de considerar a tentativa malsucedida (por exemplo `"5s"`). |
 | `pingConfig.sampling` | Quantas medições recentes armazenar e calcular a média para cada outbound. `2` — considerar os dois últimos pings (suaviza picos aleatórios). |
+| `pingConfig.httpMethod` | **Novo na 3.4.2.** Método HTTP das sondas: `HEAD` (padrão) ou `GET`. |
+
+Na aba **«Observatory»**, os mesmos parâmetros são definidos por formulário (e não por JSON). Para o `observatory` comum, são **Watched Outbounds** (`subjectSelector`, somente leitura), **Probe URL** (`probeURL`, padrão `https://www.google.com/generate_204`), **Probe Interval** (`probeInterval`, `1m`) e **Enable Concurrency** (`enableConcurrency`, habilitado por padrão). Para o `burstObservatory` — os campos listados acima mais o novo **«Método HTTP»**. Se o balanceador tiver ambos os observers, um interruptor segmentado alterna entre os formulários Observatory e Burst.
 
 Como conectar tudo:
 
-1. No editor do Xray, adicione o bloco `burstObservatory` com os `subjectSelector` desejados.
+1. Na aba **«Observatory»**, configure os parâmetros do observer (ele é criado automaticamente conforme a estratégia escolhida; o `subjectSelector` acompanha os seletores do balanceador).
 2. Crie o balanceador: **Estratégia** = `leastPing`, em **Seletores** indique as mesmas tags de outbound (`WS-SE`, `WS-FR`, `WS-PL`).
 3. Direcione o tráfego para ele com uma regra de roteamento (campo **Tag do balanceador**, veja [11.3](#113-regras-de-roteamento-routing)).
 4. Reinicie o Xray. Na aba **«Observatório»** aparecerão os estados das saídas, e o balanceador começará a escolher o mais rápido entre os ativos.
 
 > Em uma regra, não é possível definir `balancerTag` e `outboundTag` ao mesmo tempo — apenas `outboundTag` funcionará.
+
+#### O que acontece ao excluir um outbound ou balanceador (a partir da 3.4.2)
+
+Ao excluir um outbound ou balanceador, o painel, na mesma ação, **limpa as referências a ele no roteamento** e exibe uma **prévia das consequências** no diálogo de confirmação (título «Ao excluir, seu roteamento também será atualizado:», em seguida, por regra — «removida (não restou destino)» ou «mantida (agora usa …)», e «Balanceador … removido (não restaram alvos)»). Assim é evitada uma referência «pendente» (`balancerTag`/`outboundTag`/`dialerProxy`), por causa da qual antes o xray-core podia não iniciar no próximo reinício. Exclusão de balanceador: as regras mantêm seu `outboundTag`, caso contrário são removidas. Exclusão de outbound: sua tag é retirada dos seletores e do `fallbackTag` dos balanceadores, o `dialerProxy` de outros outbounds é limpo, os balanceadores que ficaram vazios são removidos junto com as regras agora sem objeto, e os observers são reconstruídos.
 
 ### 11.6. DNS
 
@@ -5304,8 +5346,10 @@ O botão **«Exportar banco de dados»** (`Back Up`) baixa o arquivo de backup p
 
 | Mecanismo do BD | Nome do arquivo | O que acontece no servidor |
 |-----------------|-----------------|----------------------------|
-| SQLite | `x-ui.db` | Primeiro é executado um checkpoint WAL para que o arquivo contenha os registros mais recentes, em seguida o arquivo inteiro é lido e disponibilizado para download |
-| PostgreSQL | `x-ui.dump` | O `pg_dump` é executado e o arquivo é disponibilizado para download |
+| SQLite | `{host}_AAAA-MM-DD_HHMMSS.db` | Primeiro é executado um checkpoint WAL para que o arquivo contenha os registros mais recentes, em seguida o arquivo inteiro é lido e disponibilizado para download |
+| PostgreSQL | `{host}_AAAA-MM-DD_HHMMSS.dump` | O `pg_dump` é executado e o arquivo é disponibilizado para download |
+
+A partir da versão 3.4.2, o nome do arquivo de backup baixado contém o endereço pelo qual você abriu o painel e a **data-hora**: `{host}_AAAA-MM-DD_HHMMSS` com a extensão `.db` (SQLite) ou `.dump` (PostgreSQL) — por exemplo `panel.example.com_2026-06-27_000000.db`. Assim os arquivos são agrupados por servidor e ordenados por tempo, e várias cópias do mesmo dia não se sobrescrevem. O mesmo nome é usado nos backups enviados pelo bot do Telegram (`host` vem do domínio/IP do painel, com `x-ui` como alternativa).
 
 Dicas na interface:
 - SQLite: «Clique para baixar o arquivo .db contendo o backup do seu banco de dados atual para o seu dispositivo.»
@@ -5537,6 +5581,8 @@ Após iniciar — mensagem pop-up «Atualização do painel iniciada» (`Panel u
 **O que acontece no servidor:** a atualização automática é suportada **apenas no Linux** (em outros sistemas operacionais será retornado o erro «panel web update is supported only on Linux installations»). O painel baixa o script oficial `update.sh` do GitHub (`raw.githubusercontent.com/MHSanaei/3x-ui/main/update.sh`) e o executa em um processo separado: de preferência via `systemd-run` em uma unidade separada (`x-ui-web-update-<timestamp>`), e na ausência do systemd — como um processo separado e desvinculado. Ao terminar, o script atualiza os componentes e reinicia o serviço do painel. O `bash` é necessário para a execução.
 
 Se durante a atualização o script gerar um novo caminho base aleatório da interface web (Web Base Path), o serviço `x-ui` é reiniciado automaticamente para que o novo caminho funcione imediatamente. (Sem a reinicialização, o servidor continuaria servindo o caminho antigo, enquanto a interface exibiria o novo, e o novo endereço ficaria inacessível até uma reinicialização manual.)
+
+**Canal Dev (rolling), a partir da 3.4.2.** O botão de versão do painel no «Dashboard» agora sempre abre a janela de atualização (antes, em uma build estável atual, ele levava à página de releases do GitHub), e o interruptor **«Canal Dev»** (`devChannelEnable`) é exibido sempre — mesmo em uma build estável. Ao ativá-lo, na próxima atualização é possível passar para o canal dev «rolante» (builds a cada commit na `main`). Ao ativar, é exibido um aviso: «Os builds dev acompanham cada commit na main e não são releases estáveis — não há rollback automático». Sem uma ação explícita do usuário, nada é atualizado.
 
 #### Canal de atualização Dev (builds rolling por commit)
 

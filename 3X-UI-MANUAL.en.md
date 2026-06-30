@@ -2,7 +2,7 @@
 
 🇸🇦 [العربية](3X-UI-MANUAL.ar.md) · 🇬🇧 English · 🇪🇸 [Español](3X-UI-MANUAL.es.md) · 🇮🇷 [فارسی](3X-UI-MANUAL.fa.md) · 🇮🇩 [Bahasa Indonesia](3X-UI-MANUAL.id.md) · 🇯🇵 [日本語](3X-UI-MANUAL.ja.md) · 🇧🇷 [Português](3X-UI-MANUAL.pt.md) · 🇷🇺 [Русский](3X-UI-MANUAL.ru.md) · 🇹🇷 [Türkçe](3X-UI-MANUAL.tr.md) · 🇺🇦 [Українська](3X-UI-MANUAL.uk.md) · 🇻🇳 [Tiếng Việt](3X-UI-MANUAL.vi.md) · 🇨🇳 [简体中文](3X-UI-MANUAL.zh-CN.md) · 🇹🇼 [繁體中文](3X-UI-MANUAL.zh-TW.md)
 
-**3X-UI version: 3.4.1.** This manual is based on and current for this version. A summary of changes in 3.4.1 relative to 3.4.0 is in the [What's new in 3.4.1](#whats-new-in-341) section.
+**3X-UI version: 3.4.2.** This manual is based on and current for this version. A summary of changes in 3.4.2 relative to 3.4.1 is in the [What's new in 3.4.2](#whats-new-in-342) section.
 
 > A detailed English-language manual for the **3X-UI** web panel (Xray-core
 > management): features, configuration and operation, with an explanation of
@@ -13,7 +13,7 @@
 
 ## Table of Contents
 
-- [What's new in 3.4.1](#whats-new-in-341)
+- [What's new in 3.4.2](#whats-new-in-342)
 - [1. Introduction, Requirements, and Installation](#1-introduction-requirements-and-installation)
   - [1.1. What Is 3X-UI](#11-what-is-3x-ui)
   - [1.2. Supported Operating Systems and Architectures](#12-supported-operating-systems-and-architectures)
@@ -173,58 +173,66 @@
   - [16.8. Uninstalling the panel](#168-uninstalling-the-panel)
   - [16.9. The `x-ui migrateDB` command](#169-the-x-ui-migratedb-command)
 
-## What's new in 3.4.1
+## What's new in 3.4.2
 
-This section briefly lists the changes in version **3.4.1** relative to 3.4.0 that are visible to panel users, grouped by manual section. Details on each feature are in the corresponding section below.
+Version 3.4.2 is a major update: WireGuard has been moved to a multi-client model, REALITY gained a live target scanner, balancers got Observatory / Burst Observatory tabs, and confirmation of sensitive settings with a 2FA code was added. Below are the changes relative to 3.4.1, grouped by manual section.
 
 ### Changes in section 1 — Introduction, requirements and installation
-- **Installing a dev build and installing a specific version via install.sh** — The install.sh installation script now supports a version selection argument: specify a tag (e.g. v3.4.0) to install a specific version, or 'dev-latest' (alias 'dev') to install a rolling dev build from the latest main branch commit, bypassing the minimum version check. Without an argument, the latest stable release is installed.
+
+- A **"Documentation"** button (book icon) has appeared in the sidebar (and in the mobile drawer) — it opens the official documentation at `https://docs.sanaei.dev/`.
+- The minimum Xray version the panel updates to has been raised to **26.6.27** (the bundled core is Xray 26.6.27).
+
+### Changes in section 2 — Panel login and access security
+
+- When 2FA is enabled, changing the administrator login/password and disabling 2FA now require **entering the current code** from the authenticator app (confirmation of sensitive changes).
+- LDAP: a new **"Skip TLS certificate verification"** toggle (`ldapInsecureSkipVerify`) — disables certificate verification under LDAPS; available only when "Use TLS (LDAPS)" is enabled.
 
 ### Changes in section 3 — Overview / Dashboard
-- **Dashboard: redesigned range selector in system history and Xray metrics charts** — The time range selector has been updated in the history windows on the dashboard. For system metrics charts, the available ranges are 2m, 1h, 3h, 6h, 12h, 24h, 2d and 7d (history is now stored for up to 7 days instead of the previous 48 hours), and on 2-day and 7-day ranges the time labels include the date. For Xray metrics charts, the available ranges are 2m, 1h, 3h, 6h and 12h. The irregular values 30m, 2h and 5h have been removed.
-- **Dashboard: memory usage card shows the real process RSS** — The panel memory usage indicator on the dashboard now reflects the actual process RSS and matches the value shown by the operating system. Previously, an internal Go counter was displayed which overstated memory usage and never decreased. The number now drops as memory is freed.
+
+- The panel version button now always opens the update window (see section 16 — dev channel).
+- A cross-cutting **accessibility** improvement: aria labels for icon buttons and activation of elements via Enter/Space (for screen readers and keyboard navigation).
+
+### Changes in section 4 — Inbounds: creation and common parameters
+
+- The **"Export all links"** action now builds links through the subscription engine — it applies the remark template to each client and prefers managed Host endpoints (previously a fixed `inbound-email` remark was used).
 
 ### Changes in section 5 — Protocols
-- **VLESS encryption: new key generation modes (native / xorpub / random)** — In an inbound with the VLESS protocol, the encryption key generation block is now structured differently. Instead of two separate buttons (X25519 and ML-KEM-768) under the "Decryption" and "Encryption" fields, there is now a "Key Generation" dropdown with six options: X25519 and ML-KEM-768, each in three modes — native, xorpub and random. Select the desired mode and click "Generate": the panel will fill the decryption and encryption fields with a ready key pair. The "Clear" button removes the generated values, and the "Selected" line shows the current key type and mode.
-- **Clearing the Rewrite port field in tunnel-inbound settings no longer breaks saving** — A bug has been fixed: in an inbound with the tunnel protocol, clearing the "Rewrite port" field no longer causes a save error. Previously, an empty value triggered a validation error message; now the field is simply omitted from the settings when cleared.
+
+- **WireGuard has been moved to a multi-client model.** Peers are now regular clients (with automatic in-tunnel address assignment, subscription support, traffic/expiry limits and groups); the inline "Peers" list has been removed from the inbound form.
+- A configurable **DNS** field (default `1.1.1.1, 1.0.0.1`) and a **client configuration card** have been added to the WireGuard inbound — copy/download/QR of the full `.conf` and a `wireguard://`/`wg://` link.
+
+### Changes in section 6 — Transport (Stream Settings)
+
+- For new XHTTP inbounds, the `maxConnections` parameter in **xmux** now defaults to **6** (it was `0` — no limit). Existing inbounds keep their value.
 
 ### Changes in section 7 — Connection security: TLS, XTLS and REALITY
-- **Restoring XTLS Vision flow when encryption is enabled on an existing inbound** — If encryption (decryption/encryption) is enabled on an existing VLESS/XHTTP inbound after clients have already been added, the panel now automatically restores flow=xtls-rprx-vision for clients that require it. Previously, the flow would silently disappear from configs, links and subscriptions in this case (especially on node inbounds). No manual action is required — the fix is applied automatically when editing the inbound and once upon panel update.
+
+- A **live REALITY target scanner** has been added: the **"Scan"** button (check the current target "live") and the **"Find targets"** button (scan a domain or an **IP/CIDR** range and pick suitable targets by their certificates). The "Target" and SNI fields are now empty when REALITY is first selected.
 
 ### Changes in section 8 — Clients
-- **Bulk enabling and disabling selected clients** — When multiple clients are selected on the Clients page, the More menu offers bulk Enable and Disable actions. Enable activates each selected client on all bound inbounds; clients with an exhausted traffic quota or expired term will be automatically disabled again. Disable immediately removes client access, but their records and accumulated traffic are preserved. Before executing, the panel asks for confirmation, and after the operation shows a notification with the number of clients processed and, where applicable, the number for which the action failed.
-- **Bulk setting of XTLS flow in the Adjust dialog** — A Set flow field has been added to the bulk Adjust dialog to set or clear the XTLS flow for all selected clients at once. By default, No change is selected. The Disable (clear flow) option clears the flow, while xtls-rprx-vision and xtls-rprx-vision-udp443 set the corresponding vision flow. Setting the vision flow applies only to inbounds that support flow; unsuitable inbounds are left unchanged and marked as skipped, whereas clearing the flow is always permitted. The dialog can now be applied by specifying just days, traffic or flow.
-- **Renaming a client no longer breaks bindings and the duplicate save toast has been removed** — Client editing behavior has been fixed: renaming a client (changing its email) no longer causes an error when saving inbound bindings and external links — these operations now use the new email. Also, when saving a client, the successful update notification no longer appears multiple times.
+
+- Extending the expiry/quota via `bulkAdjust` now **automatically enables** a client that was disabled solely because of exhaustion (expired term or exceeded quota), if the extension brings it back within the limits. Clients disabled manually or still exhausted remain disabled.
+
+### Changes in section 9 — Client groups
+
+- **"Reset traffic"** for a group now zeroes **only the group's own counter**; the counters, quotas and state of individual clients are not affected, and no Xray restart is required. This is a change from the previous behavior (where the traffic of all the group's clients used to be reset).
 
 ### Changes in section 10 — Subscriptions
-- **New Remark Template variable group "Connection": {{PROTOCOL}}, {{TRANSPORT}}, {{SECURITY}}** — A "Connection" group with three variables describing the inbound configuration has been added to the remark template variable set: {{PROTOCOL}} — the protocol (VLESS, VMess, Trojan, etc.), {{TRANSPORT}} — the transport network (tcp, ws, grpc, etc.) and {{SECURITY}} — the transport security (TLS, REALITY, NONE; displayed in uppercase). Like the usage and expiry variables, these three variables only take effect in the subscription body and are automatically stripped from the remark in displayed links in the panel and on the subscription info page.
-- **Default remark template now includes {{EMAIL}}; client email is back in panel link remarks** — The default remark template has changed: it now includes the client email — {{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D (previously email was absent). Additionally, a 3.4.0 regression has been fixed: in links shown in the panel (QR code and "Info" windows on the Clients page) and on the subscription info page, the client email is again present in the profile name — "inbound-host-email" when a host is set, or "inbound-email" without a host. Traffic and expiry information is not substituted into these displayed names.
-- **Incy client integration: quick import button and Incy tab with routing** — The "Incy" entry has been added to the app menu (Android and iOS) on the subscription info page — it opens the deep-link incy://add/<subscription-link> for quick subscription import into the Incy client. An "Incy" tab has been added to subscription settings with an "Enable routing" toggle and a "Routing rules" field in incy://routing/onadd/<base64> format. When routing is enabled and the field is filled, this string is appended as a separate line to the subscription body (raw format), delivering the routing profile to the Incy client. The settings apply only to the Incy client.
-- **Restoring {{TRAFFIC_USED}} for clients with an orphaned traffic row** — The calculation of the {{TRAFFIC_USED}} variable (and other usage indicators) in the remark has been fixed for clients whose traffic statistics row became "orphaned" after the inbound was deleted and recreated. Previously, such clients showed 0.00B for {{TRAFFIC_USED}}, even though the subscription info page header displayed the correct usage. The panel now additionally searches for statistics by the client's email, and the variable again shows the correct used traffic.
-- **Correct browser tab title on the Hosts page** — The Hosts page now correctly displays the browser tab title instead of the generic '3X-UI'. This is a cosmetic change that only affects the tab label.
+- In **managed hosts**, the **VLESS route** field has been redefined: it is now a single value `0-65535` (rather than a port list), and it is actually "baked" into the UUID of every subscription (raw/JSON/Clash).
+- The `{{EMAIL}}` variable (and its synonym `{{USERNAME}}`) in the remark template is now output only on the client's **first link** — just like the traffic/expiry block.
 
 ### Changes in section 11 — Xray: routing, outbounds, DNS and extensions
-- **Dialer Proxy dropdown now lists subscription outbounds** — In the Sockopt section of the outbound form, the "Dialer Proxy" dropdown (proxy chaining: route this outbound through another by tag) now shows not only local outbounds but also outbound tags from subscriptions. The blackhole outbound and the outbound being edited are still excluded from the list. Leave the field empty for a direct connection.
-- **HTTP outbound: custom request headers preserved (and editable)** — A "Headers" field — a key/value pair editor for CONNECT headers sent to the upstream HTTP proxy — has been added to the outbound form with the HTTP protocol. Previously, these headers were lost when the outbound was saved again; they are now preserved. Note: only settings-level headers are applied; xray-core ignores server-level headers.
+- **Balancers**: the page has been split into **"Balancer settings"** and **"Observatory"** tabs; instead of raw JSON there are now Observatory and Burst Observatory forms (Burst gains an **"HTTP method"** field). A Random/Round-robin balancer with a `fallbackTag` now automatically creates a Burst Observatory.
+- When an outbound or balancer is deleted, the panel cleans up the related references in routing itself and shows a **preview of the consequences** in the confirmation dialog.
+- In routing rules, the **L4** network criterion is written to the config in lowercase (`tcp`/`udp`), while the table displays it in uppercase.
+- Errors in the add/edit balancer form are now deferred until the first time a field is touched or a save is attempted.
 
 ### Changes in section 12 — Nodes (multi-panel, master/slave)
-- **Dev channel when updating nodes** — A 'Update to development channel (latest commit)' checkbox has been added to the node update confirmation dialog. If checked, the selected nodes will install the rolling dev-latest build instead of the stable release; if unchecked, the node updates via its normal channel. A warning that dev builds are unstable is shown below the checkbox.
-- **Importing client traffic history on first inbound sync from a node** — Traffic accounting has been fixed when adding a node that already has accumulated traffic. Previously, on the first inbound sync from a node, the overall inbound counter was transferred correctly, but individual client counters were reset to zero, causing the master to undercount client usage by the entire history prior to connecting the node. Now, when importing inbounds together with a node, client counters inherit the real values from the node.
-
-### Changes in section 14 — Telegram bot
-- **Telegram bot reloads on settings save** — Telegram bot settings changes now take effect immediately upon saving, without restarting the panel. If you changed the token, chat ID, API server address, or toggled the bot on/off, the panel will automatically restart the bot with the new parameters. The previous rule about needing to restart the panel after changing the token no longer applies.
-- **Telegram bot backup filename is based on webDomain/IP** — Database backup files sent by the Telegram bot are now named after the server address: by webDomain, or by public IP if webDomain is not set. Previously, when webDomain was not set, such backups received the generic name x-ui, making it difficult to tell which server the file came from.
+- The "saved locally, node offline — will sync later" notification is now shown only when the node is actually offline or disabled (previously — on every save to an online node).
 
 ### Changes in section 16 — Operations: backups, logs, updates, CLI
-- **Tunnel health monitor (automatic xray restart via environment variables)** — Version 3.4.1 introduces an optional tunnel health monitor. When enabled, the panel periodically checks the availability of a specified URL and, after several consecutive failed checks, automatically restarts the xray core — this helps recover a tunnel that has stopped passing traffic. The monitor is configured only via service environment variables (there are no web interface settings for it) and is disabled by default. The key variable XUI_TUNNEL_HEALTH_MONITOR=true enables it; XUI_TUNNEL_HEALTH_PROXY should point to a local xray inbound (e.g. socks5://127.0.0.1:1080), otherwise only server connectivity is checked rather than the tunnel itself. Other variables set the check URL (XUI_TUNNEL_HEALTH_URL), interval (XUI_TUNNEL_HEALTH_INTERVAL, 30s), timeout (XUI_TUNNEL_HEALTH_TIMEOUT, 10s), number of failures before restart (XUI_TUNNEL_HEALTH_FAILURES, 3) and the minimum pause between restarts (XUI_TUNNEL_HEALTH_COOLDOWN, 5m). Note: restarting xray disconnects all connected clients.
-- **Auto-update in log viewers** — An 'Auto-update' checkbox has been added to the log viewer windows (both the Xray 'Access Logs' and the general panel 'Logs'). When enabled, the log is automatically re-read every 5 seconds, preserving the selected line count, level and filters. Polling stops as soon as the window is closed or the checkbox is unchecked.
-- **Dev update channel for the panel (rolling builds by commit)** — The toggle is displayed in the panel update window only on dev builds (CI builds from individual commits). When enabled, the panel will update to the rolling dev-latest build, which tracks every commit on the main branch and is not a stable release; there is no automatic rollback. In dev mode, the window shows the current and latest commit instead of version numbers. The feature is available only on Linux with systemd.
-- **Updating to the Dev channel in the x-ui menu and the x-ui update-dev command** — An option to update to the development channel ('Update to Dev Channel (latest commit)') has been added to the x-ui management script menu, which installs the rolling dev-latest build after confirmation, along with the 'x-ui update-dev' command. As a result, the menu items have been renumbered: there are now 28 items in total, with selection input in the range 0-28. If the manual references menu item numbers, they should be verified again.
-- **PostgreSQL removal when uninstalling the panel** — When removing the panel, if it was using PostgreSQL, the script now additionally asks whether to also remove the PostgreSQL server along with all its databases. The prompt requires explicit confirmation (default is no) and is accompanied by a warning: the removal will affect ALL PostgreSQL databases on the machine, including those of other applications, and is irreversible. If declined, PostgreSQL and its data are preserved.
-- **Xray access log viewer renamed to 'Access Logs'** — The Xray access log viewer and the button to open it on the Xray status card are now called 'Access Logs' (previously just 'Logs'). This was done to avoid confusion with the general panel log viewer.
-- **Log line count selection: 1000 added, 10 removed** — In both log windows, the line count selection list has changed: the value 10 has been removed and 1000 has been added. You can now choose 20, 50, 100, 500 or 1000 lines.
-- **Dev build identifier (dev+<commit>) in the interface, bot and CLI** — On dev builds, the panel shows its version as 'dev+<commit>' instead of a stable version number — in the sidebar badge, on the dashboard, in the update window, in the Telegram bot report and in the output of 'x-ui -v'. On stable releases, the version display is unchanged.
-- **Log viewer: plain notifications are displayed as-is, without distortion into a date format** — The panel log viewer now correctly displays plain notifications without a timestamp and level (for example, the system message 'Syslog is not supported') — in full, without truncating the text. Previously, such lines were incorrectly parsed as a log entry with a date and level, causing part of the text to be lost.
+- Backup file names now contain the server address and a **date-time**: `{host}_YYYY-MM-DD_HHMMSS.db` (`.dump` for PostgreSQL), for example `panel.example.com_2026-06-27_000000.db` — both when downloading from the panel and in backups sent by the Telegram bot.
+- The **dev channel** of updates can now be enabled from a stable build: the version button always opens the update window, and a **"Dev channel"** toggle has appeared with a warning about instability and the absence of automatic rollback.
 
 ## 1. Introduction, Requirements, and Installation
 
@@ -620,7 +628,7 @@ Important: changes in the settings section are applied with the common **"Save"*
 
 #### How to disable 2FA
 
-Toggling the switch again opens the "Disable two-factor authentication" window with the hint "Enter the code from the app to disable two-factor authentication.". After entering a valid code, the flag and the secret are cleared, and "Two-factor authentication has been removed successfully" is shown.
+Toggling the switch again opens the "Disable two-factor authentication" window with the hint "Enter the code from the app to disable two-factor authentication.". After entering a valid code (as of 3.4.2 it is verified **on the server**), the flag and the secret are cleared, and "Two-factor authentication has been removed successfully" is shown.
 
 #### Code verification at login
 
@@ -692,6 +700,8 @@ Server logic and messages:
 - If "Current login" does not match the actual one or "Current password" is incorrect — "An error occurred while changing the administrator credentials." with the explanation "Incorrect username or password".
 - If the new login or new password is empty — the explanation "The new username and new password must not be empty".
 - On success — "You have successfully changed the administrator credentials.". The password is stored as a bcrypt hash.
+
+**Confirmation with a 2FA code (as of 3.4.2).** If two-factor authentication is enabled on the panel, changing the login/password additionally requires **entering the current code** from the authenticator app. A **"Change credentials"** window opens with the hint "Enter the code from the app to change the administrator credentials."; the code (`twoFactorCode`) is verified on the server, and with an incorrect or empty code the change is not applied. The same confirmation is now also required when disabling 2FA (see [2.2](#22-two-factor-authentication-2fa--totp)).
 
 **Example: changing credentials via the API.** The request requires a valid session cookie (obtained at login) and confirmation of the current login/password:
 
@@ -777,7 +787,8 @@ Section fields:
 | Enable LDAP synchronization | "Enable LDAP synchronization" (`enable`) | **false** | The master switch for the LDAP integration. |
 | LDAP host | "LDAP host" (`host`) | empty | The address of the LDAP server. |
 | LDAP port | "LDAP port" (`port`) | **389** | The port. For LDAPS usually 636. |
-| Use TLS (LDAPS) | "Use TLS (LDAPS)" (`useTls`) | **false** | When enabled, the `ldaps://` scheme is used with server certificate verification (without skipping the check). |
+| Use TLS (LDAPS) | "Use TLS (LDAPS)" (`useTls`) | **false** | When enabled, the `ldaps://` scheme is used (by default — with server certificate verification). |
+| Skip TLS certificate verification | "Skip TLS certificate verification" (`ldapInsecureSkipVerify`) | **false** | Added in 3.4.2. Disables server certificate verification under LDAPS — for internal/self-signed CAs. Hint: "Insecure — disables server certificate verification. Use only with internal/untrusted CAs". The toggle is available **only** when "Use TLS (LDAPS)" is enabled. |
 | Bind DN | "Bind DN" (`bindDn`) | empty | The DN of the service account for the initial bind/search. If empty — no bind is performed (anonymous search). |
 | Bind password | hints: "Configured; leave empty to keep the current password." / "Not configured." / "Configured — enter a new value to replace" | empty | The password for the `Bind DN`. Stored separately; to keep the previous one, the field is left empty. |
 | Base DN | "Base DN" (`baseDn`) | empty | The root of the subtree in which the search is performed (the search is recursive, over the entire subtree). |
@@ -823,6 +834,8 @@ With this setup, every 5 minutes the panel walks the `OU=Users` subtree, matches
 The Dashboard (*Overview*) is the panel's start page. It shows the server and Xray process state in real time. All metrics come from the server side. A background scheduler rebuilds the snapshot **every 2 seconds** and broadcasts it to all open tabs via WebSocket; once a minute the accumulated metric rows are flushed to disk. The HTTP endpoint `GET /status` returns the last cached snapshot.
 
 Every metric and every control on the page is described below.
+
+As of version 3.4.2, the panel sidebar (and the mobile drawer) has a **"Documentation"** button (book icon) — it opens the official documentation at `https://docs.sanaei.dev/`. Also in 3.4.2 a cross-cutting **accessibility** improvement was made: icon buttons and clickable elements received aria labels and activation via Enter/Space (for screen readers and keyboard navigation).
 
 ### 3.1. General data-collection principles
 
@@ -946,7 +959,7 @@ curl -X POST 'https://panel.example.com:2053/xpanel/installXray/v25.6.8' \
   -b cookie.txt
 ```
 
-Here `v25.6.8` is a tag from the list returned by `GET /getXrayVersion`. The version must be present in that list; otherwise the panel will reject the request.
+Here `v25.6.8` is a tag from the list returned by `GET /getXrayVersion`. The version must be present in that list; otherwise the panel will reject the request. As of version 3.4.2 the minimum Xray version allowed for installation has been raised to **26.6.27** (the bundled core is Xray 26.6.27), so older builds are not available for updating.
 1. The selected version is verified against the current release list (otherwise — rejected).
 2. Xray is stopped.
 3. The archive `Xray-<os>-<arch>.zip` for the current OS and architecture is downloaded from GitHub (supported: amd64/64, arm64-v8a, arm32-v7a/v6/v5, 386/32, s390x; for Windows — `xray.exe`). The archive and binary size limit is 200 MB.
@@ -1206,7 +1219,7 @@ The inbound's active flag. Toggling this flag in the list is handled by a separa
 | Label | **"Deploy to"**, **"Local panel"** |
 | Default | empty (local panel) |
 
-A choice of where the inbound physically runs: on the local panel or on one of the registered nodes. An implementation detail: `nodeId = 0` is normalized to `nil`, since `0` is not a valid node id but an artifact of form binding; `nil`/`0` means the local panel. When saving an inbound on an offline node, a toast is possible — the change is synchronized when the node reconnects.
+A choice of where the inbound physically runs: on the local panel or on one of the registered nodes. An implementation detail: `nodeId = 0` is normalized to `nil`, since `0` is not a valid node id but an artifact of form binding; `nil`/`0` means the local panel. When saving an inbound on an offline node, a toast is possible — the change is synchronized when the node reconnects. As of version 3.4.2 this toast is shown only when the node is actually offline or disabled (previously it could also appear when saving to an online node).
 
 #### Share address strategy
 
@@ -1405,7 +1418,7 @@ In the client summary on the inbounds page, status is determined depleted-first:
 
 - **"Details"** — expands the connection and subscription links.
 - Client QR code: hint **"Click the QR code to copy"**.
-- **"Copy link"** (*Copy URL*), **"Export links"**.
+- **"Copy link"** (*Copy URL*), **"Export links"**. As of version 3.4.2 the page-level **"Export all links"** action (`GET /panel/api/inbounds/allLinks`; the "Export all inbound links" window, file "All-Inbounds") builds links through the subscription engine — it applies the remark template to each client and prefers managed Host endpoints (previously a fixed `inbound-email` remark was used).
 
 #### Edit
 
@@ -1749,40 +1762,42 @@ When to choose SOCKS/HTTP: for local or service proxy access without complex mas
 
 ### 5.9. WireGuard (inbound)
 
-Purpose: WireGuard inbound. Unlike proxy protocols, it does not operate with «clients» — instead, **peers** (devices the server accepts) are configured. Transport and TLS/REALITY do not apply to it.
+Purpose: WireGuard inbound — a WireGuard VPN tunnel, not a disguised proxy. Transport and TLS/REALITY do not apply to it.
 
-`settings` block fields:
+**As of version 3.4.2 WireGuard has been moved to a multi-client model** (like VLESS/VMess/Trojan/Shadowsocks/Hysteria). The inbound itself stores only the server part; peer devices are now added as regular **clients** (see section 8) — with automatic in-tunnel address assignment, subscription support, traffic/expiry limits and groups. The former inline "Peers / Add peer" list has been removed from the inbound form: a new inbound is created without peers, and each client is assigned an address automatically.
+
+Inbound fields (`settings` block):
 
 | Field | Default | Description |
 |---|---|---|
-| `secretKey` | — | Server private key (required). A generation button is next to it; the public key is displayed automatically (read-only field) |
-| `mtu` | (optional) | Interface MTU |
-| `noKernelTun` | `false` (off) | «No-kernel TUN» — use userspace TUN instead of the kernel TUN |
-| `domainStrategy` | (optional) | «Domain Strategy» — domain resolution strategy: `ForceIP`, `ForceIPv4`, `ForceIPv4v6`, `ForceIPv6`, `ForceIPv6v4` |
-| `peers` | `[]` | List of peers |
+| `secretKey` | — | Server private key (required). A generation button is next to it; the public key (`Public Key`) is derived from it automatically (read-only; the separately stored `pubKey` has been removed) |
+| `mtu` | `1420` | Interface MTU |
+| `dns` | `1.1.1.1, 1.0.0.1` | **New in 3.4.2.** The DNS written into the `DNS =` line of the client `.conf` |
+| `noKernelTun` | `false` (off) | «No-kernel TUN» — userspace TUN instead of the kernel TUN |
+| `domainStrategy` | (optional) | «Domain Strategy»: `ForceIP`, `ForceIPv4`, `ForceIPv4v6`, `ForceIPv6`, `ForceIPv6v4` |
 
-Fields of each peer:
+**WireGuard client parameters** — the **"Credentials"** tab in the add/edit client window (shown when the bound inbound is WireGuard):
 
-| Peer field | Default | Description |
-|---|---|---|
-| `privateKey` | (optional) | Client private key — stored so that the panel can render a config for the user (inbound peers only) |
-| `publicKey` | — | Peer public key (required) |
-| `preSharedKey` (PSK) | (optional) | Additional pre-shared key |
-| `allowedIPs` | `[]` | Allowed IPs. When adding a new peer, the panel automatically suggests the next available address (default `10.0.0.2/32`) |
-| `keepAlive` | (optional) | «Keep-alive» — connection keepalive interval |
-| `comment` | (optional) | «Comment» — arbitrary peer label; displayed next to the «Peer N» heading and substituted into the share link and the `remark` of the generated `.conf` file |
+| Field | Description |
+|---|---|
+| "WireGuard private key" | Client private key (editable, with a "Regenerate" button); when entered, the public key is derived from it automatically |
+| "WireGuard public key" | Read-only; computed from the private key |
+| "WireGuard pre-shared key" (PSK) | Optional additional pre-shared key |
+| "WireGuard allowed IPs" | Read-only (in edit mode): the in-tunnel address assigned to the client, e.g. `10.0.0.2/32` |
 
-The «Add peer» button generates a new key pair and populates the next `allowedIPs`. Each peer can be deleted (deletion is not available when only one peer remains).
-
-The «Comment» field of a peer helps distinguish devices: its text is shown in the form next to the «Peer N» heading, and also appears in the share link and in the `remark` of the generated `.conf` file, making the device easy to identify in a client application. This is a panel-only field — xray-core ignores unknown peer fields.
+The in-tunnel address is assigned by the server automatically from the inbound's subnet (default `10.0.0.0/24`: the server takes `.1`, clients start from `.2`); if existing clients use a different `/24`, new addresses are assigned in the same subnet.
 
 #### Domain Strategy and the Transport Tab
 
-In addition to peers, the WireGuard inbound has a **Domain Strategy** field (domain resolution strategy: `ForceIP`, `ForceIPv4`, `ForceIPv4v6`, `ForceIPv6`, `ForceIPv6v4`). The field is optional and is written to the config only if set.
+In addition to the above, the WireGuard inbound has a **Domain Strategy** field (domain resolution strategy: `ForceIP`, `ForceIPv4`, `ForceIPv4v6`, `ForceIPv6`, `ForceIPv6v4`). The field is optional and is written to the config only if set.
 
 > The **Workers** field (`workers`, number of worker threads) has been removed from WireGuard forms (both inbound and outbound): starting with xray-core v26.6.22 the engine no longer uses it and relies on the internal wireguard-go mechanism. Previously saved configs work without changes — the field is simply discarded during parsing; no migration is needed.
 
 The **Transport** tab is also available for WireGuard — but in a reduced form: only `sockopt` and **Finalmask** obfuscation can be configured there. The transport selection drop-down (`network`) is hidden because WireGuard always listens on UDP. In the noise records (noise), Finalmask has a separate **Rand Range** field (byte range 0–255, with validation), and **Salamander** is available as an obfuscation method for WireGuard and Hysteria.
+
+#### WireGuard client configuration and sharing
+
+In a WireGuard client's "Info"/QR windows there is a **collapsible configuration card**: the full `.conf` (`[Interface]` with `PrivateKey`/`Address`/`DNS`/`MTU` and `[Peer]` with `PublicKey`/`PresharedKey`/`AllowedIPs = 0.0.0.0/0, ::/0`/`Endpoint`/`PersistentKeepalive`) with **Copy**, **Download** and **QR** buttons. A `wireguard://`/`wg://` link is also supported, which the client application parses into a ready `.conf`.
 
 When to choose WireGuard: when you need a WireGuard VPN tunnel specifically, not a disguised proxy.
 
@@ -2196,7 +2211,7 @@ The **XMUX** toggle (`enableXmux`) enables a multiplexing layer that spreads par
 | Field | Key | Default | Description |
 | --- | --- | --- | --- |
 | Max Concurrency | `maxConcurrency` | `16-32` | Maximum concurrent requests per connection (`min-max` range) |
-| Max Connections | `maxConnections` | `0` | Maximum physical connections (`0` — unlimited) |
+| Max Connections | `maxConnections` | `6` | Maximum physical connections (`0` — unlimited). As of version 3.4.2 new inbounds are created with the value `6`; previously created ones keep their own. |
 | Max Reuse Times | `cMaxReuseTimes` | `""` (empty) | How many times a connection may be reused |
 | Max Request Times | `hMaxRequestTimes` | `600-900` | Maximum requests per connection (range) |
 | Max Reusable Secs | `hMaxReusableSecs` | `1800-3000` | How long a connection stays reusable (seconds, range) |
@@ -2431,15 +2446,24 @@ Fields of the `realitySettings` block. REALITY does not use an SSL certificate: 
 | **Show** (`show`) | off (`false`) | Debug output for REALITY in Xray logs. Usually left off. |
 | **Xver** (`xver`) | `0` | PROXY protocol version forwarded to the backend (`0` — disabled). Minimum `0`. |
 | **uTLS** (`settings.fingerprint`) | `chrome` | Simulated TLS fingerprint (same list as in TLS mode, but without the empty None option). |
-| **Target** (`target`) | `""` (the panel inserts a random value when enabled) | **Required field.** The real domain whose TLS handshake REALITY borrows. Verbatim hint: "*Required. Must include a port (e.g. example.com:443). Without a port Xray-core will not start.*" Panel validation checks that a port is present and valid; otherwise errors are shown: "REALITY Target is required" / "REALITY Target must include a port…" / "REALITY Target has an invalid port". The refresh button next to the field inserts a random pair from the built-in list. |
-| **SNI** (`serverNames`) | `[]` (filled together with the target) | List of allowed SNIs (multi-input with tags). Must correspond to the domain in **Target**. The refresh button inserts the SNI together with a random target. |
+| **Target** (`target`) | `""` (as of 3.4.2 it stays empty when REALITY is enabled) | **Required field.** The real domain whose TLS handshake REALITY borrows. Verbatim hint: "*Required. Must include a port (e.g. example.com:443). Without a port Xray-core will not start.*" Panel validation checks that a port is present and valid; otherwise errors are shown: "REALITY Target is required" / "REALITY Target must include a port…" / "REALITY Target has an invalid port". Next to the field are the **"Scan"** button (check the current target "live") and the **"Find targets"** button (open the REALITY target scanner); see below. |
+| **SNI** (`serverNames`) | `[]` (filled together with the target) | List of allowed SNIs (multi-input with tags). Must correspond to the domain in **Target**. On a successful target scan, the SNI is filled from its certificate. |
 | **Max Time Difference (ms)** (`maxTimediff`) | `0` | Maximum allowed clock skew between client and server in milliseconds (`0` — no limit). Minimum `0`. |
 | **Min Client Version** (`minClientVer`) | `""` | Minimum Xray client version (placeholder `25.9.11`). Empty — no restriction. |
 | **Max Client Version** (`maxClientVer`) | `""` | Maximum Xray client version. Empty — no restriction. |
 | **Short IDs** (`shortIds`) | `[]` (generated when enabled) | List of short identifiers (hex) that distinguish clients. Multi-input with tags; the refresh button generates a random set. |
 | **SpiderX** (`settings.spiderX`) | `/` | Spider path (the client-side REALITY component) used when simulating access to the external site. Included in the invite link. |
 
-**Target** (`target`) and **SNI** (`serverNames`) are filled with a random pair from the panel's built-in list when REALITY is enabled and when the refresh button is clicked: `www.amazon.com`, `aws.amazon.com`, `www.oracle.com`, `www.nvidia.com`, `www.amd.com`, `www.intel.com`, `www.sony.com` (each with port `:443`). Choose a heavyweight, stable third-party HTTPS site that is not behind your own server.
+As of version 3.4.2, **Target** (`target`) and **SNI** (`serverNames`) are **no longer** filled automatically when REALITY is enabled — both fields stay empty, and the target is picked by the live scanner (see below). Choose a heavyweight, stable third-party HTTPS site that supports TLS 1.3 and HTTP/2 and is not behind your own server.
+
+#### Finding a REALITY target (live scanner)
+
+As of version 3.4.2 the former "random target" button (with its static built-in list) has been replaced by two actions next to the **Target** field:
+
+- **"Scan"** — checks the current target "live": it establishes a TLS connection and, if the target is suitable, fills the SNI from its certificate. Toasts: "Target is suitable — target and SNI filled." / "Target is reachable but not suitable for REALITY." / "Failed to scan the REALITY target.".
+- **"Find targets"** — opens the **"REALITY target scanner"** window: you can specify a domain, an **IP or CIDR range** (the panel then finds targets by the certificates of live hosts), or leave the field empty (the built-in candidates are checked). The results are ranked; the columns are "Status"/"Suitable", "Key exchange", "Certificate", `TLS`, `ALPN`, "Latency". The **"Use"** button substitutes the selected row into the inbound fields.
+
+A target is considered **suitable** if the server negotiates **TLS 1.3**, **HTTP/2 (ALPN h2)**, **X25519/X25519MLKEM768** key exchange and presents a **trusted** (non-wildcard) certificate. Scanning is performed on the panel's server side (`POST /panel/api/server/scanRealityTarget` and `…/scanRealityTargets`).
 
 **Example: `streamSettings` block for REALITY on the `tcp` network** (VLESS). No certificate is needed — instead, a borrowed domain and an X25519 key pair are used:
 
@@ -2710,6 +2734,7 @@ In the client list you can select multiple records (**Select all**, **Clear all*
   - **Expiry:** clients with unlimited expiry (`expiryTime == 0`) are skipped ("unlimited expiry"); for clients with a date the expiry is shifted by the specified number of days; for clients in "after first use" mode (negative expiry) the waiting duration is adjusted. A reduction that exceeds the remaining time is skipped ("reduction exceeds remaining time/delay window").
   - **Traffic:** clients with unlimited traffic (`totalGB == 0`) are skipped ("unlimited traffic"); otherwise the quota is changed by the specified amount, not going below zero.
   - **Flow:** the **Set flow** dropdown lets you set or clear the XTLS flow for all selected clients at once. **No change** is selected by default. **Disable (clear flow)** clears the flow, while `xtls-rprx-vision` and `xtls-rprx-vision-udp443` set the corresponding vision flow. Setting a vision flow is applied only to inbounds that support flow; incompatible inbounds are left unchanged and marked as skipped, while clearing flow is always allowed.
+  - **Auto-enable (as of 3.4.2):** a client disabled **solely because of exhaustion** (expired term or exceeded quota) is automatically re-enabled on extension — both locally and on its node — if the adjustment brings it back within the limits. Clients disabled manually or still exhausted remain disabled (the `enable` field is now written explicitly, so the state is preserved even for clients without an inbound).
   - If no days, traffic, or flow are specified: "Specify days, traffic, or flow before applying.". Toast: "Updated: {count}" / "Updated: {ok}, skipped: {skipped}".
 
 **Example: extend selected clients by 30 days and add 50 GB.** In the **Edit** dialog set **Add days** = `30`, **Add traffic (GB)** = `50`. To instead subtract a week and reduce the quota by 10 GB, enter negative values: **Add days** = `-7`, **Add traffic (GB)** = `-10` (clients with unlimited expiry or unlimited traffic for the corresponding field will be skipped).
@@ -2926,11 +2951,13 @@ The **Reset traffic** button.
 
 Confirmation dialog:
 - Title: **"Reset traffic for group {name}?"**
-- Text: **"This will zero out up/down for all {count} client(s) in this group."**
+- Text: **"Only the group's traffic counter is reset. Individual client counters are not affected."**
 
-Behavior: for all member emails of the group, `up` and `down` in the traffic table are zeroed out and the `enable` field is set to `true` (the client is enabled). The operation is performed in batches within a transaction.
+Behavior: only the **group's own displayed counter** is zeroed out — the panel remembers the group's current `up/down` sum as a baseline marker and from then on shows `max(0, sum − baseline marker)` in the groups list. The `up`/`down` counters, quotas and the `enable` field of individual clients are **not changed**, and no Xray restart is required. This is a behavior change from earlier versions, where the reset zeroed out the traffic of all the group's clients.
 
-Success message: **"Reset traffic for {count} client(s)."**
+Request: `POST /panel/api/clients/groups/resetTraffic` with the body `{"name": "<group name>"}`.
+
+Success message: **"Traffic for group {name} has been reset."**
 
 ### 9.10. Deleting a group and deleting group clients
 
@@ -3053,7 +3080,7 @@ Value specifics:
 
 #### Related actions
 
-From the groups table, actions over the whole group are still available, including **"Reset traffic"** — it zeroes out `up`/`down` for all clients of the selected group. After such a reset, the "Traffic used" column for that group shows `0`.
+From the groups table, actions over the whole group are still available, including **"Reset traffic"** — it zeroes out **only the group's own counter** (the baseline marker), without touching the traffic of individual clients (see [9.9](#99-resetting-group-traffic)). After such a reset, the "Traffic used" column for that group shows `0`.
 
 ---
 
@@ -3148,7 +3175,7 @@ Variables are grouped into **Client**, **Traffic**, and **Time & status** sectio
 
 Available variables:
 
-- **Client identification:** `{{EMAIL}}`, `{{INBOUND}}` (the inbound's own remark), `{{HOST}}` (host remark), `{{ID}}` (UUID), `{{SHORT_ID}}` (first 8 characters of UUID), `{{SUB_ID}}`, `{{COMMENT}}`, `{{TELEGRAM_ID}}`, `{{PROTOCOL}}`, `{{TRANSPORT}}`.
+- **Client identification:** `{{EMAIL}}` (synonym — `{{USERNAME}}`), `{{INBOUND}}` (the inbound's own remark), `{{HOST}}` (host remark), `{{ID}}` (UUID), `{{SHORT_ID}}` (first 8 characters of UUID), `{{SUB_ID}}`, `{{COMMENT}}`, `{{TELEGRAM_ID}}`, `{{PROTOCOL}}`, `{{TRANSPORT}}`.
 - **Traffic:** `{{TRAFFIC_USED}}`, `{{TRAFFIC_LEFT}}`, `{{TRAFFIC_TOTAL}}` (and their `*_BYTES` variants in exact bytes), `{{UP}}`, `{{DOWN}}`, `{{USAGE_PERCENTAGE}}`.
 - **Expiry and status:** `{{DAYS_LEFT}}`, `{{TIME_LEFT}}`, `{{EXPIRE_DATE}}` (`YYYY-MM-DD`), `{{JALALI_EXPIRE_DATE}}` (date in the Jalali calendar), `{{EXPIRE_UNIX}}`, `{{CREATED_UNIX}}`, `{{RESET_DAYS}}`, `{{STATUS}}` (active / expired / disabled / depleted), `{{STATUS_EMOJI}}`.
 - **Connection:** `{{PROTOCOL}}` — protocol (VLESS, VMess, Trojan, etc.), `{{TRANSPORT}}` — transport network (tcp, ws, grpc, etc.), `{{SECURITY}}` — transport security (TLS, REALITY, NONE; displayed in uppercase). Like the traffic and expiry variables, these three variables only apply within the subscription body and are automatically stripped from the remark in panel-displayed links (QR / "Info") and on the subscription info page.
@@ -3156,6 +3183,8 @@ Available variables:
 The template can be split into segments using a vertical bar `|`. A segment in which a variable produces an "unlimited" value (`∞`) — for example `{{TRAFFIC_LEFT}}` or `{{DAYS_LEFT}}` for a client without limits — is automatically hidden. In addition, the traffic and expiry block is shown once, on the client's first link, so it does not repeat in every configuration.
 
 **Example.** The template `{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D` will produce `ivan@vpn 📊42.00GB ⏳7D` for a client with 42 GB remaining and 7 days left, and simply `ivan@vpn` for an unlimited client (segments with `∞` are omitted).
+
+As of version 3.4.2 the `{{EMAIL}}` variable (and the synonym `{{USERNAME}}`) is output only on the client's **first** link in the subscription body — just like the remaining traffic/expiry block; on the client's other links it is omitted.
 
 On links displayed in the panel (QR code and "Info" windows on the Clients page) and on the subscription info page, the client's email is present in the profile name in the form "inbound-host-email" when a host is set, or "inbound-email" without a host. Traffic, expiry data, and Connection group variables are not substituted into these displayed names — they only work in the subscription body received by the VPN client.
 
@@ -3232,6 +3261,8 @@ Each host has:
 - A **Clash (mihomo)** tab — IP version, Mihomo X25519, shuffle host.
 
 Hosts are ordered within their inbound and support bulk enable, disable, and delete. Managed Hosts replace the previous External Proxy array.
+
+**VLESS route.** As of version 3.4.2 this is a single number `0-65535` (rather than a port list; hint — "a single VLESS route value (0-65535) baked into the UUID, e.g. 443; empty — none", placeholder `443`). The specified value is actually "baked" into the UUID of every generated subscription (raw / JSON / Clash): Xray reads bytes 6-7 of the UUID and masks them before authentication, so the client still matches. An empty or invalid value leaves the UUID unchanged.
 
 #### Regular links (SUB) — Base64 / plain text
 
@@ -3533,7 +3564,7 @@ The statistics service rule (`inboundTag: ["api"] → outboundTag: "api"`) canno
 | Source | **Source** | `source` | Source IP addresses/subnets. Comma-separated list. |
 | Source Port | **Source Port** | `sourcePort` | Source port(s). |
 | Destination | **Destination** | `domain` + `ip` + `port` | Target domains, IPs, and ports. Domains support the prefixes `domain:`, `full:`, `regexp:`, `keyword:`, and `geosite:*`; IPs support `geoip:*` and CIDR. |
-| Network | — | `network` | `tcp`, `udp`, or `tcp,udp`. |
+| Network | — | `network` | `tcp`, `udp`, or `tcp,udp`. As of 3.4.2 it is written to the config in lowercase (`tcp`/`udp`) and displayed in uppercase (`TCP`/`UDP`) in the routes table; empty — any network. |
 | Protocol | — | `protocol` | `http`, `tls`, `bittorrent` (determined via sniffing). |
 | User | **User** | `user` | Filter by e-mail/user identifier. |
 | Attributes / Value | **Attributes** / **Value** | `attrs` | HTTP header attributes for matching. |
@@ -3761,7 +3792,7 @@ Result: traffic will flow mainly through `A` (or equally through both `A` and `B
 
 The `leastPing` and `leastLoad` strategies do not measure anything themselves — they need latency and availability data for each outbound. This is collected by the **observer** (observatory): it periodically "pings" each monitored outbound and records response time and availability. The same data is shown on the **"Observatory"** tab (statuses **Active / Unavailable**, **"Last Activity"**, **"Last Attempt"**).
 
-There is no dedicated form for the observer in the panel — the block must be added **manually** in the Xray configuration editor at the top level of the config (alongside `routing` and `outbounds`), after which **Xray must be restarted**.
+**As of version 3.4.2** the "Balancers" page has been split into the **"Balancer settings"** tab (the table and adding) and the **"Observatory"** tab, and the observer is edited with a **structured form** (the former raw JSON editor has been removed). The panel creates and removes observers as needed: a regular `observatory` for the **Least Ping** strategy, an extended `burstObservatory` for **Least Load**, as well as for **Random/Round-robin with a `fallbackTag` set** (xray-core requires this; when the last `fallbackTag` is cleared, the observer is removed). Creating or removing an observer requires a full Xray restart.
 
 Two variants are available:
 
@@ -3793,15 +3824,22 @@ Field descriptions:
 | `pingConfig.connectivity` | (optional) URL to check the **basic connectivity** of the server itself. If it is unreachable — the problem is in the server's network, and the observer does **not** mark an outbound as unavailable (protection against false positives from a local failure). Usually also an endpoint returning `204`. |
 | `pingConfig.timeout` | How long to wait for a response to a single ping before counting the attempt as failed (e.g., `"5s"`). |
 | `pingConfig.sampling` | How many recent measurements to store and average per outbound. `2` — account for the two most recent pings (smooths out random spikes). |
+| `pingConfig.httpMethod` | **New in 3.4.2.** The probe HTTP method: `HEAD` (default) or `GET`. |
+
+On the **"Observatory"** tab the same parameters are set with a form (not JSON). For a regular `observatory` these are **Watched Outbounds** (`subjectSelector`, read-only), **Probe URL** (`probeURL`, default `https://www.google.com/generate_204`), **Probe Interval** (`probeInterval`, `1m`) and **Enable Concurrency** (`enableConcurrency`, on by default). For `burstObservatory` — the fields listed above plus the new **"HTTP method"**. If the balancer has both observers, a segmented toggle switches between the Observatory and Burst forms.
 
 How to wire it all together:
 
-1. In the Xray editor, add a `burstObservatory` block with the desired `subjectSelector`.
+1. On the **"Observatory"** tab, configure the observer parameters (it is created automatically for the chosen strategy; `subjectSelector` follows the balancer's selectors).
 2. Create a balancer: **Strategy** = `leastPing`, and in **Selectors** specify the same outbound tags (`WS-SE`, `WS-FR`, `WS-PL`).
 3. Route traffic to it with a routing rule (the **Balancer Tag** field, see [11.3](#113-routing-rules-routing)).
 4. Restart Xray. The **"Observatory"** tab will show exit statuses, and the balancer will start selecting the fastest live exit.
 
 > A single rule cannot have both `balancerTag` and `outboundTag` set — only `outboundTag` will take effect.
+
+#### What happens when deleting an outbound or balancer (as of 3.4.2)
+
+When an outbound or balancer is deleted, in the same action the panel **cleans up the references to it in routing** and shows a **preview of the consequences** in the confirmation dialog (the header "Deleting it will also update your routing:", then for each rule — "removed (no destination left)" or "kept (now uses …)", and "Balancer … removed (no targets left)"). This prevents a "dangling" reference (`balancerTag`/`outboundTag`/`dialerProxy`) that previously could keep xray-core from starting on the next restart. Deleting a balancer: rules keep their `outboundTag`, otherwise they are removed. Deleting an outbound: its tag is removed from balancers' selectors and `fallbackTag`, the `dialerProxy` of other outbounds is cleared, emptied balancers are removed together with the now-purposeless rules, and observers are rebuilt.
 
 ### 11.6. DNS
 
@@ -5305,8 +5343,10 @@ The **"Export Database"** button (`Back Up`) downloads a backup file to your dev
 
 | DB engine | File name | What happens on the server |
 |-----------|-----------|----------------------------|
-| SQLite | `x-ui.db` | A WAL checkpoint is performed first to ensure the file contains the latest records, then the file is read in full and sent for download |
-| PostgreSQL | `x-ui.dump` | `pg_dump` is run, and the archive is sent for download |
+| SQLite | `{host}_YYYY-MM-DD_HHMMSS.db` | A WAL checkpoint is performed first to ensure the file contains the latest records, then the file is read in full and sent for download |
+| PostgreSQL | `{host}_YYYY-MM-DD_HHMMSS.dump` | `pg_dump` is run, and the archive is sent for download |
+
+As of version 3.4.2 the name of the downloaded backup file contains the address at which you opened the panel and a **date-time**: `{host}_YYYY-MM-DD_HHMMSS` with the `.db` (SQLite) or `.dump` (PostgreSQL) extension — for example `panel.example.com_2026-06-27_000000.db`. This way the files are grouped by server and sorted by time, and several copies made on the same day do not overwrite each other. The same name is used in the backups sent by the Telegram bot (`host` is taken from the panel domain/IP, falling back to `x-ui`).
 
 Interface hints:
 - SQLite: "Click to download the .db file containing a backup of your current database to your device."
@@ -5538,6 +5578,8 @@ After starting — a popup message "Panel update started"; if the version check 
 **What happens on the server:** self-update is supported **only on Linux** (on other operating systems the error "panel web update is supported only on Linux installations" is returned). The panel downloads the official `update.sh` script from GitHub (`raw.githubusercontent.com/MHSanaei/3x-ui/main/update.sh`) and runs it in a separate process: preferably via `systemd-run` in a dedicated unit (`x-ui-web-update-<timestamp>`), or as a detached process if systemd is not available. When finished, the script updates the components and restarts the panel service. `bash` is required to run it.
 
 If during an update the script generates a new random Web Base Path for the panel, the `x-ui` service is restarted automatically so the new path takes effect immediately. (Without a restart, the server would keep serving the old path while the interface showed the new one, making the new address unreachable until a manual restart.)
+
+**Dev channel (rolling), as of 3.4.2.** The panel version button on the "Dashboard" now always opens the update window (previously, on the latest stable build, it led to the GitHub releases page), and the **"Dev channel"** toggle (`devChannelEnable`) is always shown — even on a stable build. By enabling it, at the next update you can switch to the "rolling" dev channel (builds for every commit on `main`). When enabled, a warning is shown: "Dev builds track every commit on main and are not stable releases — there is no automatic rollback". Without an explicit action by the user, nothing is updated.
 
 #### Dev update channel (rolling builds per commit)
 
