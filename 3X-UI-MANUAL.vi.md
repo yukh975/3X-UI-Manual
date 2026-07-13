@@ -2,7 +2,7 @@
 
 🇸🇦 [العربية](3X-UI-MANUAL.ar.md) · 🇬🇧 [English](3X-UI-MANUAL.en.md) · 🇪🇸 [Español](3X-UI-MANUAL.es.md) · 🇮🇷 [فارسی](3X-UI-MANUAL.fa.md) · 🇮🇩 [Bahasa Indonesia](3X-UI-MANUAL.id.md) · 🇯🇵 [日本語](3X-UI-MANUAL.ja.md) · 🇧🇷 [Português](3X-UI-MANUAL.pt.md) · 🇷🇺 [Русский](3X-UI-MANUAL.ru.md) · 🇹🇷 [Türkçe](3X-UI-MANUAL.tr.md) · 🇺🇦 [Українська](3X-UI-MANUAL.uk.md) · 🇻🇳 Tiếng Việt · 🇨🇳 [简体中文](3X-UI-MANUAL.zh-CN.md) · 🇹🇼 [繁體中文](3X-UI-MANUAL.zh-TW.md)
 
-**Phiên bản 3X-UI: 3.4.2.** Hướng dẫn được biên soạn theo phiên bản này và có hiệu lực cho phiên bản đó. Tóm tắt các thay đổi của 3.4.2 so với 3.4.1 — trong mục [«Có gì mới trong 3.4.2»](#có-gì-mới-trong-342).
+**Phiên bản 3X-UI: 3.5.0.** Hướng dẫn được biên soạn theo phiên bản này và có hiệu lực cho phiên bản đó. Tóm tắt các thay đổi của 3.5.0 so với 3.4.2 — trong mục [«Có gì mới trong 3.5.0»](#có-gì-mới-trong-350).
 
 > Hướng dẫn chi tiết bằng tiếng Việt về bảng điều khiển web **3X-UI** (quản lý
 > Xray-core): các tính năng, cấu hình và vận hành, với giải thích từng trường và
@@ -13,7 +13,7 @@
 
 ## Mục lục
 
-- [Có gì mới trong 3.4.2](#có-gì-mới-trong-342)
+- [Có gì mới trong 3.5.0](#có-gì-mới-trong-350)
 - [1. Giới thiệu, yêu cầu và cài đặt](#1-giới-thiệu-yêu-cầu-và-cài-đặt)
   - [1.1. 3X-UI là gì](#11-3x-ui-là-gì)
   - [1.2. Hệ điều hành và kiến trúc được hỗ trợ](#12-hệ-điều-hành-và-kiến-trúc-được-hỗ-trợ)
@@ -135,7 +135,8 @@
   - [12.6. Lịch sử số liệu](#126-lịch-sử-số-liệu)
   - [12.7. Cách đồng bộ inbound và client](#127-cách-đồng-bộ-inbound-và-client)
   - [12.8. Chuỗi nút (nút con / nút chuyển tiếp)](#128-chuỗi-nút-nút-con--nút-chuyển-tiếp)
-  - [12.9. Nút: điểm mới trong 3.3.0](#129-nút-điểm-mới-trong-330)
+  - [12.9. Các bản sửa lỗi 3.5.0 (độ ổn định của nút)](#129-các-bản-sửa-lỗi-350-độ-ổn-định-của-nút)
+  - [12.10. Nút: điểm mới trong 3.3.0](#1210-nút-điểm-mới-trong-330)
 - [13. Cài đặt bảng điều khiển](#13-cài-đặt-bảng-điều-khiển)
   - [13.1. Lưu và khởi động lại bảng điều khiển](#131-lưu-và-khởi-động-lại-bảng-điều-khiển)
   - [13.2. Cài đặt chung (tab «Bảng điều khiển» / *General*)](#132-cài-đặt-chung-tab-bảng-điều-khiển--general)
@@ -173,70 +174,78 @@
   - [16.8. Xóa bảng điều khiển](#168-xóa-bảng-điều-khiển)
   - [16.9. Lệnh `x-ui migrateDB`](#169-lệnh-x-ui-migratedb)
 
-## Có gì mới trong 3.4.2
+## Có gì mới trong 3.5.0
 
-Phiên bản 3.4.2 là một bản cập nhật lớn: WireGuard chuyển sang mô hình đa khách hàng, REALITY có thêm trình quét đích trực tiếp, các bộ cân bằng tải nhận được các tab Observatory/Burst Observatory, và đã thêm xác nhận các cài đặt nhạy cảm bằng mã 2FA. Dưới đây là các thay đổi so với 3.4.1, được nhóm theo các mục của hướng dẫn.
+Phiên bản 3.5.0 là một bản phát hành lớn: MTProto chuyển sang mô hình đa khách hàng (engine mtg-multi, secret cá nhân, hạn mức và ad-tag), Hosts được quản lý trở thành host nhóm (nhiều inbound và nhiều địa chỉ trong một bản ghi), khôi phục trên panel PostgreSQL chấp nhận bản sao lưu SQLite, outbound có thêm «Target Strategy», chế độ kiểm tra «Real delay» và các cột Egress/Country, bộ cân bằng tải có thể dùng một bộ cân bằng tải khác làm fallback. Đi kèm là lõi Xray 26.7.11. Dưới đây là các thay đổi so với 3.4.2, được nhóm theo các mục của hướng dẫn.
 
 ### Thay đổi ở phần 1 — Giới thiệu, yêu cầu và cài đặt
 
-- Trong menu bên (và trong ngăn kéo trên di động) xuất hiện nút **«Tài liệu»** (biểu tượng quyển sách) — mở tài liệu chính thức `https://docs.sanaei.dev/`.
-- Phiên bản Xray tối thiểu mà bảng điều khiển cập nhật lên được nâng lên **26.6.27** (đi kèm — lõi Xray 26.6.27).
+- Lõi Xray được cập nhật lên **26.7.11**. Các di chuyển tự động đi kèm: các phương thức mã hóa Shadowsocks `none`/`plain` và VMess `none`/`zero` đã bị xóa khỏi lõi (các cấu hình đã lưu được ghi lại tự động), còn VLESS/Trojan-outbound không mã hóa đến địa chỉ công khai bị từ chối khi lưu.
+- Lệnh mới **`x-ui pgclient [phiên bản]`** và mục **10. Install/Upgrade client tools (pg_dump/pg_restore)** trong menu PostgreSQL — cài đặt/cập nhật các công cụ client PostgreSQL.
+- Sửa lỗi script: cài đặt PostgreSQL và fail2ban trên họ RHEL (EPEL), Arch không còn chạy `pacman -Syu` đầy đủ, tên nhị phân Xray chính xác trên ARM 32-bit (`xray-linux-arm32`), xác nhận IPv4 được tự phát hiện trước khi phát hành chứng chỉ IP, đã sửa thông báo sai «Your input is invalid» khi chọn cổng ACME mặc định.
 
 ### Thay đổi ở phần 2 — Đăng nhập bảng điều khiển và bảo mật truy cập
 
-- Khi bật 2FA, việc thay đổi tên đăng nhập/mật khẩu quản trị và việc tắt 2FA nay yêu cầu **nhập mã hiện tại** từ ứng dụng xác thực (xác nhận các thay đổi nhạy cảm).
-- LDAP: công tắc mới **«Bỏ qua kiểm tra chứng chỉ TLS»** (`ldapInsecureSkipVerify`) — tắt việc kiểm tra chứng chỉ khi dùng LDAPS; chỉ khả dụng khi đã bật «Sử dụng TLS (LDAPS)».
+- Giới hạn IP: kết nối «chết» nay chỉ bị chặn **một lần**, chứ không phải ở mỗi lần quét 10 giây — bộ đếm fail2ban không còn bị tăng ảo, không cần nâng cao `maxretry` nữa.
 
-### Thay đổi ở phần 3 — Tổng quan / Bảng điều khiển chính
+### Thay đổi ở phần 4 — Inbounds: tạo mới và các tham số chung
 
-- Nút phiên bản bảng điều khiển nay luôn mở cửa sổ cập nhật (xem phần 16 — kênh dev).
-- Cải tiến **khả năng truy cập** xuyên suốt: nhãn aria cho các biểu tượng và kích hoạt phần tử bằng Enter/Space (cho trình đọc màn hình và điều hướng bằng bàn phím).
-
-### Thay đổi ở phần 4 — Inbound: tạo và các tham số chung
-
-- Thao tác **«Xuất tất cả liên kết»** nay tạo liên kết qua engine đăng ký — áp dụng mẫu nhận xét cho từng khách hàng và ưu tiên các endpoint Host được quản lý (trước đây có nhận xét cố định `inbound-email`).
+- Danh sách inbound có thêm **tìm kiếm** (theo ghi chú, cổng và giao thức), còn các danh sách thả xuống chọn node («Развернуть на», bộ lọc «Node») nay hỗ trợ tìm kiếm khi nhập.
 
 ### Thay đổi ở phần 5 — Giao thức
 
-- **WireGuard chuyển sang mô hình đa khách hàng.** Các peer nay là khách hàng thông thường (với việc tự động cấp địa chỉ trong tunnel, hỗ trợ đăng ký, giới hạn lưu lượng/thời hạn và nhóm); danh sách «Peer» inline trong biểu mẫu inbound đã bị xóa.
-- Với WireGuard-inbound đã thêm trường **DNS** có thể cấu hình (mặc định `1.1.1.1, 1.0.0.1`) và **thẻ cấu hình khách hàng** — sao chép/tải xuống/QR của `.conf` đầy đủ và liên kết `wireguard://`/`wg://`.
-
-### Thay đổi ở phần 6 — Transport (Stream Settings)
-
-- Với XHTTP, đối với các inbound mới, tham số `maxConnections` trong **xmux** nay mặc định là **6** (trước đây `0` — không giới hạn). Các inbound hiện có giữ nguyên giá trị của mình.
+- **MTProto chuyển sang mô hình đa khách hàng** (engine mtg-multi): người dùng MTProto nay là các client thông thường với secret, hạn mức, thời hạn, ad-tag riêng và liên kết `tg://proxy` cá nhân. Trường «Secret» ở cấp inbound đã bị bỏ (các inbound hiện có được chuyển đổi tự động), «FakeTLS domain» trở thành domain mặc định cho các secret mới. Các trường inbound mới: **Max connections** (giới hạn kết nối), **Public IPv4/IPv6** (cho ad-tag middle proxy). Các thay đổi của client được áp dụng «ngay lập tức», không làm rơi các phiên Telegram của người khác.
+- WireGuard: menu inbound nhận được bộ thao tác client đầy đủ (Export All URLs, liên kết/hủy liên kết, nhóm), phần xuất được chia thành các tab **Config** và **Links**, trường **«IP được phép WireGuard» nay có thể chỉnh sửa** (nhiều mục nhập cách nhau bằng dấu phẩy), còn trong cấu hình client của inbound trên node, `Endpoint` nay trỏ đến địa chỉ của node.
 
 ### Thay đổi ở phần 7 — Bảo mật kết nối: TLS, XTLS và REALITY
 
-- Đã thêm **trình quét đích REALITY trực tiếp**: các nút **«Quét»** (kiểm tra đích hiện tại «trực tiếp») và **«Tìm đích»** (quét một tên miền hoặc dải **IP/CIDR** và chọn các đích phù hợp theo chứng chỉ của chúng). Các trường «Đích» và SNI nay để trống khi lần đầu chọn REALITY.
+- Tổ hợp **Finalmask + REALITY bị từ chối** khi lưu (nó từng làm Xray-core sập ở kết nối đầu tiên); placeholder minClientVer được cập nhật lên 26.3.27.
+- Loại mặt nạ TCP Finalmask mới — **XMC (Minecraft)**: ngụy trang luồng thành lưu lượng Minecraft (Hostname, Usernames, Password bắt buộc với tự động tạo).
 
-### Thay đổi ở phần 8 — Khách hàng
+### Thay đổi ở phần 8 — Clients
 
-- Việc gia hạn thời hạn/hạn mức qua `bulkAdjust` nay **tự động bật lại** khách hàng đã bị tắt chỉ vì hết hạn mức (hết hạn hoặc vượt quá hạn mức), nếu việc gia hạn đưa họ trở lại trong giới hạn. Những khách hàng bị tắt thủ công hoặc vẫn còn hết hạn mức vẫn bị tắt.
+- Cột mới **«Tốc độ»** — tốc độ trực tiếp của từng client (↑/↓, trung bình trượt ~5 giây).
+- Tìm kiếm client lại tìm được theo **Telegram ID**; trong biểu mẫu client, các inbound đã tắt bị ẩn khỏi danh sách liên kết; đã sửa việc tích lũy bản ghi trùng lặp trong cửa sổ «Hủy liên kết».
+- Client MTProto có các trường riêng: **«MTProto secret»** (với nút tạo lại) và **«Ad-tag (kênh tài trợ)»** (32 ký tự hex); hạn mức và thời hạn nay thực sự được áp dụng cho MTProto.
 
 ### Thay đổi ở phần 9 — Nhóm khách hàng
 
-- **«Đặt lại lưu lượng»** của nhóm nay chỉ đặt về 0 **bộ đếm của chính nhóm**; các bộ đếm, hạn mức và trạng thái của từng khách hàng không bị ảnh hưởng, không cần khởi động lại Xray. Đây là thay đổi so với hành vi trước đây (trước đây lưu lượng của tất cả khách hàng trong nhóm bị đặt lại).
+- Cửa sổ thông tin client nay hiển thị **nhóm** của client.
 
 ### Thay đổi ở phần 10 — Đăng ký (Subscription)
 
-- Trong các **host được quản lý**, trường **VLESS route** đã được định nghĩa lại: nay là một giá trị duy nhất `0-65535` (chứ không phải danh sách cổng), và nó thực sự được «nhúng» vào UUID của mỗi đăng ký (raw/JSON/Clash).
-- Biến `{{EMAIL}}` (và đồng nghĩa `{{USERNAME}}`) trong mẫu nhận xét nay chỉ hiển thị trên **liên kết đầu tiên** của khách hàng — giống như khối lưu lượng/thời hạn.
+- **Hosts được quản lý trở thành host nhóm**: một bản ghi bao phủ **nhiều inbound** (chọn nhiều) và **nhiều địa chỉ** (nhập dạng thẻ, mỗi mục có thể có `:cổng` riêng; tự động gợi ý địa chỉ; để trống — kế thừa địa chỉ của inbound). Các cột của danh sách hiển thị chip địa chỉ và inbound (với «+N»), các thao tác và API làm việc với nhóm (`groupId`), xuất hiện endpoint hàng loạt `POST /panel/api/hosts/bulk/add`. Việc sắp xếp host nay là toàn cục (theo thứ tự, sau đó theo remark).
+- Nội dung **thông báo** (`subAnnounce`) nay được hiển thị dưới dạng banner trên trang thông tin đăng ký; các mẫu tùy chỉnh có sẵn biến `announce`.
+- Trang thông tin trong trình duyệt nay cũng mở được qua **liên kết JSON/Clash** (không chỉ qua liên kết chính).
+- Các cài đặt host **Final Mask** và **Allow insecure** nay cũng có hiệu lực tương ứng trong các liên kết raw (`fm=`) và cho **Hysteria2** (`insecure=1` / `skip-cert-verify: true`).
+- Phạm vi «Khoảng thời gian cập nhật đăng ký» (`subUpdates`) được sửa thành **0–525600** (giới hạn UI cũ 168 từng chặn việc lưu cài đặt sau khi nâng cấp từ 2.x).
+- Các client **WireGuard gốc nay được đưa vào đăng ký Clash và JSON** (trước đây — chỉ vào raw).
 
-### Thay đổi ở phần 11 — Xray: định tuyến, outbounds, DNS và tiện ích mở rộng
+### Thay đổi ở phần 11 — Xray: định tuyến, outbounds, DNS và phần mở rộng
 
-- **Bộ cân bằng tải**: trang được chia thành các tab **«Cài đặt bộ cân bằng tải»** và **«Observatory»**; thay vì JSON thô — các biểu mẫu Observatory và Burst Observatory (với Burst đã thêm trường **«Phương thức HTTP»**). Bộ cân bằng tải Random/Round-robin với `fallbackTag` nay tự động tạo Burst Observatory.
-- Khi xóa outbound hoặc bộ cân bằng tải, bảng điều khiển tự dọn sạch các tham chiếu liên quan trong định tuyến và hiển thị **xem trước hậu quả** trong hộp thoại xác nhận.
-- Trong các quy tắc định tuyến, tiêu chí mạng **L4** được ghi vào cấu hình bằng chữ thường (`tcp`/`udp`), còn trong bảng hiển thị bằng chữ hoa.
-- Các lỗi trong biểu mẫu thêm/sửa bộ cân bằng tải nay được trì hoãn cho đến khi chạm vào trường lần đầu hoặc khi thử lưu.
+- Trình chỉnh sửa outbound: trường mới **«Target Strategy»** (11 giá trị từ `AsIs` đến `ForceIPv4`), chế độ kiểm tra **«Real delay»** (toàn bộ thời gian bao gồm cả thiết lập tunnel; chế độ HTTP nay được đo trên kết nối «ấm»), các cột **Egress** (IP đầu ra ẩn sau biểu tượng «con mắt») và **Country** (cờ + quốc gia, nhãn WARP) sau bài kiểm tra HTTP/Real.
+- **Fallback của bộ cân bằng tải có thể trỏ đến một bộ cân bằng tải khác**: bảng điều khiển tự xây dựng đối tượng loopback ẩn (`_bl_…`), bảo vệ khỏi vòng lặp và khỏi việc xóa bộ cân bằng tải đang được sử dụng; tiền tố `_bl_` được dành riêng.
+- Tab «Định tuyến cơ bản» nhận được bộ chọn **«Default Outbound»** — outbound nào xử lý lưu lượng không khớp với bất kỳ quy tắc nào (outbound được chọn sẽ được chuyển lên vị trí đầu tiên).
+- Các máy chủ DNS trên IP riêng tư không còn bị quy tắc `geoip:private` chặn — bảng điều khiển tự duy trì một quy tắc allow được quản lý.
+- Happy Eyeballs trong cài đặt dial (sockopt) nay thực sự được bật; «Try delay» mặc định 250 ms, giá trị `0` đặt rõ ràng được giữ nguyên.
+- Nhập đăng ký outbound: các liên kết `ss://` có `?plugin=`/dấu `/` ở cuối nay được phân tích cổng chính xác.
 
-### Thay đổi ở phần 12 — Node (đa bảng điều khiển, master/slave)
+### Thay đổi ở phần 12 — Nút (đa bảng điều khiển, master/slave)
 
-- Thông báo «đã lưu cục bộ, node ngoại tuyến — sẽ đồng bộ sau» nay chỉ hiển thị khi node thực sự ngoại tuyến hoặc đã tắt (trước đây — mỗi khi lưu trên node trực tuyến).
+- Gói các bản sửa lỗi: lưu client không thay đổi không còn phá vỡ lưu lượng đang chạy của các inbound trên nút; các ghi đè Host của nút được nhận vào master ở lần chấp nhận đầu tiên; tự động gia hạn mở cửa sổ hạn mức mới; xóa client trên master xóa hoàn toàn client đó trên các nút; các inbound của nút không bị quét sạch trước lần chấp nhận đầu tiên; một inbound không hợp lệ không dừng việc đồng bộ lưu lượng của nút; kiểm tra xung đột cổng được giới hạn trong nút của chính nó.
 
-### Thay đổi ở phần 16 — Vận hành: sao lưu, log, cập nhật, CLI
+### Thay đổi ở phần 14 — Telegram Bot
 
-- Tên các tệp sao lưu nay chứa địa chỉ máy chủ và **ngày-giờ**: `{host}_YYYY-MM-DD_HHMMSS.db` (`.dump` cho PostgreSQL), ví dụ `panel.example.com_2026-06-27_000000.db` — cả khi tải xuống từ bảng điều khiển lẫn trong các bản sao lưu do bot Telegram gửi.
-- Có thể bật **kênh dev** của bản cập nhật từ bản dựng ổn định: nút phiên bản luôn mở cửa sổ cập nhật, xuất hiện công tắc **«Kênh dev»** với cảnh báo về tính không ổn định và việc không có rollback tự động.
+- Menu lệnh của bot được bổ sung **`/usage`**, **`/inbound`**, **`/restart`** và lệnh quản trị mới **`/clearall`** (đặt lại lưu lượng của tất cả client, có xác nhận).
+- Danh sách client trực tuyến được ghi nhãn dạng `email - remark inbound`; các tin nhắn sao lưu và nhật ký chặn chứa tên host; tìm kiếm theo Telegram ID hoạt động bất kể định dạng của cài đặt.
+
+### Thay đổi ở phần 16 — Vận hành: sao lưu, nhật ký, cập nhật, CLI
+
+- **Khôi phục trên panel PostgreSQL chấp nhận tệp SQLite**: bản sao lưu `.db` thông thường hoặc `.dump` di chuyển được nhập thẳng vào PostgreSQL (trong một giao dịch duy nhất, với các kiểm tra trước khi dừng Xray). Hộp thoại chọn tệp chấp nhận `.dump,.db` trên cả hai DBMS; «Tải xuống tệp di chuyển» chỉ còn trên các panel PostgreSQL.
+- Trước khi khôi phục tệp lưu trữ `pg_dump`, bảng điều khiển kiểm tra khả năng đọc của dump và khi phiên bản không khớp sẽ gợi ý lệnh chính xác `x-ui pgclient <phiên bản>`.
+- Tự động sửa chữa khi khởi động: các bộ đếm lưu lượng bị tràn được kẹp lại và khôi phục; gỡ bỏ ràng buộc UNIQUE lỗi thời trên cổng inbound (từng cản trở multi-node).
+- Nhật ký Xray: tác vụ mới mỗi 10 phút cắt bớt access-log và error-log khi vượt quá **64 MiB**; việc dọn dẹp hàng ngày nay làm sạch cả hai.
+- Docker: tự động gia hạn chứng chỉ đã được sửa (crond được khởi chạy, trạng thái acme.sh được lưu trong volume).
 
 ## 1. Giới thiệu, yêu cầu và cài đặt
 
@@ -360,7 +369,7 @@ docker compose up -d
 docker compose --profile postgres up -d
 ```
 
-Image bao gồm Fail2ban (mặc định được kích hoạt) để áp dụng giới hạn IP theo khách hàng. Fail2ban chặn vi phạm qua `iptables`, yêu cầu khả năng `NET_ADMIN`. Trong `docker-compose.yml` khả năng này đã được cấp qua `cap_add`. Khi khởi chạy thủ công qua `docker run`, cần tự thêm các khả năng này, nếu không các lệnh chặn chỉ được ghi vào log mà không được áp dụng:
+Image bao gồm Fail2ban (mặc định được kích hoạt) để áp dụng giới hạn IP theo khách hàng. Fail2ban chặn vi phạm qua `iptables`, yêu cầu khả năng `NET_ADMIN`. Trong `docker-compose.yml` khả năng này đã được cấp qua `cap_add`. Từ 3.5.0, trong container đã sửa xong **tự động gia hạn chứng chỉ** được phát hành qua menu SSL: entrypoint khởi chạy `crond` và đăng ký lại tác vụ cron của acme.sh, còn `docker-compose.yml` có thêm volume riêng cho trạng thái acme.sh — việc gia hạn vẫn hoạt động sau khi tạo lại container (trước đây chứng chỉ âm thầm hết hạn sau ~90 ngày). Khi khởi chạy thủ công qua `docker run`, cần tự thêm các khả năng này, nếu không các lệnh chặn chỉ được ghi vào log mà không được áp dụng:
 
 **Ví dụ: lệnh `docker run` đầy đủ.** Phiên bản tối thiểu với chuyển tiếp cổng bảng điều khiển, khả năng mạng và volume lâu dài cho cơ sở dữ liệu:
 
@@ -963,7 +972,7 @@ curl -X POST 'https://panel.example.com:2053/xpanel/installXray/v25.6.8' \
   -b cookie.txt
 ```
 
-Trong đó `v25.6.8` — thẻ từ danh sách do `GET /getXrayVersion` trả về. Phiên bản phải có trong danh sách này, nếu không panel sẽ từ chối. Kể từ phiên bản 3.4.2, phiên bản Xray tối thiểu được phép cài đặt được nâng lên **26.6.27** (đi kèm là lõi Xray 26.6.27), do đó các bản dựng cũ hơn không khả dụng để cập nhật.
+Trong đó `v25.6.8` — thẻ từ danh sách do `GET /getXrayVersion` trả về. Phiên bản phải có trong danh sách này, nếu không panel sẽ từ chối. Kể từ phiên bản 3.4.2, phiên bản Xray tối thiểu được phép cài đặt được nâng lên **26.6.27**, còn đi kèm 3.5.0 là lõi **Xray 26.7.11**. Các thay đổi đi kèm của lõi: các phương thức mã hóa Shadowsocks `none`/`plain` và VMess `none`/`zero` đã bị xóa (các cấu hình đã lưu được ghi lại tự động: SS — sang phương thức mã hóa được hỗ trợ, VMess — sang `auto`), còn VLESS/Trojan-outbound không mã hóa đến địa chỉ công khai bị từ chối khi lưu — lõi với cấu hình như vậy sẽ không khởi động được.
 1. Phiên bản đã chọn được kiểm tra xem có trong danh sách phát hành hiện tại không (nếu không — từ chối).
 2. Xray dừng lại.
 3. Tệp lưu trữ `Xray-<os>-<arch>.zip` được tải xuống từ GitHub phù hợp với hệ điều hành và kiến trúc hiện tại (hỗ trợ amd64/64, arm64-v8a, arm32-v7a/v6/v5, 386/32, s390x; đối với Windows — `xray.exe`). Kích thước tệp lưu trữ và tệp nhị phân được giới hạn ở 200 MB.
@@ -1034,15 +1043,13 @@ Kịch bản cho **SQLite** an toàn, có khả năng rollback:
 3. Tệp mới được đặt vào vị trí DB làm việc, thực hiện khởi tạo và di chuyển. Nếu có sự cố — fallback được khôi phục.
 4. Xray khởi động lại.
 
-Đối với **PostgreSQL**, tệp `.dump` được tải lên (chữ ký `PGDMP` được kiểm tra) và áp dụng qua `pg_restore --clean --if-exists --single-transaction …`. Gợi ý cảnh báo thẳng thắn: "Thao tác này sẽ thay thế tất cả dữ liệu hiện tại".
+Đối với **PostgreSQL**, từ 3.5.0 "Khôi phục" chấp nhận **ba loại tệp** (loại được xác định theo nội dung, không theo phần mở rộng): tệp lưu trữ `pg_dump` (`PGDMP`) — được áp dụng qua `pg_restore --clean --if-exists --single-transaction …`; **cơ sở dữ liệu SQLite `.db`** (bản sao lưu thông thường) và **`.dump` di chuyển SQLite** — chúng được kiểm tra, khi cần được dựng lại và nhập vào PostgreSQL **trong một giao dịch duy nhất** bằng chính engine của `x-ui migrate-db --dsn` (khi có lỗi, PostgreSQL vẫn nguyên vẹn). Hộp thoại chọn tệp chấp nhận `.dump,.db` trên cả hai DBMS; việc tải tệp lưu trữ `pg_dump` lên panel SQLite trả về lỗi rõ ràng. Gợi ý cảnh báo thẳng thắn: "Thao tác này sẽ thay thế tất cả dữ liệu hiện tại".
 
 Thông báo: "Cơ sở dữ liệu đã được nhập thành công", "Đã xảy ra lỗi khi nhập cơ sở dữ liệu", "…khi đọc cơ sở dữ liệu", "…khi nhận cơ sở dữ liệu".
 
 #### Tệp di chuyển (giữa SQLite và PostgreSQL)
 
-Nút "Tải xuống tệp di chuyển" (*Download Migration*) gọi `GET /getMigration` và tạo xuất khẩu di động để khởi chạy panel trên DBMS khác:
-- Trên **SQLite** tải xuống `x-ui.dump` (dump SQL dạng văn bản).
-- Trên **PostgreSQL** tải xuống `x-ui.db` — cơ sở dữ liệu SQLite sẵn sàng, được tạo từ dữ liệu PostgreSQL.
+Nút "Tải xuống tệp di chuyển" (*Download Migration*) gọi `GET /getMigration`. Từ 3.5.0 nút này chỉ hiển thị **trên các panel PostgreSQL** và tải xuống `x-ui.db` — cơ sở dữ liệu SQLite sẵn sàng, được tạo từ dữ liệu PostgreSQL (con đường "quay lại SQLite"). Trên các panel SQLite, nút đã bị bỏ vì thừa: bản sao lưu `.db` thông thường nay có thể được khôi phục thẳng vào panel PostgreSQL.
 
 ### 3.15. Các phần tử giao diện bổ sung
 
@@ -1223,7 +1230,7 @@ Cờ trạng thái hoạt động của inbound. Việc chuyển cờ này trong
 | Nhãn | **«Развернуть на»**, **«Локальная панель»** |
 | Mặc định | rỗng (bảng điều khiển cục bộ) |
 
-Chọn nơi inbound hoạt động vật lý: trên bảng điều khiển cục bộ hoặc trên một trong các node đã đăng ký. Đặc điểm thực thi: `nodeId = 0` được chuẩn hóa thành `nil`, vì `0` không phải id node hợp lệ mà là tạo phẩm của binding form; `nil`/`0` có nghĩa là bảng điều khiển cục bộ. Khi lưu inbound trên node offline, có thể xuất hiện thông báo «thay đổi sẽ được đồng bộ khi node kết nối lại». Kể từ phiên bản 3.4.2, thông báo này chỉ hiển thị khi node thực sự offline hoặc đã tắt (trước đây nó có thể xuất hiện cả khi lưu trên node trực tuyến).
+Chọn nơi inbound hoạt động vật lý: trên bảng điều khiển cục bộ hoặc trên một trong các node đã đăng ký. Từ 3.5.0, danh sách «Развернуть на» (cũng như bộ lọc «Node» phía trên danh sách inbound) hỗ trợ **tìm kiếm khi nhập**, còn phía trên chính danh sách inbound xuất hiện **ô tìm kiếm** (theo ghi chú, cổng và giao thức; hoạt động cùng với bộ lọc node). Đặc điểm thực thi: `nodeId = 0` được chuẩn hóa thành `nil`, vì `0` không phải id node hợp lệ mà là tạo phẩm của binding form; `nil`/`0` có nghĩa là bảng điều khiển cục bộ. Khi lưu inbound trên node offline, có thể xuất hiện thông báo «thay đổi sẽ được đồng bộ khi node kết nối lại». Kể từ phiên bản 3.4.2, thông báo này chỉ hiển thị khi node thực sự offline hoặc đã tắt (trước đây nó có thể xuất hiện cả khi lưu trên node trực tuyến).
 
 #### Chiến lược địa chỉ cho liên kết (Share address strategy)
 
@@ -1787,7 +1794,7 @@ Các trường inbound (khối `settings`):
 | «Khóa riêng WireGuard» | Khóa riêng của khách hàng (có thể chỉnh sửa, có nút «Tạo lại»); khi nhập, khóa công khai được suy ra từ nó tự động |
 | «Khóa công khai WireGuard» | Chỉ đọc; được tính từ khóa riêng |
 | «Khóa chung WireGuard» (PSK) | Khóa chia sẻ bổ sung tùy chọn |
-| «IP được phép WireGuard» | Chỉ đọc (ở chế độ chỉnh sửa): địa chỉ đã cấp cho khách hàng trong tunnel, ví dụ `10.0.0.2/32` |
+| «IP được phép WireGuard» | Từ 3.5.0 — **có thể chỉnh sửa** (placeholder `10.0.0.2/32`, gợi ý «Để trống để tự động cấp; các mục nhập phân tách bằng dấu phẩy»). Để trống — địa chỉ được cấp tự động; máy chủ kiểm tra từng mục nhập (IP hoặc CIDR), chuẩn hóa các địa chỉ đơn lẻ thành `/32` và từ chối địa chỉ đã bị khách hàng khác của inbound này chiếm dụng |
 
 Địa chỉ trong tunnel được máy chủ cấp tự động từ mạng con của inbound (mặc định `10.0.0.0/24`: máy chủ chiếm `.1`, khách hàng — bắt đầu từ `.2`); nếu các khách hàng hiện có dùng `/24` khác, các địa chỉ mới được cấp trong cùng mạng con.
 
@@ -1798,6 +1805,10 @@ Ngoài những trường đã liệt kê, inbound WireGuard còn có trường *
 > Trường **Workers** (`workers`, số luồng làm việc) đã bị xóa khỏi biểu mẫu WireGuard (cả inbound và outbound): kể từ xray-core v26.6.22, engine không còn sử dụng nó và dựa vào cơ chế nội bộ của wireguard-go. Các cấu hình đã lưu trước đó hoạt động không thay đổi — khi phân tích, trường chỉ đơn giản bị bỏ qua, không cần migration.
 
 Cho WireGuard cũng có sẵn tab **«Transport»** — nhưng ở dạng rút gọn: trên đó chỉ cấu hình `sockopt` và obfuscation **Finalmask**. Danh sách thả xuống chọn transport (`network`) bị ẩn vì WireGuard luôn lắng nghe qua UDP. Trong các bản ghi noise (noise), Finalmask có trường riêng **Rand Range** (khoảng byte 0–255, có xác thực), và phương thức obfuscation **Salamander** khả dụng cho WireGuard và Hysteria.
+
+#### Thao tác inbound và xuất (từ 3.5.0)
+
+Menu của dòng WireGuard-inbound nay chứa bộ thao tác «đa khách hàng» đầy đủ — **«Xuất tất cả liên kết»**, xuất theo đăng ký, **liên kết/hủy liên kết khách hàng**, thêm vào nhóm và xóa tất cả khách hàng (trước đây chỉ có xuất/đặt lại/nhân bản/xóa), còn trong danh sách hiển thị bộ đếm khách hàng. Với WireGuard, cửa sổ «Xuất tất cả liên kết» được chia thành hai tab: **Config** (các khối `.conf` ghép lại, mỗi khách hàng một khối) và **Links** (các liên kết cá nhân `wireguard://`); «Sao chép» và «Tải xuống» tác động lên tab đang mở. Với inbound đặt trên node, `Endpoint` trong `.conf`/QR của khách hàng nay trỏ đến **địa chỉ của node**, chứ không phải của bảng điều khiển chính.
 
 #### Cấu hình và chia sẻ khách hàng WireGuard
 
@@ -1844,13 +1855,12 @@ Khi nào nên chọn Hysteria: khi cần transport QUIC và độ ổn định t
 
 MTProto — giao thức proxy riêng của Telegram. Trong 3X-UI, inbound như vậy **được phục vụ không phải bởi Xray mà bởi tiến trình riêng `mtg`**, do panel quản lý. Panel định kỳ đối chiếu các inbound MTProto được bật với các tiến trình `mtg` đang chạy: khởi động những cái thiếu, dừng những cái thừa và lấy số liệu lưu lượng từ metrics của `mtg`. Do đó **theo dõi lưu lượng** cho inbound này hoạt động như các giao thức thông thường.
 
-Gợi ý chính thức trong biểu mẫu:
-
-> «MTProto được phục vụ bởi tiến trình riêng mtg, không phải Xray. Cài đặt transport và client không áp dụng ở đây — hãy chia sẻ link bên dưới qua Telegram.»
+**Kể từ phiên bản 3.5.0, MTProto là giao thức đa khách hàng** (engine được đổi sang fork `mtg-multi`): một inbound phục vụ nhiều người dùng, mỗi người là một **client** thông thường (xem phần 8) với secret FakeTLS riêng, hạn mức lưu lượng, thời hạn, công tắc bật/tắt, ad-tag tùy chọn và liên kết `tg://proxy` cá nhân. Mô hình cũ «một inbound = một secret» đã bị loại bỏ: trường «Secret» ở cấp inbound bị xóa khỏi biểu mẫu, còn khi cập nhật panel, secret đơn lẻ hiện có tự động trở thành client đầu tiên của inbound đó (không cần thao tác thủ công).
 
 Hệ quả:
 
-- Tab **«Transport» (Stream Settings) và «Client» không áp dụng cho inbound này** — quyền truy cập được xác định bởi một secret duy nhất, không phải danh sách client.
+- Tab **«Transport» (Stream Settings) không áp dụng cho inbound này**; còn client nay được quản lý như ở các giao thức khác — liên kết/hủy liên kết, giới hạn, nhóm, đăng ký.
+- Các thay đổi của client (thêm, xóa, đổi secret, bật/tắt, ad-tag) được áp dụng **«ngay lập tức»** qua management-API của `mtg`, không làm gián đoạn phiên Telegram của những người dùng còn lại; chỉ các thay đổi cấu trúc của inbound (địa chỉ, domain fronting, giới hạn kết nối, IP công khai) mới khởi động lại tiến trình.
 - Inbound MTProto chỉ chạy **trên panel chính**; không được triển khai lên node con (node có `NodeID` được chỉ định sẽ bị bỏ qua).
 
 - Tab **«Sniffing»** cho MTProto bị ẩn — giao thức này được phục vụ bởi tiến trình `mtg`, không phải Xray, vì vậy sniffing không áp dụng được cho nó.
@@ -1862,10 +1872,11 @@ Hệ quả:
 | Remark | `remark` | Nhãn inbound. |
 | Listen IP | `listen` | IP để lắng nghe (trống = tất cả giao diện). |
 | Port | `port` | Cổng proxy. |
-| Secret | `settings.secret` | Secret truy cập ở định dạng **FakeTLS**. |
-| Domain giả mạo (FakeTLS) | `settings.fakeTlsDomain` | Domain mà proxy giả mạo là lưu lượng HTTPS đến nó. |
+| Domain giả mạo (FakeTLS) | `settings.fakeTlsDomain` | Mặc định `www.cloudflare.com`. Từ 3.5.0 — **domain mặc định để tạo secret cho các client mới** (gợi ý: «Default FakeTLS domain used to generate a new client's secret. Each client can front its own domain»); mỗi client có thể giả mạo bằng domain riêng của mình qua secret của họ. |
+| Max connections | `settings.throttleMaxConnections` | **Mới trong 3.5.0.** Giới hạn số kết nối đồng thời cho tất cả người dùng với việc chia đều; `0` — không giới hạn. |
+| Public IPv4 / Public IPv6 | `settings.publicIpv4` / `settings.publicIpv6` | **Mới trong 3.5.0.** Địa chỉ công khai của máy chủ cho ad-tag middle proxy (placeholder `1.2.3.4` / `2001:db8::1`); để trống — `mtg` sẽ tự xác định. |
 
-**Định dạng secret (FakeTLS).** Panel tự động đưa secret về dạng đúng: kết quả = `ee` + 32 ký tự hex + mã hex của domain giả mạo, tức là `ee<hex32><hex(fakeTlsDomain)>`. Tiền tố `ee` bật chế độ FakeTLS, còn domain (ví dụ một trang nổi tiếng) dùng để giả mạo lưu lượng thành HTTPS thông thường. Chỉ cần chỉ định domain — phần còn lại panel sẽ tự hoàn thiện.
+**Định dạng secret (FakeTLS).** Secret nay thuộc về **từng client** (trường **«MTProto secret»** trong biểu mẫu client, với nút tạo lại; bên cạnh — trường tùy chọn **«Ad-tag (kênh tài trợ)»**, đúng 32 ký tự hex). Dạng secret vẫn như cũ: `ee` + 32 ký tự hex + mã hex của domain giả mạo (`ee<hex32><hex(domain)>`); khi liên kết client mới với MTProto-inbound, secret được tạo tự động từ domain mặc định của inbound. Hạn mức lưu lượng và thời hạn hiệu lực của client từ 3.5.0 **thực sự được áp dụng** (qua các giới hạn của mtg-multi): client đã hết hạn mức hoặc hết hạn sẽ bị ngắt, còn việc đặt lại lưu lượng khôi phục quyền truy cập ngay lập tức.
 
 #### Domain-fronting và các tùy chọn nâng cao của mtg
 
@@ -1893,7 +1904,7 @@ tg://proxy?server=203.0.113.10&port=443&secret=ee1a2b3c4d5e6f70819293a4b5c6d7e8f
 tg://proxy?server=<адрес>&port=<порт>&secret=<секрет>
 ```
 
-(tương đương — `https://t.me/proxy?server=…&port=…&secret=…`). Link này và mã QR cần được gửi cho người dùng Telegram — khi mở, proxy sẽ được thêm ngay vào ứng dụng. Link cũng được cung cấp qua máy chủ subscription.
+(tương đương — `https://t.me/proxy?server=…&port=…&secret=…`). Từ 3.5.0, link là **cá nhân** — được tạo từ secret của từng client cụ thể, còn fragment `#remark` đã bị loại khỏi link (các trình phân tích Telegram không chặt chẽ từng dán nó vào secret và làm hỏng việc nhập); ghi chú được hiển thị dưới dạng nhãn riêng trong cửa sổ thông tin. Link này và mã QR cần được gửi cho người dùng Telegram — khi mở, proxy sẽ được thêm ngay vào ứng dụng. Link cũng được cung cấp qua máy chủ subscription.
 
 **Khi nào nên sử dụng.** Phương pháp tiêu chuẩn để vượt chặn Telegram; giả mạo FakeTLS (domain giả mạo) làm cho lưu lượng trông giống như đang truy cập thông thường vào trang được chỉ định.
 
@@ -2453,7 +2464,7 @@ Các trường của khối `realitySettings`. REALITY không sử dụng chứn
 | **Đích** (`target`) | `""` (từ 3.4.2 khi bật REALITY vẫn để trống) | **Trường bắt buộc.** Tên miền thực sự mà REALITY mượn TLS-handshake. Gợi ý nguyên văn: «*Bắt buộc. Phải chứa cổng (ví dụ, example.com:443). Không có cổng, Xray-core sẽ không khởi động.*» Xác thực trong panel kiểm tra sự có mặt và tính đúng đắn của cổng; nếu không sẽ hiển thị lỗi «Đích REALITY là bắt buộc» / «Đích REALITY phải chứa cổng…» / «Đích REALITY có cổng không hợp lệ». Bên cạnh trường — các nút **«Quét»** (kiểm tra đích hiện tại «trực tiếp») và **«Tìm đích»** (mở trình quét đích REALITY); xem bên dưới. |
 | **SNI** (`serverNames`) | `[]` (điền cùng với đích) | Danh sách SNI được phép (nhập nhiều giá trị bằng tag). Phải tương ứng với tên miền trong **Đích**. Khi quét đích thành công, SNI được điền theo chứng chỉ của nó. |
 | **Chênh lệch thời gian tối đa (ms)** (`maxTimediff`) | `0` | Chênh lệch đồng hồ tối đa được phép giữa client và máy chủ tính bằng mili giây (`0` — không giới hạn). Tối thiểu `0`. |
-| **Phiên bản client tối thiểu** (`minClientVer`) | `""` | Phiên bản client Xray tối thiểu (placeholder `25.9.11`). Trống — không giới hạn. |
+| **Phiên bản client tối thiểu** (`minClientVer`) | `""` | Phiên bản client Xray tối thiểu (placeholder từ 3.5.0 — `26.3.27`). Trống — không giới hạn. |
 | **Phiên bản client tối đa** (`maxClientVer`) | `""` | Phiên bản client Xray tối đa. Trống — không giới hạn. |
 | **Short IDs** (`shortIds`) | `[]` (được tạo khi bật) | Danh sách các định danh ngắn (hex), phân biệt các client. Nhập nhiều giá trị bằng tag; nút làm mới tạo tập hợp ngẫu nhiên. |
 | **SpiderX** (`settings.spiderX`) | `/` | Đường dẫn «spider» (phần client của REALITY), được sử dụng khi giả lập truy cập đến trang web bên ngoài. Được đưa vào liên kết mời. |
@@ -2709,7 +2720,7 @@ Với một client riêng lẻ (qua thẻ **Thông tin client** hoặc menu ng�
 
 #### Xem thông tin, mã QR và liên kết
 
-- **Thông tin client** — thẻ với tất cả các trường, lưu lượng đã dùng/còn lại (**Còn lại**), thời hạn hiệu lực và các inbound được liên kết.
+- **Thông tin client** — thẻ với tất cả các trường, lưu lượng đã dùng/còn lại (**Còn lại**), thời hạn hiệu lực và các inbound được liên kết. Từ 3.5.0, thẻ này còn hiển thị **nhóm** của client (hàng «Nhóm» với nhãn, phía trên «Ghi chú»), khi nhóm được đặt.
 
 Yêu cầu client qua API (`GET /panel/api/clients/get/:email`) bên cạnh các trường `client` và `inboundIds` còn trả về thêm `usedTraffic` — lưu lượng thực tế đã dùng (gửi + nhận, tính cả dữ liệu của các node), giúp dễ dàng so sánh mức tiêu thụ với hạn mức `totalGB`.
 - **Mã QR** và **Liên kết** — liên kết cấu hình của client để nhập vào ứng dụng client. Được tạo từ tất cả các inbound được liên kết với giao thức được hỗ trợ (`GET /links/:email`). Nếu không có liên kết phù hợp: «Không có liên kết chia sẻ — trước tiên hãy liên kết client với inbound có giao thức được hỗ trợ.».
@@ -2742,7 +2753,7 @@ Trong danh sách client có thể chọn nhiều bản ghi (**Chọn tất cả*
   - Nếu không chỉ định ngày, lưu lượng hay flow: «Hãy chỉ định ngày, lưu lượng hoặc flow trước khi áp dụng.». Thông báo: «Đã sửa: {count}» / «Đã sửa: {ok}, đã bỏ qua: {skipped}».
 
 **Ví dụ: gia hạn các client đã chọn thêm 30 ngày và thêm 50 GB.** Trong hộp thoại **Sửa**, nhập **Thêm ngày** = `30`, **Thêm lưu lượng (GB)** = `50`. Để ngược lại, trừ đi một tuần và giảm hạn mức 10 GB, hãy nhập giá trị âm: **Thêm ngày** = `-7`, **Thêm lưu lượng (GB)** = `-10` (các client với thời hạn vĩnh viễn hoặc không giới hạn cho trường tương ứng sẽ bị bỏ qua).
-- **Liên kết ({count})** / **Hủy liên kết ({count})** (`POST /bulkAttach` / `bulkDetach`) — liên kết/hủy liên kết hàng loạt các client đã chọn với các inbound đã chọn. Mục tiêu — chỉ các inbound đa người dùng. Kết quả hủy liên kết: «Đã hủy liên kết {detached}, đã bỏ qua {skipped}.».
+- **Liên kết ({count})** / **Hủy liên kết ({count})** (`POST /bulkAttach` / `bulkDetach`) — liên kết/hủy liên kết hàng loạt các client đã chọn với các inbound đã chọn. Mục tiêu — chỉ các inbound đa người dùng. Kết quả hủy liên kết: «Đã hủy liên kết {detached}, đã bỏ qua {skipped}.». Từ 3.5.0, bộ chọn inbound trong biểu mẫu client **ẩn các inbound đã tắt** (trừ những inbound mà client đã được liên kết), còn trong cửa sổ «Hủy liên kết» đã loại bỏ việc tích lũy các bản ghi trùng lặp của cùng một client (dữ liệu được sửa tự động khi panel khởi động).
 - **Liên kết đăng ký ({count})** — bảng tổng hợp URL đăng ký và URL đăng ký JSON của các client đã chọn với nút **Sao chép tất cả**. Nếu không ai có subId: «Không có client nào trong số đã chọn có ID đăng ký.».
 - **Thêm vào nhóm** và **Bỏ nhóm** — gán và xóa nhãn nhóm.
 
@@ -2763,9 +2774,11 @@ Khi không có gì được chọn, trong menu **Thêm** trên trang **Clients**
 
 ### 8.5. Tìm kiếm, lọc và sắp xếp
 
-Phía trên danh sách có thanh tìm kiếm («Tìm kiếm email, ghi chú, sub ID, UUID, mật khẩu, auth…») — tìm theo email, ghi chú, subId, UUID, mật khẩu và auth. Bộ đếm kết quả: «Hiển thị {shown} trong {total}».
+Phía trên danh sách có thanh tìm kiếm («Tìm kiếm email, ghi chú, sub ID, UUID, mật khẩu, auth, Telegram ID…») — tìm theo email, ghi chú, subId, UUID, mật khẩu, auth và (một lần nữa từ 3.5.0) theo **Telegram ID**. Bộ đếm kết quả: «Hiển thị {shown} trong {total}».
 
 Danh sách client cập nhật tự động: panel mỗi vài giây lấy trang hiện tại cập nhật, vì vậy các client mới kết nối và thứ tự sắp xếp thay đổi xuất hiện mà không cần làm mới thủ công (chỉ báo tải không nhấp nháy khi đang thăm dò nền).
+
+Từ 3.5.0, trong bảng có cột **«Tốc độ»** (giữa «Lưu lượng» và «Còn lại»): tốc độ trực tiếp của client — nhãn màu xanh dương `↑ tải lên / ↓ tải xuống` (trung bình trượt ~5 giây, cập nhật mỗi 5 giây); khi không có lưu lượng — dấu gạch ngang màu xám. Trên di động, tốc độ hiển thị dưới dạng một dòng trong thẻ client.
 
 Bảng **Lọc client** cho phép lọc theo trạng thái (danh mục), giao thức, inbound được liên kết, phạm vi thời hạn, phạm vi lưu lượng đã dùng, sự hiện diện của tự gia hạn (**Có/Không**), sự hiện diện của ID Telegram và ghi chú, cũng như theo nhóm. Trên các panel có node xuất hiện bộ chọn đa **Node**: có thể giới hạn danh sách chỉ các client của các node đã chọn; mục riêng **Panel cục bộ** lọc các client của inbound không liên kết với node (bộ lọc chỉ hiển thị khi có node). Sắp xếp: **Cũ nhất/Mới nhất**, **Cập nhật gần đây**, **Trực tuyến gần đây**, **Email A→Z / Z→A**, **Lưu lượng nhiều hơn**, **Còn lại nhiều hơn**, **Sắp hết hạn nhất**.
 
@@ -3159,7 +3172,7 @@ Nếu cả hai đường dẫn được đặt và chứng chỉ tải thành c�
 
 | Trường (UI) | Khóa | Mặc định | Mô tả |
 |---|---|---|---|
-| Khoảng thời gian cập nhật đăng ký | `subUpdates` | `12` | Tần suất (tính bằng giờ) mà ứng dụng client nên yêu cầu lại đăng ký. Gợi ý: «Khoảng thời gian giữa các lần cập nhật trong ứng dụng client (tính bằng giờ)». |
+| Khoảng thời gian cập nhật đăng ký | `subUpdates` | `12` | Tần suất (tính bằng giờ) mà ứng dụng client nên yêu cầu lại đăng ký. Gợi ý: «Khoảng thời gian giữa các lần cập nhật trong ứng dụng client (tính bằng giờ)». Từ 3.5.0, trường chấp nhận **0–525600** và hiển thị phạm vi (giới hạn giao diện cũ 168 không khớp với máy chủ và sau khi nâng cấp từ 2.x từng chặn việc lưu mọi cài đặt). |
 
 Giá trị được truyền đến client trong HTTP header `Profile-Update-Interval`; các client hiện đại sử dụng nó làm chu kỳ tự động cập nhật cấu hình.
 
@@ -3204,7 +3217,7 @@ Các chuỗi này được truyền đến client trong các HTTP header của p
 | Tiêu đề đăng ký | `subTitle` | `Profile-Title` (trong Base64) | «Tên đăng ký mà client thấy trong ứng dụng VPN». Đối với Clash còn được dùng làm tên hồ sơ được nhập qua `Content-Disposition`. |
 | URL hỗ trợ | `subSupportUrl` | `Support-Url` | «Liên kết hỗ trợ kỹ thuật hiển thị trong ứng dụng VPN». |
 | URL hồ sơ | `subProfileUrl` | `Profile-Web-Page-Url` | «Liên kết đến trang web của bạn hiển thị trong ứng dụng VPN». Nếu không đặt, URL thực tế của yêu cầu đăng ký sẽ được dùng thay. |
-| Thông báo | `subAnnounce` | `Announce` (trong Base64) | «Nội dung thông báo hiển thị trong ứng dụng VPN». |
+| Thông báo | `subAnnounce` | `Announce` (trong Base64) | «Nội dung thông báo hiển thị trong ứng dụng VPN». Từ 3.5.0, nội dung này còn được hiển thị dưới dạng **banner thông tin ở đầu trang thông tin đăng ký** (khi không trống), còn các mẫu tùy chỉnh có sẵn biến `announce`. |
 
 Ngoài ra, mỗi phản hồi còn có header `Subscription-Userinfo` với dữ liệu lưu lượng tổng hợp của client: `upload`, `download`, `total` và `expire` (thời điểm hết hạn tính bằng giây). Qua đó client hiển thị lưu lượng còn lại và thời hạn.
 
@@ -3255,15 +3268,17 @@ Nếu do mất đồng bộ giữa các node mà cùng một client xuất hiệ
 
 Phần **Hosts** (mục menu bên; trang tổng hợp với số lượng Total/Enabled/Disabled và danh sách) đặt các ghi đè địa chỉ cho các liên kết đăng ký. Cho mỗi inbound có thể thêm một hoặc nhiều **host** — endpoint được điền vào các liên kết subscription giao cho client **thay thế địa chỉ, cổng và thông số TLS của chính inbound đó**. Điều này tiện lợi để phân phối lưu lượng qua CDN hoặc relay mà không thay đổi bản thân inbound.
 
-Mỗi host có:
+**Kể từ phiên bản 3.5.0, host là một «nhóm»**: một bản ghi bao phủ **nhiều inbound** và **nhiều địa chỉ** cùng lúc. Các thao tác của danh sách (bật/tắt/xóa/sắp xếp lại) và API làm việc với các nhóm (`groupId` dạng chuỗi); xuất hiện endpoint hàng loạt `POST /panel/api/hosts/bulk/add` (`{"inboundIds": [...], "hosts": [...], ...}`), còn `list`/`get`/`update`/`del`/`setEnable` thao tác trên các đối tượng nhóm.
 
-- **Remark** và mô tả (Description), liên kết đến **Inbound** cụ thể, công tắc **Enable** và gán cho các node (**Nodes**).
-- **Address** (trống — kế thừa địa chỉ inbound) và **Port** (`0` — kế thừa cổng inbound); **Tags** (chỉ được tính trong đăng ký RAW).
+Mỗi host (nhóm) có:
+
+- **Remark** và mô tả (Description), liên kết đến **Inbounds** (chọn nhiều với tìm kiếm; tối thiểu một), công tắc **Enable** và gán cho các node (**Nodes**).
+- **Address** — từ 3.5.0 đây là **danh sách địa chỉ** (nhập dạng thẻ; dấu phân tách — dấu phẩy, chấm phẩy, dấu cách; placeholder `cdn.example.com, cdn2.example.com:443`). Mỗi mục nhập có thể có `:cổng` nhúng riêng (kể cả IPv6 trong ngoặc vuông `[::1]:443`); gợi ý thả xuống đề xuất các địa chỉ đã được các host khác sử dụng. Danh sách trống — kế thừa địa chỉ của chính inbound (trong danh sách đây là nhãn màu cam **Inherits**). **Port** (`0` — kế thừa cổng inbound) đóng vai trò cổng mặc định cho các mục nhập không có cổng nhúng; **Tags** (chỉ được tính trong đăng ký RAW).
 - Tab **Security** — `same` / `tls` / `none` / `reality` với SNI, fingerprint, ALPN, pinned-cert, `allowInsecure` và ECH.
-- Tab **Advanced** — Host header, Path, tuyến đường VLESS, Mux, Sockopt, Final Mask và loại trừ host khỏi các định dạng đăng ký riêng lẻ (raw / json / clash).
+- Tab **Advanced** — Host header, Path, tuyến đường VLESS, Mux, Sockopt, Final Mask và loại trừ host khỏi các định dạng đăng ký riêng lẻ (raw / json / clash). Từ 3.5.0, **Final Mask của host cũng được đưa vào các liên kết raw** (`fm=`; trước đây — chỉ vào JSON/Clash): các mặt nạ TCP/UDP của host được thêm vào các mặt nạ của inbound, còn các tham số QUIC của host chỉ được lấy khi inbound không có chúng. Công tắc **Allow insecure** nay cũng có hiệu lực cho **Hysteria/Hysteria2** (`insecure=1` trong liên kết, `skip-cert-verify: true` trong Clash).
 - Tab **Clash (mihomo)** — phiên bản IP, Mihomo X25519, xáo trộn host (Shuffle host).
 
-Các host được sắp xếp trong phạm vi inbound của chúng và hỗ trợ bật, tắt và xóa hàng loạt. Hosts được quản lý thay thế mảng External Proxy trước đây.
+Trong danh sách, cột **Endpoint** hiển thị các địa chỉ dưới dạng chip (địa chỉ đầu tiên hiển thị, số còn lại — trong popover «+N»), còn cột **Inbounds** — các chip inbound được tô màu theo giao thức. Từ 3.5.0, các host được sắp xếp **toàn cục** (theo thứ tự sắp xếp, sau đó theo remark), chứ không trong phạm vi inbound; bật, tắt và xóa hàng loạt vẫn được giữ. Hosts được quản lý thay thế mảng External Proxy trước đây.
 
 **VLESS route.** Kể từ phiên bản 3.4.2, đây là một số duy nhất `0-65535` (chứ không phải danh sách cổng; gợi ý — «một giá trị VLESS route (0-65535) được nhúng vào UUID, ví dụ 443; để trống — không có nó», placeholder `443`). Giá trị đã chỉ định thực sự được «nhúng» vào UUID của mỗi đăng ký được tạo (raw / JSON / Clash): Xray đọc các byte 6-7 của UUID và che chúng trước khi xác thực, do đó client vẫn khớp. Giá trị trống hoặc không hợp lệ không làm thay đổi UUID.
 
@@ -3288,7 +3303,7 @@ Endpoint `subJsonPath` (mặc định `/json/`), được bật bằng checkbox 
 |---|---|---|---|
 | Đăng ký JSON | `subJsonEnable` | `false` | «Bật/tắt JSON endpoint đăng ký độc lập.». |
 
-Trả về cấu hình JSON đầy đủ (định dạng tương thích với sing-box và các client dẫn xuất — Podkop, OpenWRT sing-box, Karing, NekoBox). Đối với định dạng này có thêm các thông số (tab `subFormats`):
+Trả về cấu hình JSON đầy đủ (định dạng tương thích với sing-box và các client dẫn xuất — Podkop, OpenWRT sing-box, Karing, NekoBox). Từ 3.5.0, các client của **WireGuard-inbound gốc** cũng được đưa vào đăng ký JSON (`secretKey`, `address`, `peers[]` với `publicKey`/`endpoint`/`preSharedKey`/`keepAlive`/`allowedIPs`, `mtu`) — trước đây chúng bị bỏ qua một cách âm thầm. Đối với định dạng này có thêm các thông số (tab `subFormats`):
 
 - **Mux** (`subJsonMux`, mặc định trống) — cài đặt JSON đa luồng (Mux) được nhúng vào outbound của mỗi luồng đăng ký JSON. «Truyền nhiều luồng dữ liệu độc lập trong một kết nối.».
 - **Final Mask** (`subJsonFinalMask`, mặc định trống) — «Mask finalmask xray (TCP/UDP) và cài đặt QUIC được thêm vào mỗi luồng đăng ký JSON. Yêu cầu phiên bản xray mới nhất trên client.». Được cấu hình qua các trường con: «Gói» (`packets`), «Độ dài» (`length`), «Khoảng» (`interval`), «Phân tách tối đa» (`maxSplit`), «Nhiễu» (`noises`: «Loại»/`type`, «Gói»/`packet`, «Độ trễ (ms)»/`delayMs`, «Áp dụng cho»/`applyTo`, nút «+ Nhiễu»), cũng như «Đồng thời» (`concurrency`), «Đồng thời xudp» (`xudpConcurrency`) và «xudp UDP 443» (`xudpUdp443`).
@@ -3306,13 +3321,13 @@ Endpoint `subClashPath` (mặc định `/clash/`), được bật bằng checkbo
 
 Phản hồi được trả về với kiểu `application/yaml; charset=utf-8`. Nếu «Tiêu đề đăng ký» (`subTitle`) được đặt, nó cũng được truyền trong header `Content-Disposition` (`attachment; filename*=UTF-8''<title>`) để client Clash đặt tên hồ sơ được nhập theo tên này.
 
-Định dạng các liên kết và YAML được tạo ra được duy trì ở trạng thái phù hợp với các client hiện đại: Shadowsocks-2022 (SS2022) không còn mã hóa userinfo trong Base64; các liên kết Shadowsocks với obfuscation http được trả về ở định dạng SIP002 với plugin `obfs-local`; cho đăng ký Clash/Mihomo đã triển khai bộ trường XHTTP đầy đủ. Điều này không yêu cầu cài đặt riêng — các liên kết chỉ đơn giản được client nhận dạng chính xác hơn.
+Định dạng các liên kết và YAML được tạo ra được duy trì ở trạng thái phù hợp với các client hiện đại: Shadowsocks-2022 (SS2022) không còn mã hóa userinfo trong Base64; các liên kết Shadowsocks với obfuscation http được trả về ở định dạng SIP002 với plugin `obfs-local`; cho đăng ký Clash/Mihomo đã triển khai bộ trường XHTTP đầy đủ. Từ 3.5.0, các client của **WireGuard-inbound gốc** cũng được đưa vào đăng ký Clash/Mihomo (các trường `private-key`, `public-key`, `pre-shared-key`, `persistent-keepalive`, `ip`/`ipv6`, `mtu`, `dns`) — trước đây chúng bị bỏ qua một cách âm thầm. Điều này không yêu cầu cài đặt riêng — các liên kết chỉ đơn giản được client nhận dạng chính xác hơn.
 
 > Lưu ý: phiên bản này hỗ trợ đúng ba định dạng — liên kết thông thường (Base64/văn bản), JSON (tương thích sing-box) và Clash/Mihomo (YAML). Không có định dạng Outline riêng biệt trong server đăng ký.
 
 ### 10.4. Trang thông tin đăng ký và mã QR
 
-Nếu mở liên kết đăng ký trong trình duyệt (hoặc thêm tham số `?html=1` hay `?view=html` vào URL một cách rõ ràng, hoặc gửi header `Accept: text/html`), server thay vì phản hồi «thô» sẽ trả về **trang thông tin đăng ký** trực quan («Thông tin đăng ký»). Các ứng dụng VPN vẫn nhận được phản hồi máy tính vì chúng không yêu cầu HTML.
+Nếu mở **bất kỳ liên kết nào trong ba liên kết đăng ký** — raw, JSON hoặc Clash — trong trình duyệt (hoặc thêm tham số `?html=1` hay `?view=html` vào URL một cách rõ ràng, hoặc gửi header `Accept: text/html`), server thay vì phản hồi «thô» sẽ trả về **trang thông tin đăng ký** trực quan («Thông tin đăng ký»). Trước 3.5.0, chỉ liên kết chính `/sub/` hoạt động như vậy, còn `/json/` và `/clash/` trả về JSON/YAML thô cho trình duyệt. Các ứng dụng VPN vẫn nhận được phản hồi máy tính vì chúng không yêu cầu HTML.
 
 Trang (ứng dụng một trang được xây dựng bằng Vite) hiển thị:
 
@@ -3492,6 +3507,8 @@ Các nhóm cài đặt logic trong trình chỉnh sửa:
 | Trường | Nhãn | Mô tả |
 |---|---|---|
 | `FreedomHappyEyeballs` | **Freedom Happy Eyeballs (IPv4/IPv6)** | Gợi ý: *«Kết nối hai ngăn xếp cho outbound trực tiếp (freedom) — hữu ích trên các máy chủ xuất có cả IPv4 và IPv6.»* Bật thuật toán Happy Eyeballs (thử đồng thời trên cả hai họ địa chỉ) cho freedom-outbound. |
+
+Happy Eyeballs riêng cũng có trong **cài đặt dial (sockopt) của từng outbound cụ thể**: từ 3.5.0 nó thực sự được bật (trước đây cấu hình được tuần tự hóa ở trạng thái tắt và công tắc cứ tự «nhảy về»). «Try delay (ms)» mặc định nay là **250**; giá trị `0` được đặt rõ ràng (= tắt) sẽ được giữ; cũng có sẵn Prioritize IPv6, interleave (1) và maxConcurrentTry (4).
 | try delay | (gợi ý) | *«Mili giây trước khi thử họ địa chỉ khác. 150–250 ms là điểm khởi đầu tốt.»* Độ trễ trước khi chuyển sang họ địa chỉ thay thế. Phạm vi khuyến nghị — 150–250 ms. |
 
 #### Overall Routing Strategy
@@ -3509,6 +3526,10 @@ Các nhóm cài đặt logic trong trình chỉnh sửa:
 | `outboundTestUrl` | **URL kiểm tra outbound** | URL để kiểm tra kết nối khi kiểm tra outbound. Gợi ý: *«URL để kiểm tra kết nối của outbound»*. Được lưu riêng khỏi mẫu, dưới khóa `xrayOutboundTestUrl`. | **`https://www.google.com/generate_204`** |
 
 Giá trị này được làm sạch. Khi kiểm tra outbound thực sự, nó được xác minh thêm là URL công khai — đây là biện pháp bảo vệ chống SSRF: người dùng không thể truyền vào một URL tùy ý (kể cả URL nội bộ) thông qua máy khách, URL kiểm tra luôn được lấy từ cài đặt phía máy chủ. Giá trị trống khi lưu/kiểm tra sẽ được thay bằng `generate_204` mặc định.
+
+#### Default Outbound (từ 3.5.0)
+
+Mục đầu tiên của tab **«Định tuyến cơ bản»** — bộ chọn **Default Outbound**: «Lưu lượng không khớp với bất kỳ quy tắc định tuyến nào sẽ sử dụng outbound này (Xray lấy outbound đầu tiên trong danh sách)». Trong danh sách — `direct`, `blocked` và tất cả các thẻ hiện có; mặc định `direct`. Việc chọn sẽ **di chuyển outbound được chỉ định lên vị trí đầu tiên** của mẫu; các `direct`/`blocked` còn thiếu được tạo ngay khi cần, còn khi chuyển đổi chúng không bị xóa.
 
 #### Block BitTorrent
 
@@ -3635,6 +3656,7 @@ Trong mẫu tham chiếu có hai outbound bắt buộc:
 | Giao thức | — | Loại outbound (xem bên dưới). |
 | Địa chỉ / Cổng | **Địa chỉ** / Cổng | Đích kết nối. Địa chỉ và cổng là bắt buộc. |
 | Gửi qua | **Gửi qua** | Địa chỉ IP cục bộ của giao diện đi (`sendThrough`). Placeholder: *«IP cục bộ»*. |
+| Target Strategy | **Target Strategy** | **Mới trong 3.5.0.** Cách domain đích được phân giải trước khi kết nối. 11 giá trị: `AsIs` (mặc định, không phân giải), `UseIP`, `UseIPv4`, `UseIPv6`, `UseIPv6v4`, `UseIPv4v6` (phân giải với fallback), `ForceIP`, `ForceIPv6v4`, `ForceIPv6`, `ForceIPv4v6`, `ForceIPv4` (yêu cầu phân giải thành công). Trống = `AsIs` (không được ghi vào cấu hình); với `freedom`, giá trị được đọc với fallback về `domainStrategy` cũ (khóa legacy vẫn được ghi cho các lõi cũ). |
 | Dialer proxy (chuỗi) | — | Gợi ý: *«Kết nối outbound này qua một outbound khác (theo thẻ) để xây dựng chuỗi proxy. Để trống để kết nối trực tiếp.»* Placeholder: *«Chọn outbound để tạo chuỗi»*. Được thực hiện thông qua `streamSettings.sockopt.dialerProxy`. |
 
 Danh sách thả xuống **Dialer Proxy** hiển thị không chỉ các outbound cục bộ mà còn cả các thẻ outbound từ các đăng ký — do đó chuỗi cũng có thể được xây dựng qua một outbound nhận được từ đăng ký. Blackhole-outbound và outbound đang được chỉnh sửa vẫn bị loại khỏi danh sách. Để trống trường này để kết nối trực tiếp.
@@ -3655,6 +3677,8 @@ Các giao thức được biểu mẫu hỗ trợ:
 Đối với outbound loại **loopback**, có khối **Sniffing** với cùng các tham số như của inbound: bật, **destOverride**, **Metadata Only**, **Route Only** và danh sách **tên miền bị loại trừ**.
 
 Trong mặt nạ **UDP** (FinalMask) cho **Hysteria2**, có các chế độ bổ sung. Mặt nạ **Salamander** có bộ chọn **Mode** với các giá trị **Salamander** và **Gecko**: chế độ Gecko thêm phần đệm ngẫu nhiên vào các gói với các trường **Min**/**Max** kích thước (`packetSize`, phạm vi 1–2048, mặc định 512–1200) — điều này bảo vệ khỏi việc phân tích dấu vân tay theo độ dài gói. Mặt nạ **Realm** (UDP hole-punching) có thêm khối tùy chọn **TLS Config** với các trường **Server Name** (SNI), **ALPN** (`h3`/`h2`/`http/1.1`), **Fingerprint** (uTLS) và công tắc **Allow Insecure**.
+
+Từ 3.5.0 đã thêm loại **mặt nạ TCP** mới — **XMC (Minecraft)** (`xmc`): luồng được ngụy trang thành giao thức Minecraft. Các trường: **Hostname** (tùy chọn; «địa chỉ máy chủ được mô phỏng trong bắt tay»), **Usernames** (danh sách tùy chọn; «tên người chơi được đưa ra cho các trình thăm dò; mặc định lõi dùng Dream») và **Password** bắt buộc (16 ký tự, tự động tạo với nút ↻; «mật khẩu obfuscation»). Quan trọng: **tổ hợp TCP-Finalmask với REALITY bị từ chối khi lưu** — nó từng làm Xray-core sập ở kết nối đầu tiên (lỗi: «Finalmask is not supported with REALITY security…»; xem Xray-core#6453). Mặt nạ UDP với REALITY được cho phép; các tổ hợp không hợp lệ đã lưu trước đây được tự động «chữa» (mặt nạ bị loại bỏ) khi dựng cấu hình.
 
 **Ví dụ: chuỗi qua SOCKS phía trên.** Outbound `upstream` kết nối đến SOCKS5-proxy bên ngoài, còn `chained` gửi lưu lượng của mình qua nó (`dialerProxy`), tạo thành một chuỗi. Trong `outbounds`:
 
@@ -3721,7 +3745,13 @@ Hai chế độ (gợi ý: *«TCP: probe nhanh chỉ dial. HTTP: yêu cầu đ�
 - **TCP** (`mode=tcp`) — dial đơn giản đến `host:port`, thực hiện song song trên tất cả các điểm cuối, ~timeout 5 giây. Chỉ kiểm tra khả năng tiếp cận TCP, không xác thực giao thức proxy. Với `freedom`/`blackhole`/thẻ `blocked` sẽ trả về *«Outbound has no testable endpoint»*.
 - **HTTP** (`mode=http` hoặc trống) — khởi động một phiên bản Xray tạm thời, thực hiện yêu cầu HTTP thực (URL thăm dò = `outboundTestUrl` phía máy chủ), đo độ trễ thực. Chính xác nhưng tốn kém: được tuần tự hóa bởi khóa toàn cục (*«Another outbound test is already running, please wait»*). Timeout của một lần thử — 10 giây, cửa sổ chờ kết quả — 15 giây (tăng lên để các outbound khỏe mạnh trên các kênh chậm hoặc có tunnel không bị đánh dấu là «Failed»). Khi thất bại, lý do thực (lỗi DNS, connection refused, hết deadline, lỗi TLS v.v.) được ghi vào nhật ký bảng điều khiển/Xray, mà các thông báo timeout chung trỏ đến.
 
+- **Real delay** (**mới trong 3.5.0**) — chế độ thứ ba của bộ chuyển. Sử dụng cùng phiên bản Xray tạm thời đó, nhưng báo cáo **toàn bộ thời gian của yêu cầu «lạnh», bao gồm cả việc thiết lập tunnel** — con số gần với con số mà các ứng dụng client hiển thị. Gợi ý của bộ chuyển: «TCP: probe dial nhanh. HTTP: yêu cầu đầy đủ qua xray. Real delay: toàn bộ thời gian, bao gồm thiết lập kết nối». Chế độ **HTTP** thông thường từ 3.5.0 được đo trên kết nối «ấm» (keep-alive), vì vậy các con số của nó thấp hơn và gần với độ trễ của một yêu cầu đơn lẻ.
+
 > Các giao thức UDP (`wireguard`, `hysteria`) và vận chuyển UDP (`kcp`, `quic`, `hysteria`) **luôn** được kiểm tra ở chế độ HTTP, ngay cả khi yêu cầu TCP — dial UDP thuần không phân biệt được điểm cuối «đang hoạt động» với «đã chết». Đối với wireguard trong cấu hình kiểm tra, `noKernelTun: true` được bắt buộc đặt.
+
+#### Các cột Egress và Country (từ 3.5.0)
+
+Sau bài kiểm tra **HTTP** hoặc **Real delay** thành công, panel qua chính tuyến tạm thời đó truy vấn metadata Cloudflare trace và hiển thị trong danh sách outbound hai cột: **Egress** — IP đầu ra (IPv4/IPv6, mỗi cái được ẩn sau biểu tượng «con mắt»; khi chưa có bài kiểm tra — dấu gạch ngang với gợi ý «Chạy kiểm tra HTTP để hiển thị IP đầu ra và quốc gia») và **Country** — cờ và tên quốc gia đầu ra; nếu đầu ra đi qua Cloudflare WARP, nhãn WARP màu cam được thêm vào. Kiểm tra TCP không điền các cột này; trên di động, dữ liệu hiển thị trong thẻ outbound.
 
 #### Kiểm tra hàng loạt và phân tích theo giai đoạn
 
@@ -3741,7 +3771,7 @@ Trên tab Balancers có các cột trạng thái trực tiếp: **Live Target** 
 |---|---|---|
 | Thẻ | **Thẻ** (gợi ý: *«Thẻ duy nhất»*) | Định danh duy nhất. Placeholder: *«thẻ bộ cân bằng tải duy nhất»*. Xác thực: *«Thẻ là bắt buộc»*, *«Thẻ đã được sử dụng bởi bộ cân bằng tải khác»*. |
 | Bộ chọn | **Bộ chọn** | Danh sách thẻ outbound (theo chuỗi con) trong đó bộ cân bằng tải chọn đầu ra. Phải chọn ít nhất một: *«Chọn ít nhất một outbound»*. |
-| Dự phòng | **Dự phòng** | Thẻ outbound dự phòng nếu không có bộ chọn nào phù hợp. |
+| Dự phòng | **Dự phòng** | Thẻ dự phòng nếu không có bộ chọn nào phù hợp. **Từ 3.5.0 có thể chọn cả một bộ cân bằng tải khác** (trong danh sách, các tùy chọn như vậy được đánh dấu bằng nhãn xanh dương «Balancer», gợi ý «Chọn một bộ cân bằng tải khác làm fallback»). Xray không hỗ trợ điều này một cách tự nhiên, vì vậy panel tự xây dựng loopback-outbound ẩn `_bl_<đích>` và quy tắc định tuyến (đường đi: bộ cân bằng tải → loopback → máy chủ → bộ cân bằng tải đích → outbound; cảnh báo về «hop» thừa được hiển thị trong biểu mẫu). Có bảo vệ khỏi vòng lặp (lỗi «không thể chọn — sẽ phát sinh phụ thuộc vòng», tùy chọn trong danh sách bị chặn với gợi ý về đường đi của vòng lặp) và khỏi việc xóa bộ cân bằng tải đang được sử dụng («Không thể xóa — đang được dùng làm fallback của: …»). Tiền tố thẻ `_bl_` được dành riêng (bị cấm trong các thẻ); các đối tượng `_bl_` phục vụ nội bộ bị ẩn khỏi danh sách Outbounds/Routing, còn các cột Fallback/Live Target/Override hiển thị tên bộ cân bằng tải đích, chứ không phải thẻ loopback. |
 | Chiến lược | **Chiến lược** | Thuật toán lựa chọn (xem bên dưới). |
 
 #### Chiến lược và các tham số quan sát
@@ -3847,6 +3877,8 @@ Khi xóa outbound hoặc bộ cân bằng tải, trong cùng thao tác bảng đ
 ### 11.6. DNS
 
 Phần `dns`. Bật: **Bật DNS** (gợi ý: *«Bật máy chủ DNS tích hợp»*).
+
+> Từ 3.5.0, các máy chủ DNS trên **IP riêng tư** (ví dụ AdGuard/Pi-hole của riêng bạn trong cùng mạng docker) hoạt động «ngay lập tức»: panel tự động chèn và duy trì một quy tắc allow được quản lý (direct, giới hạn theo cổng của máy chủ DNS) **phía trước** quy tắc chặn `geoip:private` và đồng bộ nó khi `dns.servers` thay đổi. Trước đây, các truy vấn DNS của chính Xray bị quy tắc này âm thầm chặn, thêm ~4 giây độ trễ cho mỗi domain mới; các quy tắc thủ công không còn cần thiết nữa (những quy tắc đã tạo thủ công không bị động đến).
 
 #### Các tham số DNS chung
 
@@ -4067,7 +4099,7 @@ Khi lưu cài đặt Xray, bảng điều khiển thực hiện (theo thứ tự
 
 ### 11.12. Outbound từ đăng ký (với tự động cập nhật)
 
-Kể từ phiên bản 3.3.0, bảng điều khiển có thể nhập `outbound` trực tiếp từ URL đăng ký — cùng định dạng mà các nhà cung cấp VPN phân phối cho các ứng dụng máy khách. Các đăng ký được đọc lại định kỳ ở nền, vì vậy bộ `outbound` trên máy chủ luôn được cập nhật mà không cần chỉnh sửa thủ công mẫu cấu hình.
+Kể từ phiên bản 3.3.0, bảng điều khiển có thể nhập `outbound` trực tiếp từ URL đăng ký — cùng định dạng mà các nhà cung cấp VPN phân phối cho các ứng dụng máy khách. Các đăng ký được đọc lại định kỳ ở nền, vì vậy bộ `outbound` trên máy chủ luôn được cập nhật mà không cần chỉnh sửa thủ công mẫu cấu hình. Từ 3.5.0, các liên kết `ss://` (SIP002) có tham số query (`?plugin=`, `?type=`) hoặc dấu `/` ở cuối được phân tích cổng chính xác (trước đây cổng âm thầm trở thành `0`); liên kết có cổng thực sự không hợp lệ sẽ bị bỏ qua, thay vì được nhập ở trạng thái hỏng.
 
 Trong giao diện, phần này được gọi là **«Đăng ký outbound»**, mô tả: «Nhập outbound từ URL đăng ký từ xa (vmess/vless/trojan/ss/...). Các thẻ không thay đổi để sử dụng trong bộ cân bằng tải và quy tắc định tuyến. Cập nhật được thực hiện tự động.» Phần này nằm trên trang Xray, phía trên bảng cài đặt `outbound`.
 
@@ -4426,7 +4458,19 @@ Cấu trúc liên kết có thể không phẳng: bản thân một nút có th�
 - Danh tính của nút con được xác định bởi GUID của nó; nhờ đó các client trực tuyến và inbound được tính dưới đúng nút vật lý đang host chúng, ngay cả trong chuỗi `Node1 → Node2 → Node3` (master «đi» một cấp sâu hơn qua mỗi nút trực tiếp).
 - Nếu nút trực tiếp trở nên không thể truy cập, cache nút con của nó bị xóa và các nút con biến mất khỏi cây cho đến khi kết nối được khôi phục.
 
-### 12.9. Nút: điểm mới trong 3.3.0
+### 12.9. Các bản sửa lỗi 3.5.0 (độ ổn định của nút)
+
+Gói các bản sửa lỗi trong 3.5.0 mà người vận hành nút có thể nhận thấy:
+
+- **Lưu client không thay đổi không còn phá vỡ lưu lượng của nút.** Trước đây, bất kỳ lần lưu client nào (kể cả «mở ra — lưu lại») đều gửi đến nút bản cập nhật inbound đầy đủ với việc tạo lại handler Xray — nút vẫn được tính là trực tuyến nhưng không cho lưu lượng đi qua cho đến khi khởi động lại thủ công. Nay các lần lưu không thay đổi (no-op) không làm gì cả, còn các chỉnh sửa thực sự được gửi đi bằng một bản cập nhật nhẹ duy nhất không tạo lại handler.
+- **Các ghi đè Host của nút được nhận vào master**: khi chấp nhận inbound của nút lần đầu, các dòng Hosts của nó (SNI, fingerprint, ALPN v.v.) được nhập vào, và các đăng ký mang đúng thông số TLS.
+- **Tự động gia hạn trên nút mở cửa sổ hạn mức mới** (gói dạng «100 GB mỗi 30 ngày» lại cấp đủ dung lượng).
+- **Xóa client trên master xóa hoàn toàn client đó trên các nút** (bản ghi + lưu lượng), chứ không chỉ hủy liên kết; phần còn sót của các lần xóa hàng loạt trước đây có thể dọn bằng thao tác «Xóa các client không được liên kết» trên nút.
+- **Các inbound của nút không bị quét sạch trước lần chấp nhận đầu tiên**: việc lưu một nút vừa được thêm không còn có thể xóa các inbound đang hoạt động của nó.
+- **Một inbound không hợp lệ không dừng việc đồng bộ lưu lượng của nút** (đồng thời các inbound legacy `socks` trên các nút được đổi tên thành `mixed`).
+- **Kiểm tra xung đột cổng được giới hạn trong nút của chính nó** — việc sửa địa chỉ lắng nghe của inbound trên nút không còn bị từ chối vì cổng tương tự trên nút khác («port … already used by inbound …»).
+
+### 12.10. Nút: điểm mới trong 3.3.0
 
 Trong phiên bản 3.3.0, phần **Nút** nhận được ba cải tiến đáng chú ý: gán lưu lượng và client trực tuyến chính xác trong các cấu trúc đa chặng (multi-hop), đồng bộ hóa client-IP giữa các nút và chỉ báo trạng thái riêng biệt cho trường hợp bảng điều khiển nút hoạt động nhưng nhân Xray trên đó bị sập.
 
@@ -4964,7 +5008,7 @@ Nếu người dùng không có client nào liên kết với Telegram User ID c
 
 ### 14.3. Lệnh bot
 
-Bot có bốn lệnh đã đăng ký, hiển thị trong menu «/» của Telegram:
+Kể từ phiên bản 3.5.0, có **tám** lệnh được đăng ký trong menu «/» của Telegram:
 
 | Lệnh | Mô tả (từ menu) | Quyền truy cập | Chức năng |
 |---|---|---|---|
@@ -4972,8 +5016,12 @@ Bot có bốn lệnh đã đăng ký, hiển thị trong menu «/» của Telegr
 | `/help` | Hướng dẫn về bot | tất cả | Hiển thị lời chào chung và đề nghị chọn mục menu. |
 | `/status` | Kiểm tra trạng thái bot | tất cả | Trả lời «✅ Bot đang hoạt động bình thường». |
 | `/id` | Hiển thị Telegram ID của bạn | tất cả | Trả về «🆔 User ID của bạn: <code>…</code>». Tiện lợi để lấy User ID của chính mình. |
+| `/usage` | Hiển thị mức sử dụng của client: /usage email | tất cả (xem bên dưới) | Được thêm vào menu trong 3.5.0. |
+| `/inbound` | Tìm kiếm inbound: /inbound remark (admin) | quản trị viên | Được thêm vào menu trong 3.5.0. |
+| `/restart` | Khởi động lại lõi Xray (admin) | quản trị viên | Được thêm vào menu trong 3.5.0. |
+| `/clearall` | Đặt lại lưu lượng của tất cả client (admin) | quản trị viên | **Mới trong 3.5.0**: yêu cầu xác nhận (các nút «Hủy» / «Xác nhận đặt lại lưu lượng») và đặt về 0 lưu lượng của tất cả client. |
 
-Ngoài các lệnh đã đăng ký, còn có ba lệnh tham số được xử lý (không hiển thị trong menu «/» nhưng hoạt động được):
+Chi tiết về các lệnh có tham số:
 
 - **`/usage [Email]`** — tìm kiếm client theo email.
   - Đối với **quản trị viên** hiển thị thẻ client đầy đủ (với các nút quản lý).
@@ -4982,6 +5030,8 @@ Ngoài các lệnh đã đăng ký, còn có ba lệnh tham số được xử l
 - **`/restart`** — chỉ dành cho quản trị viên. Khởi động lại Xray Core. Các phản hồi có thể có: «✅ Xray Core đã được khởi động lại thành công», «❗ Xray Core chưa chạy» (nếu lõi không hoạt động), «❗ Lỗi khi khởi động lại Xray core. <Lỗi>». Bất kỳ tham số nào sau `/restart` sẽ dẫn đến thông báo lệnh không xác định kèm gợi ý `/restart`.
 
 Trong các chat nhóm, lệnh dạng `/lệnh@botusername` chỉ được xử lý nếu username khớp với tên của bot hiện tại.
+
+Ba thay đổi nữa trong 3.5.0: trong danh sách **client trực tuyến**, các nút được ghi nhãn dạng `email - remark inbound` (các tên trùng nhau ở các inbound khác nhau không còn bị lẫn lộn); các tin nhắn **sao lưu** và **nhật ký chặn** bắt đầu bằng dòng `Hostname==…` — tiện lợi khi một bot phục vụ nhiều panel; việc tìm thẻ client theo **Telegram ID** hoạt động bất kể định dạng JSON của cài đặt (trước đây các bản ghi «compact» đến từ các nút hoặc từ nhập liệu không được tìm thấy).
 
 Hướng dẫn quản trị viên (nút «Lệnh»):
 
@@ -5338,7 +5388,7 @@ Bảng điều khiển hỗ trợ hai công cụ cơ sở dữ liệu, và hành
 
 - **SQLite** (mặc định) — dữ liệu được lưu trong tệp `x-ui.db`.
 - **PostgreSQL** — nếu bảng điều khiển được cấu hình trên PostgreSQL, khối hiển thị gợi ý:
-  > «Bảng điều khiển này đang chạy trên PostgreSQL. «Sao lưu» tải xuống tệp lưu trữ pg_dump (.dump), còn «Khôi phục» tải nó lên thông qua pg_restore. Máy chủ phải có cài đặt các công cụ client PostgreSQL (pg_dump và pg_restore).»
+  > «Bảng điều khiển này đang chạy trên PostgreSQL. «Sao lưu» tải xuống tệp lưu trữ pg_dump (.dump), còn «Khôi phục» tải nó lên thông qua pg_restore. Khôi phục cũng chấp nhận cơ sở dữ liệu SQLite (.db) hoặc dump di chuyển SQLite và nhập dữ liệu của chúng vào PostgreSQL. Máy chủ phải có cài đặt các công cụ client PostgreSQL (pg_dump và pg_restore).»
 
 #### Xuất (tạo bản sao)
 
@@ -5379,8 +5429,10 @@ Nếu bảng điều khiển được mở theo đường dẫn cơ sở (Web Ba
 Nút **«Nhập cơ sở dữ liệu»** (tiếng Anh: `Restore`) mở hộp chọn tệp và tải nó lên máy chủ để khôi phục (`POST /panel/api/server/importDB`, trường biểu mẫu `db`).
 
 Gợi ý trong giao diện:
-- SQLite: «Nhấn để chọn và tải lên tệp .db từ thiết bị của bạn để khôi phục cơ sở dữ liệu từ bản sao lưu.»
-- PostgreSQL: «Nhấn để chọn và tải lên tệp .dump để khôi phục cơ sở dữ liệu PostgreSQL. Điều này sẽ thay thế tất cả dữ liệu hiện tại.»
+- SQLite: «Nhấn để chọn và tải lên tệp .db hoặc dump di chuyển (.dump) từ thiết bị của bạn để khôi phục cơ sở dữ liệu.»
+- PostgreSQL: «Nhấn để chọn và tải lên bản sao lưu PostgreSQL (.dump), cơ sở dữ liệu SQLite (.db) hoặc dump di chuyển SQLite để khôi phục cơ sở dữ liệu. Điều này sẽ thay thế tất cả dữ liệu hiện tại.»
+
+Từ 3.5.0, loại tệp được xác định theo nội dung (`PGDMP` — tệp lưu trữ pg_dump; header «SQLite format 3» — cơ sở dữ liệu `.db`; các dòng `PRAGMA`/`BEGIN TRANSACTION` ở đầu — dump SQL dạng văn bản), chứ không theo phần mở rộng; hộp thoại chọn tệp chấp nhận `.dump,.db` trên cả hai DBMS. Các tệp SQLite tải lên panel PostgreSQL được nhập vào PostgreSQL trong một giao dịch duy nhất (xem 3.14); trước khi nhập, tệp được kiểm tra là CSDL panel thật, còn các lược đồ cũ tự động được di chuyển tiếp. Trước khi khôi phục tệp lưu trữ `pg_dump`, panel kiểm tra trước (trước khi dừng Xray) khả năng đọc của nó: nếu dump được tạo bởi PostgreSQL mới hơn, lỗi được hiển thị kèm lệnh chính xác — ví dụ «…run 'x-ui pgclient 17'…».
 
 **Quá trình nhập cho SQLite (quan trọng là nó có tính nguyên tử và có khôi phục):**
 1. Tệp được tải lên được kiểm tra định dạng — đây phải là cơ sở dữ liệu SQLite hợp lệ; nếu không sẽ trả về lỗi «Invalid db file format».
@@ -5405,16 +5457,15 @@ Thông báo giao diện theo kết quả:
 
 Ngoài bản sao lưu thông thường, có chức năng **«Tải xuống tệp di chuyển»** (`Download Migration`, yêu cầu `GET /panel/api/server/getMigration`). Nó tạo ra một tệp có thể chuyển đổi để chuyển sang công cụ CSDL khác:
 
+Từ 3.5.0, nút này chỉ hiển thị **trên các panel PostgreSQL** (trên SQLite, bản sao lưu `.db` thông thường nay được khôi phục thẳng vào panel PostgreSQL — không cần bản xuất riêng):
+
 | Công cụ hiện tại | Nội dung tải xuống | Tên tệp | Mục đích |
 |----------------|-----------------|-----------|------------|
-| SQLite | Dump SQL có thể chuyển đổi (văn bản) | `x-ui.dump` | Khởi tạo PostgreSQL với dữ liệu của bạn |
 | PostgreSQL | Cơ sở dữ liệu SQLite được xây dựng từ dữ liệu PostgreSQL | `x-ui.db` | Chuyển bảng điều khiển trở lại SQLite |
 
-Gợi ý:
-- Trên SQLite: «Nhấn để tải xuống bản xuất .dump có thể chuyển đổi (văn bản SQL) của cơ sở dữ liệu SQLite.»
-- Trên PostgreSQL: «Nhấn để tải xuống cơ sở dữ liệu SQLite (.db), được xây dựng từ dữ liệu PostgreSQL của bạn và sẵn sàng để chạy bảng điều khiển trên SQLite.»
+Gợi ý: «Nhấn để tải xuống cơ sở dữ liệu SQLite (.db), được xây dựng từ dữ liệu PostgreSQL của bạn và sẵn sàng để chạy bảng điều khiển trên SQLite.»
 
-Việc chuyển đổi `.db ⇄ .dump` cho SQLite cũng có thể được thực hiện từ CLI bằng lệnh `x-ui migrateDB [file]` (xem mục 16.7).
+Việc chuyển đổi `.db ⇄ .dump` cho SQLite cũng có thể được thực hiện từ CLI bằng lệnh `x-ui migrateDB [file]` (xem mục 16.7). Ngoài ra, từ 3.5.0, việc di chuyển giữa các công cụ CSDL trở nên **có giao dịch và không mất mát** (bao gồm cả nhóm khách hàng và bộ đếm lưu lượng toàn cục cũng được chuyển; lần nhập thất bại không thay đổi CSDL đích), còn để cập nhật các công cụ client PostgreSQL đã xuất hiện lệnh **`x-ui pgclient [phiên bản]`** và mục **10. Install/Upgrade client tools (pg_dump/pg_restore)** trong menu PostgreSQL (khi cần, kho lưu trữ chính thức của PostgreSQL sẽ được kết nối).
 
 #### Sao lưu qua Telegram bot
 
@@ -5499,7 +5550,7 @@ Các tham số ghi nhật ký của chính Xray được thiết lập trên tra
 
 > Lưu ý: access-log trống chỉ ảnh hưởng đến cửa sổ này. Danh sách khách hàng trực tuyến trên «Dashборд» và giới hạn số lượng IP trong biểu mẫu khách hàng **không phụ thuộc** vào access-log — bảng điều khiển xác định khách hàng trực tuyến và đếm địa chỉ IP của họ thông qua online-stats API của nhân Xray (thống kê kết nối). Trên các phiên bản nhân cũ không có API này, bảng điều khiển tự động quay lại phương pháp cũ (đọc access-log), và khi đó đường dẫn đến access-log ở đây vẫn cần thiết cho giới hạn IP.
 
-> **Giới hạn số lượng IP và fail2ban.** Bản thân giới hạn số lượng IP của khách hàng (trường «IP Limit» trong biểu mẫu khách hàng và khi thêm hàng loạt) chỉ được áp dụng trên máy chủ nếu **fail2ban** được cài đặt — chính nó mới chặn các địa chỉ vượt quá giới hạn. Bảng điều khiển kiểm tra sự hiện diện của fail2ban (`GET /panel/api/server/fail2banStatus`); nếu không có, trường «IP Limit» trở nên không khả dụng với gợi ý giải thích (trên Windows — thông báo riêng), và các giới hạn đã thiết lập trước đó trên các máy chủ như vậy tự động được đặt về 0, vì chúng không có tác dụng dù sao. Chặn fail2ban áp dụng cho cả TCP và UDP. Trên các máy chủ thông thường, fail2ban giờ được cài đặt tự động khi cài đặt và cập nhật bảng điều khiển (xem mục 16.5).
+> **Giới hạn số lượng IP và fail2ban.** Bản thân giới hạn số lượng IP của khách hàng (trường «IP Limit» trong biểu mẫu khách hàng và khi thêm hàng loạt) chỉ được áp dụng trên máy chủ nếu **fail2ban** được cài đặt — chính nó mới chặn các địa chỉ vượt quá giới hạn. Bảng điều khiển kiểm tra sự hiện diện của fail2ban (`GET /panel/api/server/fail2banStatus`); nếu không có, trường «IP Limit» trở nên không khả dụng với gợi ý giải thích (trên Windows — thông báo riêng), và các giới hạn đã thiết lập trước đó trên các máy chủ như vậy tự động được đặt về 0, vì chúng không có tác dụng dù sao. Chặn fail2ban áp dụng cho cả TCP và UDP. Từ 3.5.0, kết nối «chết» (client biến mất mà không đóng TCP đúng cách) chỉ được ghi nhận **một lần**, chứ không phải ở mỗi lần quét 10 giây: dòng `[LIMIT_IP]` và chu trình ngắt kết nối chỉ lặp lại khi có kết nối lại thực sự, vì vậy bộ đếm fail2ban không bị tăng ảo và không cần nâng cao `maxretry` nữa (định dạng nhật ký và failregex không thay đổi). Trên các máy chủ thông thường, fail2ban giờ được cài đặt tự động khi cài đặt và cập nhật bảng điều khiển (xem mục 16.5).
 
 **Ví dụ: khối `log` giúp cửa sổ «Nhật ký Xray» bắt đầu hiển thị bản ghi.** Trong cấu hình JSON của Xray nó trông như sau:
 
@@ -5600,6 +5651,14 @@ Trên bản dựng dev, bảng điều khiển hiển thị phiên bản của m
 
 Các script `install.sh` và `update.sh` giờ hoạt động chính xác trên các máy chủ chỉ có IPv6: tải xuống bản phát hành, script `x-ui.sh` và các tệp dịch vụ không còn ép buộc dùng IPv4 (`curl -4`), mà lấy giao thức khả dụng. Vì vậy, bảng điều khiển có thể được cài đặt và cập nhật cả trên máy chủ không có địa chỉ IPv4.
 
+#### Các bản sửa lỗi script trong 3.5.0
+
+- **Họ RHEL** (Rocky/Alma/RHEL/Oracle): cài đặt PostgreSQL cục bộ từ menu nay hoạt động (xác thực bằng mật khẩu thay vì ident), còn fail2ban cho giới hạn IP được cài từ **EPEL**.
+- **Arch/Manjaro**: cài đặt và cập nhật không còn chạy nâng cấp toàn hệ thống `pacman -Syu` — chỉ cập nhật cơ sở dữ liệu gói.
+- **ARM 32-bit**: nhị phân Xray được tải xuống được đặt tên `xray-linux-arm32` — đúng như cách panel khởi chạy nó (trước đây bản cập nhật đặt tệp dưới tên khác, và panel tiếp tục chạy lõi cũ).
+- **Chứng chỉ IP**: IPv4 công khai được tự phát hiện sẽ hiển thị để xác nhận (Enter — chấp nhận) trước khi phát hành; nếu từ chối — nhập thủ công có kiểm tra.
+- **Chọn cổng ACME**: Enter (chấp nhận cổng 80 mặc định) không còn hiển thị thông báo sai «Your input is invalid».
+
 #### Ghi đè cổng bảng điều khiển bằng biến `XUI_PORT`
 
 Cổng lắng nghe của bảng điều khiển web có thể được ghi đè bằng biến môi trường `XUI_PORT` — nó chỉ có hiệu lực trong suốt thời gian hoạt động của tiến trình hiện tại và **không thay đổi** giá trị `webPort` đã lưu trong cơ sở dữ liệu. Các giá trị từ `1` đến `65535` được phép; giá trị trống, không đúng hoặc ngoài phạm vi bị bỏ qua (dùng `webPort`) với cảnh báo trong nhật ký. Điều này hữu ích khi triển khai, chủ yếu trong Docker: khi sử dụng bridge network, cổng container được công bố phải khớp với `XUI_PORT` — ví dụ: `XUI_PORT=8080` và `ports: "8080:8080"`.
@@ -5633,7 +5692,8 @@ Bảng điều khiển đăng ký một số tác vụ nền khi khởi động.
 | Thu thập lưu lượng Xray | mỗi 5 giây (bắt đầu sau 5 giây kể từ khi khởi động) | Thống kê lưu lượng của inbound/khách hàng |
 | Kiểm tra IP khách hàng | mỗi 10 giây | Kiểm soát giới hạn IP theo nhật ký |
 | Heartbeat và đồng bộ lưu lượng nút | mỗi 5 giây | Trao đổi với các nút |
-| **Xóa nhật ký** | **hàng ngày** (`@daily`) | Xóa nhật ký giới hạn IP và persistent access-log, xoay nhật ký hiện tại thành `*.prev.log` |
+| **Xóa nhật ký** | **hàng ngày** (`@daily`) | Xóa nhật ký giới hạn IP và persistent access-log, xoay nhật ký hiện tại thành `*.prev.log`. Từ 3.5.0, việc dọn dẹp hàng ngày còn làm sạch **cả error-log của Xray** (trước đây — chỉ access-log) |
+| **Giới hạn tăng trưởng nhật ký Xray** | **mỗi 10 phút** (`@every 10m`) | **Mới trong 3.5.0.** Cắt bớt access-log và error-log của Xray khi bất kỳ tệp nào vượt quá **64 MiB**; các nhật ký đã tắt (`none`/trống) không bị động đến |
 | **Đặt lại lưu lượng theo chu kỳ** | `@hourly`, `@daily`, `@weekly`, `@monthly` | Đặt lại bộ đếm lưu lượng của các inbound (và khách hàng của chúng) có chu kỳ đặt lại tự động tương ứng |
 | Báo cáo Telegram | được đặt trong cài đặt bot (mặc định `@daily`) | Gửi báo cáo cho quản trị viên; khi bật tùy chọn — kèm bản sao lưu CSDL đính kèm (mục 16.1) |
 | Đặt lại bộ nhớ hash của Telegram | mỗi 2 phút | Chỉ khi bot được bật |

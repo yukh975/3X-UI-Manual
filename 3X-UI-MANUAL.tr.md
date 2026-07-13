@@ -2,7 +2,7 @@
 
 🇸🇦 [العربية](3X-UI-MANUAL.ar.md) · 🇬🇧 [English](3X-UI-MANUAL.en.md) · 🇪🇸 [Español](3X-UI-MANUAL.es.md) · 🇮🇷 [فارسی](3X-UI-MANUAL.fa.md) · 🇮🇩 [Bahasa Indonesia](3X-UI-MANUAL.id.md) · 🇯🇵 [日本語](3X-UI-MANUAL.ja.md) · 🇧🇷 [Português](3X-UI-MANUAL.pt.md) · 🇷🇺 [Русский](3X-UI-MANUAL.ru.md) · 🇹🇷 Türkçe · 🇺🇦 [Українська](3X-UI-MANUAL.uk.md) · 🇻🇳 [Tiếng Việt](3X-UI-MANUAL.vi.md) · 🇨🇳 [简体中文](3X-UI-MANUAL.zh-CN.md) · 🇹🇼 [繁體中文](3X-UI-MANUAL.zh-TW.md)
 
-**3X-UI sürümü: 3.4.2.** Bu kılavuz söz konusu sürüme göre hazırlanmıştır ve o sürüm için günceldir. 3.4.2'nin 3.4.1'e göre değişikliklerinin özeti [«3.4.2'deki Yenilikler»](#342deki-yenilikler) bölümündedir.
+**3X-UI sürümü: 3.5.0.** Bu kılavuz söz konusu sürüme göre hazırlanmıştır ve o sürüm için günceldir. 3.5.0'ın 3.4.2'ye göre değişikliklerinin özeti [«3.5.0'daki Yenilikler»](#350daki-yenilikler) bölümündedir.
 
 > **3X-UI** web paneline (Xray-core yönetimi) ilişkin ayrıntılı Türkçe kılavuz:
 > işlevler, yapılandırma ve işletim; arayüzdeki her alan ve geçiş açıklamalı.
@@ -12,7 +12,7 @@
 
 ## İçindekiler
 
-- [3.4.2'deki Yenilikler](#342deki-yenilikler)
+- [3.5.0'daki Yenilikler](#350daki-yenilikler)
 - [1. Giriş, Gereksinimler ve Kurulum](#1-giriş-gereksinimler-ve-kurulum)
   - [1.1. 3X-UI Nedir](#11-3x-ui-nedir)
   - [1.2. Desteklenen İşletim Sistemleri ve Mimariler](#12-desteklenen-i̇şletim-sistemleri-ve-mimariler)
@@ -134,7 +134,8 @@
   - [12.6. Metrik Geçmişi](#126-metrik-geçmişi)
   - [12.7. İnbound'lar ve İstemciler Nasıl Senkronize Edilir](#127-i̇nboundlar-ve-i̇stemciler-nasıl-senkronize-edilir)
   - [12.8. Düğüm Zincirleri (alt düğümler / geçişli düğümler)](#128-düğüm-zincirleri-alt-düğümler--geçişli-düğümler)
-  - [12.9. Düğümler: 3.3.0'daki Yenilikler](#129-düğümler-330daki-yenilikler)
+  - [12.9. 3.5.0 Düzeltmeleri (düğüm kararlılığı)](#129-350-düzeltmeleri-düğüm-kararlılığı)
+  - [12.10. Düğümler: 3.3.0'daki Yenilikler](#1210-düğümler-330daki-yenilikler)
 - [13. Panel Ayarları](#13-panel-ayarları)
   - [13.1. Panelin Kaydedilmesi ve Yeniden Başlatılması](#131-panelin-kaydedilmesi-ve-yeniden-başlatılması)
   - [13.2. Genel Ayarlar (sekme «Panel» / *General*)](#132-genel-ayarlar-sekme-panel--general)
@@ -172,70 +173,78 @@
   - [16.8. Paneli Kaldırma](#168-paneli-kaldırma)
   - [16.9. `x-ui migrateDB` Komutu](#169-x-ui-migratedb-komutu)
 
-## 3.4.2'deki Yenilikler
+## 3.5.0'daki Yenilikler
 
-3.4.2 sürümü büyük bir güncellemedir: WireGuard çok istemcili modele geçirildi, REALITY'ye canlı bir hedef tarayıcısı eklendi, yük dengeleyiciler Observatory / Burst Observatory sekmelerine kavuştu ve hassas ayarların 2FA koduyla onaylanması eklendi. Aşağıda, 3.4.1'e göre değişiklikler kılavuz bölümlerine göre gruplandırılmıştır.
+3.5.0 sürümü büyük bir sürümdür: MTProto çok istemcili modele geçirildi (mtg-multi motoru, kişisel gizli anahtarlar, kotalar ve ad-tag), yönetilen hostlar grup haline geldi (tek kayıtta birden fazla inbound ve adres), PostgreSQL panelindeki geri yükleme artık SQLite yedeklerini kabul ediyor, outbound'lara «Target Strategy», «Real delay» testi ve Egress/Country sütunları eklendi, yük dengeleyici başka bir yük dengeleyiciyi fallback (yedek) olarak kullanabiliyor. Pakette Xray çekirdeği 26.7.11 gelir. Aşağıda, 3.4.2'ye göre değişiklikler kılavuz bölümlerine göre verilmiştir.
 
 ### Bölüm 1 değişiklikleri — Giriş, Gereksinimler ve Kurulum
 
-- Kenar çubuğu menüsünde (ve mobil çekmecede) artık **«Belgeler»** düğmesi (kitap simgesi) bulunuyor — `https://docs.sanaei.dev/` adresindeki resmi belgeleri açar.
-- Panelin güncellediği minimum Xray sürümü **26.6.27**'ye yükseltildi (pakette Xray çekirdeği 26.6.27 gelir).
+- Xray çekirdeği **26.7.11**'e güncellendi. Beraberinde gelen otomatik geçişler: Shadowsocks `none`/`plain` ve VMess `none`/`zero` şifreleri çekirdekten kaldırıldı (kayıtlı yapılandırmalar otomatik olarak yeniden yazılır), genel bir adrese giden şifrelenmemiş VLESS/Trojan outbound kaydetme sırasında reddedilir.
+- Yeni **`x-ui pgclient [sürüm]`** komutu ve PostgreSQL menüsünde **10. Install/Upgrade client tools (pg_dump/pg_restore)** öğesi — PostgreSQL istemci araçlarının kurulumu/güncellenmesi.
+- Betik düzeltmeleri: RHEL ailesinde PostgreSQL ve fail2ban kurulumu (EPEL), Arch'ta tam `pacman -Syu` çalıştırılmıyor, 32 bit ARM'de doğru Xray ikili dosya adı (`xray-linux-arm32`), IP sertifikası verilmeden önce otomatik algılanan IPv4'ün onaylanması, varsayılan ACME portu seçimindeki yanlış «Your input is invalid» düzeltildi.
 
 ### Bölüm 2 değişiklikleri — Panele Giriş ve Erişim Güvenliği
 
-- 2FA etkinken yönetici kullanıcı adı/parolasını değiştirmek ve 2FA'yı devre dışı bırakmak artık kimlik doğrulayıcı uygulamadaki **mevcut kodun girilmesini** gerektiriyor (hassas değişikliklerin onayı).
-- LDAP: yeni **«TLS sertifikası doğrulamasını atla»** (`ldapInsecureSkipVerify`) geçişi — LDAPS'te sertifika doğrulamasını kapatır; yalnızca «TLS Kullan (LDAPS)» etkinken kullanılabilir.
-
-### Bölüm 3 değişiklikleri — Genel Bakış / Gösterge Paneli
-
-- Panel sürüm düğmesi artık her zaman güncelleme penceresini açıyor (bkz. bölüm 16 — dev kanalı).
-- Genel bir **erişilebilirlik** iyileştirmesi: simgeler için aria etiketleri ve öğelerin Enter/Space ile etkinleştirilmesi (ekran okuyucular ve klavye gezintisi için).
+- IP limiti: «ölü» bağlantı artık her 10 saniyelik taramada değil, **bir kez** banlanıyor — fail2ban sayaçları artık şişmiyor, `maxretry` değerini yükseltmeye gerek yok.
 
 ### Bölüm 4 değişiklikleri — Inbounds: oluşturma ve genel parametreler
 
-- **«Tüm bağlantıları dışa aktar»** eylemi artık bağlantıları abonelik motoru aracılığıyla oluşturuyor — her istemciye açıklama şablonunu uygular ve yönetilen Host uç noktalarını tercih eder (önceden sabit `inbound-email` açıklaması vardı).
+- inbound listesine **arama** eklendi (açıklamaya, porta ve protokole göre); düğüm açılır listeleri («Şuraya Dağıt», «Düğümler» filtresi) aranabilir hale geldi.
 
 ### Bölüm 5 değişiklikleri — Protokoller
 
-- **WireGuard çok istemcili modele geçirildi.** Peer'lar artık sıradan istemcilerdir (tünelde otomatik adres atama, abonelik desteği, trafik/süre limitleri ve gruplarla); inbound formundaki satır içi «Peer'lar» listesi kaldırıldı.
-- WireGuard inbound'a yapılandırılabilir bir **DNS** alanı (varsayılan `1.1.1.1, 1.0.0.1`) ve bir **istemci yapılandırma kartı** eklendi — tam `.conf` ve `wireguard://`/`wg://` bağlantısı için kopyala/indir/QR.
-
-### Bölüm 6 değişiklikleri — Aktarım (Stream Settings)
-
-- XHTTP'de yeni inbound'lar için **xmux** içindeki `maxConnections` parametresi artık varsayılan olarak **6**'dır (önceden `0` — sınırsız). Mevcut inbound'lar kendi değerlerini korur.
+- **MTProto çok istemcili modele geçirildi** (mtg-multi motoru): MTProto kullanıcıları artık kendi gizli anahtarı, kotası, süresi, ad-tag'i ve kişisel `tg://proxy` bağlantısı olan sıradan istemcilerdir. inbound düzeyindeki «Secret» alanı kaldırıldı (mevcut inbound'lar otomatik dönüştürülür), «FakeTLS domain» yeni gizli anahtarlar için varsayılan alan adı oldu. Yeni inbound alanları: **Max connections** (bağlantı sınırı), **Public IPv4/IPv6** (ad-tag middle proxy için). İstemci değişiklikleri, başkalarının Telegram oturumlarını düşürmeden «anında» uygulanır.
+- WireGuard: inbound menüsü eksiksiz istemci işlemleri setine kavuştu (Export All URLs, bağlama/bağlantı kesme, gruplar), dışa aktarma **Config** ve **Links** sekmelerine ayrıldı, **«WireGuard izin verilen IP'ler» alanı düzenlenebilir oldu** (virgülle ayrılmış birden fazla kayıt), düğümdeki inbound'un istemci yapılandırmasında `Endpoint` artık düğümün adresini gösteriyor.
 
 ### Bölüm 7 değişiklikleri — Bağlantı Güvenliği: TLS, XTLS ve REALITY
 
-- **Canlı REALITY hedef tarayıcısı** eklendi: **«Tara»** (mevcut hedefi «canlı» kontrol et) ve **«Hedef bul»** (bir alan adını veya **IP/CIDR** aralığını tarayıp sertifikalarına göre uygun hedefleri seç) düğmeleri. REALITY ilk seçildiğinde «Hedef» ve SNI alanları artık boştur.
+- **Finalmask + REALITY kombinasyonu** kaydetme sırasında **reddediliyor** (ilk bağlantıda Xray-core'un çökmesine yol açıyordu); minClientVer yer tutucusu 26.3.27'ye güncellendi.
+- Yeni Finalmask TCP maskesi türü — **XMC (Minecraft)**: akışın Minecraft trafiği gibi maskelenmesi (Hostname, Usernames, otomatik oluşturmalı zorunlu Password).
 
 ### Bölüm 8 değişiklikleri — İstemciler
 
-- Süreyi/kotayı `bulkAdjust` ile uzatmak artık **yalnızca tükenme nedeniyle** (süresi dolmuş veya kotası aşılmış) devre dışı bırakılan istemciyi, uzatma onu limitlere geri döndürürse **otomatik olarak etkinleştiriyor**. Elle devre dışı bırakılanlar veya hâlâ tükenmiş olanlar kapalı kalır.
+- Yeni **«Hız»** sütunu — her istemcinin canlı hızı (↑/↓, ~5 saniyelik kayan ortalama).
+- İstemci araması yeniden **Telegram ID** ile bulabiliyor; istemci formunda devre dışı inbound'lar bağlama listesinden gizleniyor; «Bağlantıyı Kes» penceresindeki kopya kayıt birikimi düzeltildi.
+- MTProto istemcilerinin kendi alanları var: **«MTProto secret»** (yeniden oluşturmalı) ve **«Ad-tag (sponsorlu kanal)»** (32 hex karakter); kota ve süre artık MTProto'ya gerçekten uygulanıyor.
 
 ### Bölüm 9 değişiklikleri — İstemci Grupları
 
-- Bir grupta **«Trafiği Sıfırla»** artık **yalnızca grubun kendi sayacını** sıfırlıyor; tek tek istemcilerin sayaçları, kotaları ve durumu etkilenmez, Xray'i yeniden başlatma gerekmez. Bu, önceki davranışa göre bir değişikliktir (önceden grubun tüm istemcilerinin trafiği sıfırlanıyordu).
+- İstemci bilgi penceresinde artık istemcinin **grubu** gösteriliyor.
 
 ### Bölüm 10 değişiklikleri — Abonelikler (Subscription)
 
-- **Yönetilen hostlarda** **VLESS route** alanı yeniden tanımlandı: artık tek bir `0-65535` değeridir (port listesi değil) ve gerçekten her aboneliğin UUID'sine «gömülür» (raw/JSON/Clash).
-- Açıklama şablonundaki `{{EMAIL}}` değişkeni (ve eş anlamlısı `{{USERNAME}}`) artık yalnızca istemcinin **ilk bağlantısında** gösteriliyor — tıpkı trafik/süre bloğu gibi.
+- **Yönetilen hostlar grup haline geldi**: tek kayıt **birden fazla inbound** (çoklu seçim) ve **birden fazla adres** (etiketler; her kaydın kendi `:port`'u olabilir; adres otomatik tamamlama; boş — inbound adresi devralınır) kapsıyor. Liste sütunları adres ve inbound çiplerini gösteriyor («+N» ile), işlemler ve API gruplarla çalışıyor (`groupId`), toplu `POST /panel/api/hosts/bulk/add` eklendi. Host sıralaması artık geneldir (sıraya, ardından açıklamaya göre).
+- **Duyuru** metni (`subAnnounce`) artık abonelik bilgi sayfasında bir afiş olarak gösteriliyor; özel şablonlarda `announce` değişkeni kullanılabilir.
+- Bilgi sayfası tarayıcıda artık **JSON/Clash bağlantılarıyla** da açılıyor (yalnızca ana bağlantıyla değil).
+- Host ayarları **Final Mask** ve **Allow insecure** artık sırasıyla raw bağlantılarda (`fm=`) ve **Hysteria2** için de (`insecure=1` / `skip-cert-verify: true`) geçerli.
+- «Güncelleme aralıkları» (`subUpdates`) aralığı **0–525600** olarak düzeltildi (önceki 168 arayüz sınırı, 2.x'ten yükseltme sonrasında ayarların kaydedilmesini engelliyordu).
+- Yerel **WireGuard istemcileri artık Clash ve JSON aboneliklerine giriyor** (önceden yalnızca raw'a).
 
 ### Bölüm 11 değişiklikleri — Xray: Yönlendirme, outbounds, DNS ve Uzantılar
 
-- **Yük dengeleyiciler**: sayfa **«Yük dengeleyici ayarları»** ve **«Observatory»** sekmelerine ayrıldı; ham JSON yerine Observatory ve Burst Observatory formları geldi (Burst'e bir **«HTTP yöntemi»** alanı eklendi). `fallbackTag` içeren Random/Round-robin yük dengeleyici artık otomatik olarak bir Burst Observatory oluşturuyor.
-- Bir outbound veya yük dengeleyici silinirken panel, yönlendirmedeki ilgili referansları kendisi temizliyor ve onay diyaloğunda bir **sonuç önizlemesi** gösteriyor.
-- Yönlendirme kurallarında **L4** ağ ölçütü yapılandırmaya küçük harfle (`tcp`/`udp`) yazılırken tabloda büyük harfle gösteriliyor.
-- Yük dengeleyici ekleme/düzenleme formundaki hatalar artık ilk alan dokunuşuna veya kaydetme girişimine kadar ertelenir.
+- Outbound düzenleyicisi: yeni **«Target Strategy»** alanı (`AsIs`'ten `ForceIPv4`'e 11 değer), **«Real delay»** test modu (tünel kurulumu dahil tam süre; HTTP modu artık «ısınmış» bağlantı üzerinden ölçülüyor), HTTP/Real testinden sonra **Egress** («göz» arkasında çıkış IP'si) ve **Country** (bayrak + ülke, WARP etiketi) sütunları.
+- **Yük dengeleyicinin fallback'i başka bir yük dengeleyiciyi gösterebilir**: panel gizli loopback nesnesini (`_bl_…`) kendisi kurar, döngülere ve kullanılan yük dengeleyicinin silinmesine karşı korur; `_bl_` öneki ayrılmıştır.
+- «Temel Yönlendirme» sekmesine **«Default Outbound»** seçicisi eklendi — hiçbir kurala girmeyen trafiği hangi outbound'un işleyeceği (seçilen, ilk konuma taşınır).
+- Özel IP'lerdeki DNS sunucuları artık `geoip:private` kuralıyla engellenmiyor — panel yönetilen bir izin kuralını kendisi sürdürüyor.
+- dial (sockopt) ayarlarındaki Happy Eyeballs artık gerçekten etkinleşiyor; «Try delay» varsayılanı 250 ms, açıkça girilen 0 korunuyor.
+- outbound abonelik içe aktarması: `?plugin=`/sondaki `/` içeren `ss://` bağlantılarında port doğru ayrıştırılıyor.
 
 ### Bölüm 12 değişiklikleri — Düğümler (Çok Panelli, master/slave)
 
-- «yerel olarak kaydedildi, düğüm çevrimdışı — sonra senkronize edilecek» bildirimi artık yalnızca düğüm gerçekten çevrimdışı veya kapalıyken gösteriliyor (önceden — çevrimiçi bir düğüme her kaydetmede).
+- Düzeltme paketi: istemciyi değişiklik yapmadan kaydetmek artık düğüm inbound'larının canlı trafiğini bozmuyor; düğümün Host geçersiz kılmaları ilk kabulde master'a alınıyor; otomatik yenileme yeni bir kota penceresi açıyor; istemcinin master'da silinmesi onu düğümlerde tamamen siliyor; düğümün inbound'ları ilk kabulden önce süpürülmüyor; tek bir hatalı inbound düğümün trafik senkronizasyonunu durdurmuyor; port çakışması denetimi kendi düğümüyle sınırlandırıldı.
+
+### Bölüm 14 değişiklikleri — Telegram Botu
+
+- Bot komut menüsüne **`/usage`**, **`/inbound`**, **`/restart`** ve yeni yönetici komutu **`/clearall`** (tüm istemcilerin trafiğini sıfırlama, onaylı) eklendi.
+- Çevrimiçi istemci listesi `email - inbound açıklaması` olarak etiketleniyor; yedek ve ban günlüğü mesajları ana bilgisayar adını içeriyor; Telegram ID araması, ayarların biçimlendirmesinden bağımsız çalışıyor.
 
 ### Bölüm 16 değişiklikleri — İşletim: Yedeklemeler, Günlükler, Güncelleme, CLI
 
-- Yedek dosyası adları artık sunucu adresini ve **tarih-saati** içeriyor: `{host}_YYYY-AA-GG_SSDDSS.db` (PostgreSQL için `.dump`), örneğin `panel.example.com_2026-06-27_000000.db` — hem panelden indirirken hem de Telegram botunun gönderdiği yedeklerde.
-- Kararlı bir derlemeden güncellemelerde **dev kanalı** etkinleştirilebilir: sürüm düğmesi her zaman güncelleme penceresini açar, kararsızlık ve otomatik geri alma olmadığı uyarısıyla birlikte bir **«Dev kanalı»** geçişi eklendi.
+- **PostgreSQL panelinde geri yükleme SQLite dosyalarını kabul ediyor**: normal `.db` yedeği veya geçiş `.dump` dosyası doğrudan PostgreSQL'e aktarılıyor (tek işlemle, Xray durdurulmadan önce denetimlerle). Dosya seçim iletişim kutusu her iki DBMS'te de `.dump,.db` kabul ediyor; «Geçiş Dosyasını İndir» yalnızca PostgreSQL panellerinde kaldı.
+- Bir `pg_dump` arşivini geri yüklemeden önce panel dökümün okunabilirliğini denetliyor ve sürüm uyuşmazlığında tam `x-ui pgclient <sürüm>` komutunu öneriyor.
+- Başlangıçta otomatik onarımlar: taşan trafik sayaçları sınırlandırılıp kurtarılıyor; inbound portundaki eski UNIQUE kısıtlaması kaldırılıyor (multi-node'u engelliyordu).
+- Xray günlükleri: yeni görev, access ve error günlüğü **64 MiB**'ı aştığında her 10 dakikada bir kırpıyor; günlük temizleme artık her ikisini de temizliyor.
+- Docker: sertifikaların otomatik yenilenmesi onarıldı (crond başlatılıyor, acme.sh durumu bir volume'de saklanıyor).
 
 ## 1. Giriş, Gereksinimler ve Kurulum
 
@@ -359,7 +368,7 @@ Yerleşik PostgreSQL servisiyle çalıştırmak için `docker-compose.yml` dosya
 docker compose --profile postgres up -d
 ```
 
-İmaj, istemcilere uygulanan IP limitlerini zorunlu kılmak için Fail2ban içerir (varsayılan olarak etkin). Fail2ban, ihlal edenleri `iptables` üzerinden engeller; bu da `NET_ADMIN` yetkisini gerektirir. `docker-compose.yml` dosyasında bu yetki `cap_add` aracılığıyla zaten tanımlanmıştır. `docker run` ile manuel başlatmada bu yetkiyi kendiniz eklemeniz gerekir, aksi takdirde engeller yalnızca loglanır ancak uygulanmaz:
+İmaj, istemcilere uygulanan IP limitlerini zorunlu kılmak için Fail2ban içerir (varsayılan olarak etkin). Fail2ban, ihlal edenleri `iptables` üzerinden engeller; bu da `NET_ADMIN` yetkisini gerektirir. `docker-compose.yml` dosyasında bu yetki `cap_add` aracılığıyla zaten tanımlanmıştır. 3.5.0'dan itibaren konteynerde SSL menüsü üzerinden verilen sertifikaların **otomatik yenilenmesi** onarıldı: entrypoint `crond`'u başlatır ve acme.sh cron görevini yeniden kaydeder; `docker-compose.yml` ise acme.sh durumu için ayrı bir volume aldı — yenileme, konteynerin yeniden oluşturulmasını atlatır (önceden sertifikalar ~90 gün sonra sessizce doluyordu). `docker run` ile manuel başlatmada bu yetkiyi kendiniz eklemeniz gerekir, aksi takdirde engeller yalnızca loglanır ancak uygulanmaz:
 
 **Örnek: eksiksiz `docker run` komutu.** Panel portunun yönlendirilmesi, ağ yetkileri ve veritabanı için kalıcı volume ile minimal kullanım:
 
@@ -962,7 +971,7 @@ curl -X POST 'https://panel.example.com:2053/xpanel/installXray/v25.6.8' \
   -b cookie.txt
 ```
 
-Burada `v25.6.8`, `GET /getXrayVersion` tarafından döndürülen listeden bir etikeттir. Sürümün bu listede mevcut olması zorunludur, aksi takdirde panel reddeder. 3.4.2 sürümünden itibaren kurulum için izin verilen minimum Xray sürümü **26.6.27**'ye yükseltildi (pakette Xray çekirdeği 26.6.27 gelir), bu nedenle güncelleme için daha eski derlemeler kullanılamaz.
+Burada `v25.6.8`, `GET /getXrayVersion` tarafından döndürülen listeden bir etikeттir. Sürümün bu listede mevcut olması zorunludur, aksi takdirde panel reddeder. 3.4.2 sürümünden itibaren kurulum için izin verilen minimum Xray sürümü **26.6.27**'ye yükseltildi; 3.5.0 paketinde ise **Xray 26.7.11** çekirdeği gelir. Beraberindeki çekirdek değişiklikleri: Shadowsocks `none`/`plain` ve VMess `none`/`zero` şifreleri kaldırıldı (kayıtlı yapılandırmalar otomatik olarak yeniden yazılır: SS — desteklenen bir şifreye, VMess — `auto`'ya), genel bir adrese giden şifrelenmemiş VLESS/Trojan outbound ise kaydetme sırasında reddedilir — böyle bir yapılandırmayla çekirdek zaten başlamazdı.
 1. Seçilen sürüm, güncel sürümler listesinde doğrulanır (yoksa reddedilir).
 2. Xray durdurulur.
 3. Mevcut işletim sistemi ve mimariye göre `Xray-<os>-<arch>.zip` arşivi GitHub'dan indirilir (amd64/64, arm64-v8a, arm32-v7a/v6/v5, 386/32, s390x desteklenir; Windows için — `xray.exe`). Arşiv ve ikili dosya boyutu 200 MB ile sınırlıdır.
@@ -1033,15 +1042,13 @@ Beyaz listedeki tüm dosyaları aynı anda güncellemek için — dosya adı olm
 3. Yeni dosya çalışma veritabanının yerine alınır, başlatma ve geçiş gerçekleştirilir. Bir şeyler ters giderse geri dönüş dosyası geri yüklenir.
 4. Xray yeniden başlatılır.
 
-**PostgreSQL** için `.dump` yüklenir (imza `PGDMP` doğrulanır) ve `pg_restore --clean --if-exists --single-transaction …` aracılığıyla uygulanır. İpucu açıkça uyarır: «Bu, tüm mevcut verilerin yerini alacak».
+**PostgreSQL** için 3.5.0'dan itibaren «Geri Yükleme» **üç tür dosya** kabul eder (tür, uzantıya göre değil içeriğe göre belirlenir): `pg_dump` arşivi (`PGDMP`) — `pg_restore --clean --if-exists --single-transaction …` aracılığıyla uygulanır; **SQLite veritabanı `.db`** (normal yedek) ve **SQLite geçiş `.dump`** dosyası — bunlar denetlenir, gerekirse yeniden derlenir ve `x-ui migrate-db --dsn` ile aynı motor tarafından PostgreSQL'e **tek işlemle (transaction)** aktarılır (hata durumunda PostgreSQL el değmemiş kalır). Dosya seçim iletişim kutusu her iki DBMS'te de `.dump,.db` kabul eder; `pg_dump` arşivinin SQLite paneline yüklenmesi anlaşılır bir hata verir. İpucu açıkça uyarır: «Bu, tüm mevcut verilerin yerini alacak».
 
 Mesajlar: «Veritabanı başarıyla içe aktarıldı», «Veritabanı içe aktarılırken hata oluştu», «…veritabanı okunurken», «…veritabanı alınırken».
 
 #### Geçiş Dosyası (SQLite ve PostgreSQL Arasında)
 
-«Geçiş Dosyasını İndir» (*Download Migration*) düğmesi `GET /getMigration` çağrısı yapar ve panelin farklı bir DBMS üzerinde çalıştırılması için taşınabilir bir dışa aktarım oluşturur:
-- **SQLite** üzerinde `x-ui.dump` (metin SQL dökümü) indirilir.
-- **PostgreSQL** üzerinde `x-ui.db` — PostgreSQL verilerinden derlenen hazır bir SQLite veritabanı indirilir.
+«Geçiş Dosyasını İndir» (*Download Migration*) düğmesi `GET /getMigration` çağrısı yapar. 3.5.0'dan itibaren yalnızca **PostgreSQL panellerinde** gösterilir ve `x-ui.db` dosyasını — PostgreSQL verilerinden derlenen hazır bir SQLite veritabanını («SQLite'a geri dönüş» yolu) — indirir. SQLite panellerinde düğme gereksiz olduğu için kaldırıldı: normal `.db` yedeği artık zaten doğrudan PostgreSQL paneline geri yüklenebiliyor.
 
 ### 3.15. Ek Arayüz Öğeleri
 
@@ -1222,7 +1229,7 @@ inbound'un etkinlik göstergesi. Bu bayrağın listede değiştirilmesi, tam gü
 | Etiket | **«Şuraya Dağıt»**, **«Yerel Panel»** |
 | Varsayılan | boş (yerel panel) |
 
-inbound'un fiziksel olarak nerede çalıştığının seçimi: yerel panelde mi yoksa kayıtlı düğümlerden birinde mi. Uygulama detayı: `nodeId = 0`, `nil` olarak normalleştirilir; `0` geçerli bir düğüm id'si değil, form bağlamasının bir eseridir; `nil`/`0` yerel panel anlamına gelir. Çevrimdışı bir düğümde inbound kaydedilirken «düğüm yeniden bağlandığında değişiklik senkronize edilecek» bildirimi görünebilir. 3.4.2 sürümünden itibaren bu bildirim yalnızca düğüm gerçekten çevrimdışı veya kapalıyken gösterilir (önceden çevrimiçi bir düğüme kaydederken de görünebiliyordu).
+inbound'un fiziksel olarak nerede çalıştığının seçimi: yerel panelde mi yoksa kayıtlı düğümlerden birinde mi. 3.5.0'dan itibaren «Şuraya Dağıt» listesi (inbound listesinin üzerindeki «Düğümler» filtresi gibi) **yazarak arama** destekler; inbound listesinin üzerine ise bir **arama alanı** eklendi (açıklamaya, porta ve protokole göre; düğüm filtresiyle birlikte çalışır). Uygulama detayı: `nodeId = 0`, `nil` olarak normalleştirilir; `0` geçerli bir düğüm id'si değil, form bağlamasının bir eseridir; `nil`/`0` yerel panel anlamına gelir. Çevrimdışı bir düğümde inbound kaydedilirken «düğüm yeniden bağlandığında değişiklik senkronize edilecek» bildirimi görünebilir. 3.4.2 sürümünden itibaren bu bildirim yalnızca düğüm gerçekten çevrimdışı veya kapalıyken gösterilir (önceden çevrimiçi bir düğüme kaydederken de görünebiliyordu).
 
 #### Bağlantı adresi stratejisi (Share address strategy)
 
@@ -1786,7 +1793,7 @@ inbound alanları (`settings` bloğu):
 | «WireGuard özel anahtarı» | İstemcinin özel anahtarı (düzenlenebilir, «Yeniden oluştur» düğmesi var); girildiğinde ondan genel anahtar otomatik olarak türetilir |
 | «WireGuard genel anahtarı» | Salt okunur; özel anahtardan hesaplanır |
 | «WireGuard paylaşılan anahtarı» (PSK) | İsteğe bağlı ek paylaşılan anahtar |
-| «WireGuard izin verilen IP'ler» | Salt okunur (düzenleme modunda): istemciye tünelde atanan adres, örneğin `10.0.0.2/32` |
+| «WireGuard izin verilen IP'ler» | 3.5.0'dan itibaren — **düzenlenebilir** (yer tutucu `10.0.0.2/32`, ipucu «Otomatik atama için boş bırakın; kayıtları virgülle ayırın»). Boşsa adres otomatik atanır; sunucu her kaydı (IP veya CIDR) denetler, tekil adresleri `/32`'ye normalleştirir ve bu inbound'un başka bir istemcisi tarafından kullanılan adresi reddeder |
 
 Tünel adresi, inbound'un alt ağından (varsayılan `10.0.0.0/24`: sunucu `.1`'i alır, istemciler `.2`'den başlar) sunucu tarafından otomatik olarak atanır; mevcut istemciler başka bir `/24` kullanıyorsa yeni adresler aynı alt ağdan atanır.
 
@@ -1797,6 +1804,10 @@ Sayılanlara ek olarak WireGuard inbound'da **Domain Strategy** alanı bulunur (
 > **Workers** alanı (`workers`, çalışan iş parçacığı sayısı) WireGuard formlarından (hem inbound hem outbound) kaldırılmıştır: xray-core v26.6.22 sürümünden itibaren motor bu alanı artık kullanmamakta, bunun yerine wireguard-go'nun dahili mekanizmasına güvenmektedir. Önceden kaydedilmiş yapılandırmalar değişiklik gerektirmeden çalışmaya devam eder — alan ayrıştırma sırasında yok sayılır, geçiş gerekmez.
 
 WireGuard için **«Transport»** sekmesi de mevcuttur — ancak kısıtlı biçimde: yalnızca `sockopt` ve **Finalmask** gizleme ayarları yapılandırılabilir. WireGuard her zaman UDP üzerinden dinlediğinden aktarım seçim açılır listesi (`network`) gizlidir. Finalmask gürültü kayıtlarında (noise) ayrı bir alan olarak **Rand Range** (0–255 bayt aralığı, doğrulamayla) belirlenir; WireGuard ve Hysteria için gizleme yöntemi olarak **Salamander** da mevcuttur.
+
+#### inbound işlemleri ve dışa aktarma (3.5.0'dan itibaren)
+
+WireGuard inbound satır menüsü artık eksiksiz «çok istemcili» işlem setini içerir — **«Tüm bağlantıları dışa aktar»**, abonelikle dışa aktarma, **istemci bağlama/bağlantı kesme**, gruba ekleme ve tüm istemcileri silme (önceden yalnızca dışa aktarma/sıfırlama/klonlama/silme vardı); listede ayrıca istemci sayacı gösterilir. WireGuard için «Tüm bağlantıları dışa aktar» penceresi iki sekmeye ayrılmıştır: **Config** (istemci başına bir tane olmak üzere birleştirilmiş `.conf` blokları) ve **Links** (kişisel `wireguard://` bağlantıları); «Kopyala» ve «İndir» açık olan sekmeye uygulanır. Düğümde barındırılan inbound için istemci `.conf`/QR içindeki `Endpoint` artık ana panelin değil, **düğümün adresini** gösterir.
 
 #### WireGuard istemci yapılandırması ve paylaşımı
 
@@ -1843,13 +1854,12 @@ Hysteria ne zaman seçilmeli: QUIC aktarımı ve kararsız/mobil bağlantılarda
 
 MTProto, Telegram'ın özel proxy protokolüdür. 3X-UI'de bu tür inbound **Xray tarafından değil, panelin kendisinin yönettiği ayrı bir `mtg` işlemi tarafından** sunulur. Panel, etkinleştirilmiş MTProto inbound'larını çalışan `mtg` işlemleriyle periyodik olarak karşılaştırır: eksik olanları başlatır, fazla olanları durdurur ve `mtg` metriklerinden trafik sayaçlarını toplar. Bu nedenle bu tür inbound'da **trafik takibi** normal protokollerdeki gibi çalışır.
 
-Formdaki resmi yardım notu:
-
-> «MTProto, Xray değil ayrı bir mtg işlemi tarafından sunulmaktadır. Aktarım ayarları ve istemciler burada geçerli değildir — aşağıdaki bağlantıyı Telegram'da paylaşın.»
+**3.5.0 sürümünden itibaren MTProto çok istemcili bir protokoldür** (motor, `mtg-multi` çatalıyla değiştirildi): tek bir inbound çok sayıda kullanıcıya hizmet verir; bunların her biri kendi FakeTLS gizli anahtarı, trafik kotası, süresi, etkinleştirme anahtarı, isteğe bağlı ad-tag'i ve kişisel `tg://proxy` bağlantısı olan sıradan bir **istemcidir** (bkz. bölüm 8). Önceki «bir inbound = bir gizli anahtar» modeli kaldırıldı: inbound düzeyindeki «Secret» alanı formdan çıkarıldı; panel güncellendiğinde mevcut tekil gizli anahtar otomatik olarak bu inbound'un ilk istemcisine dönüştürülür (elle işlem gerekmez).
 
 Sonuçlar:
 
-- Bu inbound için **«Aktarım» (Stream Settings) ve «İstemciler» sekmeleri geçerli değildir** — erişim, istemci listesi yerine tek bir gizli anahtarla sağlanır.
+- Bu inbound için **«Aktarım» (Stream Settings) sekmesi geçerli değildir**; istemciler ise artık diğer protokollerdeki gibi yönetilir — bağlama/bağlantı kesme, limitler, gruplar, abonelikler.
+- İstemci değişiklikleri (ekleme, silme, gizli anahtar değişimi, etkinleştirme/devre dışı bırakma, ad-tag) `mtg` management API'si üzerinden, diğer kullanıcıların Telegram oturumlarını koparmadan **«anında»** uygulanır; yalnızca inbound'un yapısal değişiklikleri (adres, domain fronting, bağlantı sınırı, genel IP'ler) süreci yeniden başlatır.
 - MTProto inbound yalnızca **ana panelde** çalışır; alt düğümlere (nodes) dağıtılmaz (`NodeID` tanımlı inbound'lar atlanır).
 
 - MTProto için **«Sniffing»** sekmesi gizlidir — bu protokol Xray değil `mtg` işlemi tarafından sunulduğundan, sniffing uygulanamaz.
@@ -1861,10 +1871,11 @@ Sonuçlar:
 | Remark | `remark` | inbound etiketi. |
 | Listen IP | `listen` | Dinlenecek IP (boş = tüm arayüzler). |
 | Port | `port` | Proxy portu. |
-| Gizli anahtar | `settings.secret` | **FakeTLS** formatında erişim gizli anahtarı. |
-| Gizleme alanı (FakeTLS) | `settings.fakeTlsDomain` | Proxy'nin HTTPS trafiğini taklit ettiği alan adı. |
+| Gizleme alanı (FakeTLS) | `settings.fakeTlsDomain` | Varsayılan `www.cloudflare.com`. 3.5.0'dan itibaren — **yeni istemcilerin gizli anahtarlarının üretiminde kullanılan varsayılan alan adı** (ipucu: «Default FakeTLS domain used to generate a new client's secret. Each client can front its own domain»); her istemci kendi gizli anahtarı aracılığıyla kendi alan adının arkasına gizlenebilir. |
+| Max connections | `settings.throttleMaxConnections` | **3.5.0'da yeni.** Tüm kullanıcılar genelinde eş zamanlı bağlantı sınırı, adil paylaşımla; `0` — sınırsız. |
+| Public IPv4 / Public IPv6 | `settings.publicIpv4` / `settings.publicIpv6` | **3.5.0'da yeni.** ad-tag middle proxy için sunucunun genel adresi (yer tutucular `1.2.3.4` / `2001:db8::1`); boşsa `mtg` kendisi belirler. |
 
-**Gizli anahtar formatı (FakeTLS).** Panel gizli anahtarı otomatik olarak doğru biçime getirir: sonuç = `ee` + 32 hex karakter + gizleme alanının hex kodu, yani `ee<hex32><hex(fakeTlsDomain)>`. `ee` öneki FakeTLS modunu etkinleştirir; alan adı (örneğin bilinen bir site) trafiği normal HTTPS'ye benzetmek için kullanılır. Yalnızca alan adını belirtmek yeterlidir — geri kalanını panel kendisi tamamlar.
+**Gizli anahtar formatı (FakeTLS).** Gizli anahtar artık **her istemcide** yaşar (istemci formundaki **«MTProto secret»** alanı, yeniden oluşturma düğmesiyle; yanında — isteğe bağlı **«Ad-tag (sponsorlu kanal)»**, tam 32 hex karakter). Gizli anahtarın biçimi öncekiyle aynıdır: `ee` + 32 hex karakter + gizleme alanının hex kodu (`ee<hex32><hex(alan adı)>`); yeni bir istemci MTProto inbound'una bağlandığında gizli anahtar, inbound'un varsayılan alan adından otomatik üretilir. İstemcinin trafik kotası ve geçerlilik süresi 3.5.0'dan itibaren (mtg-multi limitleri aracılığıyla) **gerçekten uygulanır**: kotası tükenen veya süresi dolan istemci devre dışı bırakılır, trafik sıfırlama ise erişimi hemen geri verir.
 
 #### Domain-fronting ve gelişmiş mtg seçenekleri
 
@@ -1892,7 +1903,7 @@ tg://proxy?server=203.0.113.10&port=443&secret=ee1a2b3c4d5e6f70819293a4b5c6d7e8f
 tg://proxy?server=<adres>&port=<port>&secret=<gizli anahtar>
 ```
 
-(eşdeğeri — `https://t.me/proxy?server=…&port=…&secret=…`). Bu bağlantıyı ve QR kodunu Telegram kullanıcısına gönderin — açıldığında proxy uygulamaya anında eklenir. Bağlantı ayrıca abonelik sunucusu üzerinden de sağlanır.
+(eşdeğeri — `https://t.me/proxy?server=…&port=…&secret=…`). 3.5.0'dan itibaren bağlantı **kişiseldir** — belirli istemcinin gizli anahtarından oluşturulur ve `#remark` parçası bağlantıdan kaldırılmıştır (Telegram'ın gevşek ayrıştırıcıları onu gizli anahtarla birleştirip içe aktarmayı bozuyordu); açıklama, bilgi penceresinde ayrı bir etiket olarak gösterilir. Bu bağlantıyı ve QR kodunu Telegram kullanıcısına gönderin — açıldığında proxy uygulamaya anında eklenir. Bağlantı ayrıca abonelik sunucusu üzerinden de sağlanır.
 
 **Ne zaman kullanılmalı.** Telegram engellemesini aşmanın standart yöntemi; FakeTLS gizlemesi (gizleme alanı), trafiği belirtilen siteye yapılan normal bir ziyarete benzetir.
 
@@ -2452,7 +2463,7 @@ Alınan özetler alana eklenir (virgülle ayrılarak) ve istemcinin sertifikayı
 | **Hedef** (`target`) | `""` (3.4.2'den itibaren REALITY etkinleştirildiğinde boş kalır) | **Zorunlu alan.** REALITY'nin TLS el sıkışmasını ödünç aldığı gerçek alan adı. Kelimesi kelimesine ipucu: «*Zorunlu. Port içermelidir (örneğin example.com:443). Port belirtilmezse Xray-core başlamaz.*» Panel doğrulaması, portun varlığını ve geçerliliğini kontrol eder; aksi hâlde «REALITY Hedefi zorunludur» / «REALITY Hedefi port içermelidir…» / «REALITY Hedefinde geçersiz port belirtilmiş» hataları görüntülenir. Alanın yanında **«Tara»** (mevcut hedefi «canlı» kontrol et) ve **«Hedef bul»** (REALITY hedef tarayıcısını aç) düğmeleri bulunur; aşağıya bakın. |
 | **SNI** (`serverNames`) | `[]` (hedefle birlikte eklenir) | İzin verilen SNI'lerin listesi (etiket olarak çoklu giriş). **Hedef** alanındaki alan adıyla eşleşmelidir. Hedef başarıyla tarandığında SNI, onun sertifikasına göre doldurulur. |
 | **Maks. Zaman Farkı (ms)** (`maxTimediff`) | `0` | İstemci ve sunucu saatleri arasındaki maksimum izin verilen sapma (milisaniye, `0` — sınırsız). Minimum `0`. |
-| **Min. İstemci Sürümü** (`minClientVer`) | `""` | Minimum Xray istemci sürümü (yer tutucu `25.9.11`). Boşsa sınırsız. |
+| **Min. İstemci Sürümü** (`minClientVer`) | `""` | Minimum Xray istemci sürümü (3.5.0'dan itibaren yer tutucu — `26.3.27`). Boşsa sınırsız. |
 | **Maks. İstemci Sürümü** (`maxClientVer`) | `""` | Maksimum Xray istemci sürümü. Boşsa sınırsız. |
 | **Short IDs** (`shortIds`) | `[]` (etkinleştirildiğinde üretilir) | İstemcileri ayırt eden kısa tanımlayıcıların (hex) listesi. Etiket olarak çoklu giriş; güncelleme düğmesi rastgele bir küme üretir. |
 | **SpiderX** (`settings.spiderX`) | `/` | Dış siteye erişimi taklit ederken kullanılan «örümcek» yolu (REALITY'nin istemci tarafı). Davet bağlantısına eklenir. |
@@ -2708,7 +2719,7 @@ Tek bir istemci için (**İstemci Bilgisi** kartı veya **Eylemler** bağlam men
 
 #### Bilgi, QR Kodu ve Bağlantı Görüntüleme
 
-- **İstemci Bilgisi** — tüm alanları, kullanılan/kalan trafik (**Kalan**), geçerlilik süresi ve bağlı inbound'ları gösteren kart.
+- **İstemci Bilgisi** — tüm alanları, kullanılan/kalan trafik (**Kalan**), geçerlilik süresi ve bağlı inbound'ları gösteren kart. 3.5.0'dan itibaren kart, grup tanımlandığında istemcinin **grubunu** da gösterir («Yorum» satırının üzerinde, etiketli bir «Grup» satırı).
 
 API üzerinden istemci sorgusu (`GET /panel/api/clients/get/:email`), `client` ve `inboundIds` alanlarının yanı sıra `usedTraffic` değerini de döndürür — gerçekte tüketilen trafik (gönderilen + alınan, düğüm verileri dahil); bu da tüketimi `totalGB` kotasıyla karşılaştırmayı kolaylaştırır.
 - **QR Kodu** ve **Bağlantı** — istemci uygulamasına aktarmak için istemci yapılandırma bağlantısı. Desteklenen protokole sahip tüm bağlı inbound'lara göre oluşturulur (`GET /links/:email`). Uygun bağlantı yoksa: "Paylaşılacak bağlantı yok — önce istemciyi desteklenen protokole sahip bir girişe bağlayın.".
@@ -2741,7 +2752,7 @@ API üzerinden istemci sorgusu (`GET /panel/api/clients/get/:email`), `client` v
   - Gün, trafik veya flow belirtilmemişse: "Uygulamadan önce gün, trafik veya flow belirtin.". Bildirim: "Değiştirildi: {count}" / "Değiştirildi: {ok}, atlandı: {skipped}".
 
 **Örnek: seçili istemcileri 30 gün uzatmak ve 50 GB eklemek.** **Düzenle** iletişim kutusunda **Gün Ekle** = `30`, **Trafik Ekle (GB)** = `50` girin. Tersine, bir hafta eksiltmek ve kotayı 10 GB azaltmak için negatif değerler girin: **Gün Ekle** = `-7`, **Trafik Ekle (GB)** = `-10` (ilgili alan için süresiz veya limitsiz istemciler atlanır).
-- **Bağla ({count})** / **Bağlantıyı Kes ({count})** (`POST /bulkAttach` / `bulkDetach`) — seçili istemcilerin seçili inbound'lara toplu bağlanması/bağlantısının kesilmesi. Hedefler yalnızca çok kullanıcılı inbound'lardır. Bağlantı kesme sonucu: "{detached} bağlantı kesildi, {skipped} atlandı.".
+- **Bağla ({count})** / **Bağlantıyı Kes ({count})** (`POST /bulkAttach` / `bulkDetach`) — seçili istemcilerin seçili inbound'lara toplu bağlanması/bağlantısının kesilmesi. Hedefler yalnızca çok kullanıcılı inbound'lardır. Bağlantı kesme sonucu: "{detached} bağlantı kesildi, {skipped} atlandı.". 3.5.0'dan itibaren istemci formundaki inbound seçicisi **devre dışı bırakılmış inbound'ları gizler** (istemcinin zaten bağlı olduğu inbound'lar hariç); «Bağlantıyı Kes» penceresinde aynı istemcinin kayıtlarının kopya olarak birikmesi giderildi (veriler panel başlangıcında otomatik olarak onarılır).
 - **Abonelik bağlantıları ({count})** — seçili istemcilerin abonelik URL'lerini ve JSON abonelik URL'lerini **Tümünü Kopyala** düğmesiyle birlikte gösteren özet tablo. Hiç kimsenin subId'si yoksa: "Seçili istemcilerin hiçbirinin Abonelik ID'si yok.".
 - **Gruba Ekle** ve **Gruptan Çıkar** — grup etiketinin atanması ve kaldırılması.
 
@@ -2762,9 +2773,11 @@ Hiçbir şey seçili değilken, **İstemciler** sayfasındaki **Daha Fazla** men
 
 ### 8.5. Arama, Filtreler ve Sıralama
 
-Listenin üzerinde bir arama çubuğu ("Email, yorum, sub ID, UUID, parola, auth ara…") bulunur — email, yorum, subId, UUID, parola ve auth üzerinde arama yapar. Sonuç sayacı: "{total} içinden {shown} gösteriliyor".
+Listenin üzerinde bir arama çubuğu ("Email, yorum, sub ID, UUID, parola, auth, Telegram ID ara…") bulunur — email, yorum, subId, UUID, parola, auth ve (3.5.0 ile yeniden) **Telegram ID** üzerinde arama yapar. Sonuç sayacı: "{total} içinden {shown} gösteriliyor".
 
 İstemci listesi otomatik olarak güncellenir: panel her birkaç saniyede bir geçerli sayfayı yeniler; bu nedenle yeni bağlanan istemciler ve değişen sıralama düzeni manuel yenileme gerektirmeden görünür (arka plan yoklaması sırasında yükleme göstergesi yanıp sönmez).
+
+3.5.0'dan itibaren tabloda («Trafik» ile «Kalan» arasında) bir **«Hız»** sütunu vardır: istemcinin canlı hızı — mavi bir `↑ yükleme / ↓ indirme` etiketi (~5 saniyelik kayan ortalama, her 5 saniyede bir güncellenir); trafik yoksa — gri bir çizgi. Mobil cihazlarda hız, istemci kartında bir satır olarak gösterilir.
 
 **İstemci Filtresi** paneli, duruma (kategoriye), protokole, bağlı inbound'a, geçerlilik tarihi aralığına, kullanılan trafik aralığına, otomatik yenileme varlığına (**Var/Yok**), Telegram ID ve yorum varlığına ve gruba göre filtrelemeye olanak tanır. Düğümlü panellerde **Düğümler** çok seçimi belirir: liste seçili düğümlerin istemcileriyle sınırlandırılabilir; ayrı **Yerel Panel** seçeneği, düğüme bağlı olmayan inbound'ların istemcilerini filtreler (filtre yalnızca düğümler mevcut olduğunda görünür). Sıralama: **Önce Eskiler/Yeniler**, **Son Güncellenenler**, **Son Çevrimiçi**, **Email A→Z / Z→A**, **Daha Fazla Trafik**, **Daha Fazla Kalan**, **Yakında Sona Erecekler**.
 
@@ -3158,7 +3171,7 @@ Her iki yol da tanımlanmış ve sertifika başarıyla yüklenebiliyorsa, abonel
 
 | Alan (UI) | Anahtar | Varsayılan | Açıklama |
 |---|---|---|---|
-| Abonelik güncelleme aralıkları | `subUpdates` | `12` | İstemci uygulamasının aboneliği ne sıklıkla (saat cinsinden) yeniden sorgulaması gerektiği. İpucu: «İstemci uygulamasındaki güncellemeler arasındaki aralık (saat)». |
+| Abonelik güncelleme aralıkları | `subUpdates` | `12` | İstemci uygulamasının aboneliği ne sıklıkla (saat cinsinden) yeniden sorgulaması gerektiği. İpucu: «İstemci uygulamasındaki güncellemeler arasındaki aralık (saat)». 3.5.0'dan itibaren alan **0–525600** kabul eder ve aralığı gösterir (önceki 168 arayüz sınırı sunucuyla uyuşmuyor ve 2.x'ten yükseltme sonrasında hiçbir ayarın kaydedilememesine yol açıyordu). |
 
 Değer, istemciye `Profile-Update-Interval` HTTP başlığı ile iletilir; modern istemciler bunu yapılandırmanın otomatik güncelleme periyodu olarak kullanır.
 
@@ -3203,7 +3216,7 @@ Bu dizeler, istemciye HTTP yanıt başlıklarıyla iletilir ve VPN istemcisinde 
 | Abonelik başlığı | `subTitle` | `Profile-Title` (Base64'te) | «VPN istemcisinde istemcinin gördüğü abonelik adı». Clash için ayrıca `Content-Disposition` aracılığıyla içe aktarılan profil adı olarak kullanılır. |
 | Destek URL'si | `subSupportUrl` | `Support-Url` | «VPN istemcisinde görüntülenen teknik destek bağlantısı». |
 | Profil URL'si | `subProfileUrl` | `Profile-Web-Page-Url` | «VPN istemcisinde görüntülenen web sitenizin bağlantısı». Tanımlanmamışsa gerçek abonelik isteği URL'si kullanılır. |
-| Duyuru | `subAnnounce` | `Announce` (Base64'te) | «VPN istemcisinde görüntülenen duyuru metni». |
+| Duyuru | `subAnnounce` | `Announce` (Base64'te) | «VPN istemcisinde görüntülenen duyuru metni». 3.5.0'dan itibaren metin (boş değilse) **abonelik bilgi sayfasının üstünde bir bilgi afişi olarak** da gösterilir; özel şablonlarda `announce` değişkeni kullanılabilir. |
 
 Buna ek olarak her yanıtta, istemcinin toplu trafik verileri olan `upload`, `download`, `total` ve `expire` (saniye cinsinden bitiş anı) bilgilerini içeren `Subscription-Userinfo` başlığı iletilir. İstemci bunu kalan trafik ve geçerlilik süresini göstermek için kullanır.
 
@@ -3254,15 +3267,17 @@ Düğümler arasındaki senkronizasyon bozukluğu nedeniyle aynı istemci dahili
 
 **Hosts** bölümü (kenar çubuğu menüsü; Toplam/Etkin/Devre Dışı sayısı ve listeyle özet sayfa), abonelik bağlantıları için adres geçersiz kılmaları tanımlar. Her inbound için bir veya daha fazla **host** — istemciye iletilen abonelik bağlantılarında inbound'un kendi adresi, portu ve TLS parametrelerinin **yerine geçen** endpoint'ler — eklenebilir. Bu, inbound'u değiştirmeksizin trafiği CDN veya röle üzerinden dağıtmak için kullanışlıdır.
 
-Her host için şunlar belirlenir:
+**3.5.0 sürümünden itibaren host bir «grup»tur**: tek kayıt aynı anda **birden fazla inbound** ve **birden fazla adres** kapsar. Liste işlemleri (etkinleştirme/devre dışı bırakma/silme/yer değiştirme) ve API gruplarla çalışır (dize türünde `groupId`); toplu `POST /panel/api/hosts/bulk/add` uç noktası eklendi (`{"inboundIds": [...], "hosts": [...], ...}`); `list`/`get`/`update`/`del`/`setEnable` ise grup nesneleri üzerinde işlem yapar.
 
-- **Remark** ve açıklama (Description), belirli bir **Inbound**'a bağlama, **Enable** geçiş düğmesi ve düğümlere atama (**Nodes**).
-- **Address** (boş — inbound adresi devralınır) ve **Port** (`0` — inbound portu devralınır); **Tags** (yalnızca RAW aboneliğinde dikkate alınır).
+Her host (grup) için şunlar belirlenir:
+
+- **Remark** ve açıklama (Description), **Inbounds**'a bağlama (aramalı çoklu seçim; en az bir), **Enable** geçiş düğmesi ve düğümlere atama (**Nodes**).
+- **Address** — 3.5.0'dan itibaren bu bir **adres listesidir** (etiket olarak giriş; ayırıcılar — virgül, noktalı virgül, boşluk; yer tutucu `cdn.example.com, cdn2.example.com:443`). Her kaydın kendi gömülü `:port`'u olabilir (köşeli parantezli IPv6 dahil, `[::1]:443`); açılır öneri, diğer hostların zaten kullandığı adresleri sunar. Boş liste — inbound'un kendi adresi devralınır (listede bu, turuncu **Inherits** etiketidir). **Port** (`0` — inbound portu devralınır), gömülü portu olmayan kayıtlar için varsayılan port görevi görür; **Tags** (yalnızca RAW aboneliğinde dikkate alınır).
 - **Security** sekmesi — SNI, parmak izi (fingerprint), ALPN, sertifika sabitleme (pinned-cert), `allowInsecure` ve ECH ile birlikte `same` / `tls` / `none` / `reality`.
-- **Advanced** sekmesi — Host başlığı, Yol, VLESS yolu, Mux, Sockopt, Final Mask ve hostu ayrı abonelik formatlarından (raw / json / clash) dışlama.
+- **Advanced** sekmesi — Host başlığı, Yol, VLESS yolu, Mux, Sockopt, Final Mask ve hostu ayrı abonelik formatlarından (raw / json / clash) dışlama. 3.5.0'dan itibaren **hostun Final Mask'ı raw bağlantılara da girer** (`fm=`; önceden yalnızca JSON/Clash'e): hostun TCP/UDP maskeleri inbound'un maskelerine eklenir, hostun QUIC parametreleri yalnızca inbound'da yoksa alınır. **Allow insecure** anahtarı artık **Hysteria/Hysteria2** için de geçerlidir (bağlantıda `insecure=1`, Clash'te `skip-cert-verify: true`).
 - **Clash (mihomo)** sekmesi — IP sürümü, Mihomo X25519, host karıştırma (Shuffle host).
 
-Hostlar kendi inbound'ları kapsamında sıralanır ve toplu etkinleştirme, devre dışı bırakma ve silmeyi destekler. Yönetilen hostlar eski External Proxy dizisinin yerini almaktadır.
+Listede **Endpoint** sütunu adresleri çipler halinde gösterir (ilki görünür, geri kalanlar «+N» açılır kutusundadır); **Inbounds** sütunu ise protokole göre renklendirilmiş inbound çiplerini gösterir. 3.5.0'dan itibaren hostlar inbound kapsamında değil, **genel olarak** sıralanır (sıralama düzenine, ardından açıklamaya göre); toplu etkinleştirme/devre dışı bırakma/silme korunmuştur. Yönetilen hostlar eski External Proxy dizisinin yerini almaktadır.
 
 **VLESS rotası (VLESS route).** 3.4.2 sürümünden itibaren bu tek bir `0-65535` sayısıdır (port listesi değil; ipucu — «UUID'ye gömülen tek bir VLESS route değeri (0-65535), örneğin 443; boş — yok», yer tutucu `443`). Belirtilen değer, oluşturulan her aboneliğin UUID'sine gerçekten «gömülür» (raw / JSON / Clash): Xray, UUID'nin 6-7. baytlarını okur ve kimlik doğrulamadan önce maskeler, bu nedenle istemci yine de eşleşir. Boş veya geçersiz değer UUID'yi değiştirmez.
 
@@ -3287,7 +3302,7 @@ Endpoint `subJsonPath` (varsayılan `/json/`), ayrı bir onay kutusuyla etkinle�
 |---|---|---|---|
 | JSON aboneliği | `subJsonEnable` | `false` | «JSON abonelik endpoint'ini bağımsız olarak etkinleştir/devre dışı bırak.». |
 
-Tam JSON yapılandırması döndürür (sing-box ve türev istemcilerin anlayabileceği format — Podkop, OpenWRT sing-box, Karing, NekoBox). Bu format için ek parametreler mevcuttur (`subFormats` sekmesi):
+Tam JSON yapılandırması döndürür (sing-box ve türev istemcilerin anlayabileceği format — Podkop, OpenWRT sing-box, Karing, NekoBox). 3.5.0'dan itibaren **yerel WireGuard inbound'larının** istemcileri de JSON aboneliğine girer (`secretKey`, `address`, `publicKey`/`endpoint`/`preSharedKey`/`keepAlive`/`allowedIPs` içeren `peers[]`, `mtu`) — önceden sessizce atlanıyorlardı. Bu format için ek parametreler mevcuttur (`subFormats` sekmesi):
 
 - **Mux** (`subJsonMux`, varsayılan boş) — JSON aboneliğinin her akışına eklenen çoğullama (Mux) JSON ayarları. «Tek bir bağlantıda birden fazla bağımsız veri akışının iletimi.».
 - **Final Mask** (`subJsonFinalMask`, varsayılan boş) — «Her JSON abonelik akışına eklenen xray finalmask maskeleri (TCP/UDP) ve QUIC ayarları. İstemcide güncel bir xray sürümü gerektirir.». Alt alanlar aracılığıyla yapılandırılır: «Paketler» (`packets`), «Uzunluk» (`length`), «Aralık» (`interval`), «Maks. bölünme» (`maxSplit`), «Gürültüler» (`noises`: «Tür»/`type`, «Paket»/`packet`, «Gecikme (ms)»/`delayMs`, «Uygula»/`applyTo`, «+ Gürültü» düğmesi), ayrıca «Eşzamanlılık» (`concurrency`), «xudp eşzamanlılığı» (`xudpConcurrency`) ve «xudp UDP 443» (`xudpUdp443`).
@@ -3305,13 +3320,13 @@ Endpoint `subClashPath` (varsayılan `/clash/`), ayrı bir onay kutusuyla etkinl
 
 Yanıt `application/yaml; charset=utf-8` türüyle döndürülür. «Abonelik başlığı» (`subTitle`) tanımlanmışsa aynı zamanda `Content-Disposition` başlığında (`attachment; filename*=UTF-8''<başlık>`) iletilir; böylece Clash istemcisi içe aktarılan profili bu isimle adlandırır.
 
-Oluşturulan bağlantıların ve YAML'ın formatı, modern istemciler için güncel tutulur: Shadowsocks-2022 (SS2022) artık userinfo'yu Base64 ile kodlamaz; http gizleme ile Shadowsocks bağlantıları `obfs-local` eklentisiyle SIP002 formatında döndürülür; Clash/Mihomo abonelikleri için XHTTP alanlarının tam seti uygulanır. Bunlar için ayrı bir ayar gerekmez — bağlantılar yalnızca istemciler tarafından daha doğru tanınır.
+Oluşturulan bağlantıların ve YAML'ın formatı, modern istemciler için güncel tutulur: Shadowsocks-2022 (SS2022) artık userinfo'yu Base64 ile kodlamaz; http gizleme ile Shadowsocks bağlantıları `obfs-local` eklentisiyle SIP002 formatında döndürülür; Clash/Mihomo abonelikleri için XHTTP alanlarının tam seti uygulanır. 3.5.0'dan itibaren **yerel WireGuard inbound'larının** istemcileri de Clash/Mihomo aboneliğine girer (`private-key`, `public-key`, `pre-shared-key`, `persistent-keepalive`, `ip`/`ipv6`, `mtu`, `dns` alanları) — önceden sessizce atlanıyorlardı. Bunlar için ayrı bir ayar gerekmez — bağlantılar yalnızca istemciler tarafından daha doğru tanınır.
 
 > Not: Bu derleme yalnızca üç formatı destekler — normal bağlantılar (Base64/metin), JSON (sing-box uyumlu) ve Clash/Mihomo (YAML). Abonelik sunucusunda ayrı bir Outline formatı yoktur.
 
 ### 10.4. Abonelik bilgi sayfası ve QR kodları
 
-Abonelik bağlantısı tarayıcıda açılırsa (veya URL'ye açıkça `?html=1` ya da `?view=html` parametresi eklenirse ya da `Accept: text/html` başlığı gönderilirse), sunucu «ham» yanıt yerine görsel bir **abonelik bilgi sayfası** («Abonelik Bilgisi») döndürür. VPN istemcileri HTML talep etmediğinden makine tarafından okunabilir yanıt almaya devam eder.
+**Üç abonelik bağlantısından herhangi biri** — raw, JSON veya Clash — tarayıcıda açılırsa (veya URL'ye açıkça `?html=1` ya da `?view=html` parametresi eklenirse ya da `Accept: text/html` başlığı gönderilirse), sunucu «ham» yanıt yerine görsel bir **abonelik bilgi sayfası** («Abonelik Bilgisi») döndürür. 3.5.0'dan önce bu yalnızca ana `/sub/` bağlantısında çalışıyor, `/json/` ve `/clash/` ise tarayıcıya ham JSON/YAML döndürüyordu. VPN istemcileri HTML talep etmediğinden makine tarafından okunabilir yanıt almaya devam eder.
 
 Sayfa (Vite ile derlenen tek sayfalık uygulama) şunları gösterir:
 
@@ -3491,6 +3506,8 @@ Freedom için `domainStrategy` (Xray-core değerleri): `AsIs` (sunucu tarafında
 | Alan | Başlık | Açıklama |
 |---|---|---|
 | `FreedomHappyEyeballs` | **Freedom Happy Eyeballs (IPv4/IPv6)** | Açıklama: *«Doğrudan (freedom) giden için çift yığın bağlantı — IPv4 ve IPv6'ya sahip çıkış sunucularında kullanışlıdır.»* Freedom-outbound için Happy Eyeballs algoritmasını etkinleştirir (her iki adres ailesinde eş zamanlı deneme). |
+
+Ayrı bir Happy Eyeballs, **belirli bir outbound'un dial (sockopt) ayarlarında** da vardır: 3.5.0'dan itibaren gerçekten etkinleşir (önceden yapılandırma kapalı olarak serileştiriliyor ve anahtar «geri dönüyordu»). «Try delay (ms)» varsayılanı artık **250**'dir; açıkça girilen `0` (= kapalı) korunur; ayrıca Prioritize IPv6, interleave (1) ve maxConcurrentTry (4) da mevcuttur.
 | try delay | (açıklama) | *«Başka adres ailesini denemeden önce geçen milisaniye. 150–250 ms iyi bir başlangıç noktasıdır.»* Alternatif adres ailesine geçmeden önceki gecikme. Önerilen aralık: 150–250 ms. |
 
 #### Overall Routing Strategy
@@ -3508,6 +3525,10 @@ Freedom için `domainStrategy` (Xray-core değerleri): `AsIs` (sunucu tarafında
 | `outboundTestUrl` | **Giden Test URL'si** | outbound test edilirken bağlantıyı kontrol etmek için URL. Açıklama: *«Giden bağlantısını kontrol etmek için URL»*. Şablondan ayrı olarak `xrayOutboundTestUrl` anahtarı altında saklanır. | **`https://www.google.com/generate_204`** |
 
 Değer sanitizasyondan geçer. outbound test edilirken, SSRF'ye karşı koruma olarak ek bir doğrulama genel URL'ye yapılır: kullanıcı istemci aracılığıyla rastgele (dahili dahil) bir URL giremez, test URL'si her zaman sunucu ayarından alınır. Kaydetme/test sırasında boş bir değer varsayılan `generate_204` ile değiştirilir.
+
+#### Default Outbound (3.5.0'dan itibaren)
+
+**«Temel Yönlendirme»** sekmesinin ilk öğesi — **Default Outbound** seçicisi: «Hiçbir yönlendirme kuralıyla eşleşmeyen trafik bu outbound'u kullanır (Xray listedeki ilk outbound'u alır)». Listede `direct`, `blocked` ve mevcut tüm etiketler bulunur; varsayılan `direct`. Seçim, **belirtilen outbound'u şablonun ilk konumuna taşır**; eksik `direct`/`blocked` anında oluşturulur ve geçiş sırasında silinmez.
 
 #### Block BitTorrent
 
@@ -3634,6 +3655,7 @@ Referans şablonda iki zorunlu outbound vardır:
 | Protokol | — | Giden türü (aşağıya bakın). |
 | Adres / Port | **Adres** / Port | Bağlantı hedefi. Adres ve port zorunludur. |
 | Üzerinden Gönder | **Üzerinden Gönder** | Giden arayüzünün yerel IP adresi (`sendThrough`). Yer tutucu: *«yerel IP»*. |
+| Target Strategy | **Target Strategy** | **3.5.0'da yeni.** Hedef alan adının bağlanmadan önce nasıl çözümleneceği. 11 değer: `AsIs` (varsayılan, çözümlenmez), `UseIP`, `UseIPv4`, `UseIPv6`, `UseIPv6v4`, `UseIPv4v6` (fallback'li çözümleme), `ForceIP`, `ForceIPv6v4`, `ForceIPv6`, `ForceIPv4v6`, `ForceIPv4` (başarılı çözümleme gerektirir). Boş = `AsIs` (yapılandırmaya yazılmaz); `freedom` için değer, önceki `domainStrategy`'ye geri düşülerek okunur (eski çekirdekler için legacy anahtar yazılmaya devam eder). |
 | Dialer proxy (zincir) | — | Açıklama: *«Bir proxy zinciri oluşturmak için bu outbound'u başka bir outbound üzerinden (etikete göre) bağlayın. Doğrudan bağlantı için boş bırakın.»* Yer tutucu: *«Zincir için outbound seçin»*. `streamSettings.sockopt.dialerProxy` aracılığıyla uygulanır. |
 
 **Dialer Proxy** açılır listesi yalnızca yerel outbound'ları değil, aboneliklerden alınan outbound etiketlerini de gösterir — böylece zincir bir abonelik üzerinden alınan çıkış noktası üzerinden de kurulabilir. Listeden blackhole-outbound ve düzenlenen outbound hariç tutulmaya devam eder. Doğrudan bağlantı için alanı boş bırakın.
@@ -3654,6 +3676,8 @@ Form tarafından desteklenen protokoller:
 **loopback** türünde outbound için, inbound'daki ile aynı parametreleri içeren **Sniffing** bloğu mevcuttur: etkinleştirme, **destOverride**, **Metadata Only**, **Route Only** ve **dışlanan etki alanları** listesi.
 
 **UDP** maskesinde (FinalMask), **Hysteria2** için ek modlar mevcuttur. **Salamander** maskesinin **Mode** seçicisi **Salamander** ve **Gecko** değerlerine sahiptir: Gecko modu, **Min**/**Max** boyut alanlarıyla (`packetSize`, 1–2048 aralığı, varsayılan 512–1200) rasgele paket dolgusu ekler — bu, paket uzunluğuna göre parmak izine karşı koruma sağlar. **Realm** maskesinde (UDP hole-punching), **Server Name** (SNI), **ALPN** (`h3`/`h2`/`http/1.1`), **Fingerprint** (uTLS) alanları ve **Allow Insecure** anahtarı içeren isteğe bağlı **TLS Config** bloğu eklendi.
+
+3.5.0 ile yeni bir **TCP maskesi** türü eklendi — **XMC (Minecraft)** (`xmc`): akış Minecraft protokolü gibi maskelenir. Alanlar: **Hostname** (isteğe bağlı; «el sıkışmada taklit edilen sunucu adresi»), **Usernames** (isteğe bağlı liste; «prob yapanlara sunulan oyuncu adları; çekirdek varsayılan olarak Dream kullanır») ve zorunlu **Password** (16 karakter, ↻ düğmesiyle otomatik oluşturma; «gizleme parolası»). Önemli: **TCP Finalmask ile REALITY kombinasyonu kaydetme sırasında reddedilir** — ilk bağlantıda Xray-core'u çökertiyordu (hata: «Finalmask is not supported with REALITY security…»; bkz. Xray-core#6453). REALITY ile UDP maskesi kullanılabilir; daha önce kaydedilmiş hatalı kombinasyonlar yapılandırma oluşturulurken otomatik olarak «iyileştirilir» (maske atılır).
 
 **Örnek: üst akış SOCKS üzerinden zincir.** `upstream` outbound'u harici bir SOCKS5 proxy'ye bağlanır, `chained` ise trafiğini onun üzerinden (`dialerProxy`) gönderir ve böylece bir zincir oluşturur. `outbounds`'da:
 
@@ -3720,7 +3744,13 @@ Düğmeler: **Test**, **Tümünü Test Et**. Durumlar: **Bağlantı test ediliyo
 - **TCP** (`mode=tcp`) — `host:port`'a basit dial, tüm uç noktalarda paralel olarak gerçekleştirilir, ~5 s zaman aşımı. Yalnızca TCP erişilebilirliğini kontrol eder, proxy protokolünü doğrulamaz. `freedom`/`blackhole`/`blocked` etiketi için *«Outbound has no testable endpoint»* döner.
 - **HTTP** (`mode=http` veya boş) — Xray'in geçici bir örneğini başlatır, gerçek bir HTTP isteğini (probe URL = sunucu `outboundTestUrl`) gönderir, gerçek gecikmeyi ölçer. Güvenilir ancak maliyetli mod: global kilit tarafından serileştirilir (*«Another outbound test is already running, please wait»*). Tek deneme zaman aşımı — 10 s, sonuç bekleme penceresi — 15 s (yavaş veya tünelli kanallar üzerindeki sağlıklı outbound'ların «Başarısız» olarak işaretlenmemesi için artırıldı). Başarısız olduğunda gerçek neden (DNS hatası, bağlantı reddedildi, son tarih aşımı, TLS hatası vb.) panel/Xray günlüğüne yazılır ve genel zaman aşımı mesajları buna işaret eder.
 
+- **Real delay** (**3.5.0'da yeni**) — anahtarın üçüncü modu. Aynı geçici Xray örneğini kullanır, ancak **tünel kurulumu dahil «soğuk» isteğin tam süresini** bildirir — istemci uygulamalarının gösterdiğine yakın bir rakam. Anahtarın açıklaması: «TCP: hızlı dial araştırması. HTTP: xray üzerinden tam istek. Real delay: bağlantı kurulumu dahil tam süre». Normal **HTTP** modu 3.5.0'dan itibaren «ısınmış» (keep-alive) bağlantı üzerinden ölçülür; bu nedenle rakamları daha düşüktür ve tek bir isteğin gecikmesine daha yakındır.
+
 > UDP protokolleri (`wireguard`, `hysteria`) ve UDP aktarımları (`kcp`, `quic`, `hysteria`) TCP istenmiş olsa bile **her zaman** HTTP modunda test edilir — saf UDP dial'i «canlı» uç noktayı «ölü»den ayırt edemez. wireguard için test yapılandırmasında `noKernelTun: true` zorunlu olarak ayarlanır.
+
+#### Egress ve Country sütunları (3.5.0'dan itibaren)
+
+Başarılı bir **HTTP** veya **Real delay** testinden sonra panel, aynı geçici rota üzerinden Cloudflare trace meta verilerini sorgular ve outbound listesinde iki sütun gösterir: **Egress** — çıkış IP'si (IPv4/IPv6, her biri «göz» arkasına gizlidir; henüz test yoksa — «Çıkış IP'sini ve ülkeyi göstermek için bir HTTP testi çalıştırın» ipuçlu çizgi) ve **Country** — çıkış ülkesinin bayrağı ve adı; çıkış Cloudflare WARP üzerinden gidiyorsa turuncu bir WARP etiketi eklenir. TCP testi bu sütunları doldurmaz; mobil cihazlarda veriler outbound kartında gösterilir.
 
 #### Toplu kontrol ve aşama dökümü
 
@@ -3740,7 +3770,7 @@ Yük Dengeleyiciler sekmesinde canlı durum sütunları bulunur: **Live Target**
 |---|---|---|
 | Etiket | **Etiket** (açıklama: *«Benzersiz etiket»*) | Benzersiz tanımlayıcı. Yer tutucu: *«benzersiz yük dengeleyici etiketi»*. Doğrulama: *«Etiket zorunludur»*, *«Etiket başka bir yük dengeleyici tarafından kullanılıyor»*. |
 | Seçiciler | **Seçiciler** | Yük dengeleyicinin çıkış seçtiği outbound etiketlerinin listesi (alt dizeye göre). En az biri seçilmelidir: *«En az bir giden seçin»*. |
-| Yedek | **Yedek** | Hiçbir seçici eşleşmezse yedek outbound etiketi. |
+| Yedek | **Yedek** | Hiçbir seçici eşleşmezse yedek etiket. **3.5.0'dan itibaren başka bir yük dengeleyici de seçilebilir** (listede bu seçenekler mavi «Balancer» etiketiyle işaretlenir, ipucu «Fallback olarak başka bir yük dengeleyici seçin»). Xray bunu doğal olarak yapamaz; bu nedenle panel gizli loopback outbound `_bl_<hedef>` nesnesini ve yönlendirme kuralını kendisi oluşturur (yol: yük dengeleyici → loopback → sunucu → hedef yük dengeleyici → outbound; fazladan «sekme (hop)» uyarısı formda gösterilir). Döngülere karşı koruma («seçilemez — döngüsel bağımlılık oluşurdu» hatası, listedeki seçenek döngü yolu ipucuyla engellenir) ve kullanılan yük dengeleyicinin silinmesine karşı koruma («Silinemez — şuralarda fallback olarak kullanılıyor: …») vardır. `_bl_` etiket öneki ayrılmıştır (etiketlerde yasaktır); hizmet amaçlı `_bl_` nesneleri Outbounds/Routing listelerinden gizlenir; Fallback/Live Target/Override sütunları loopback etiketini değil, hedef yük dengeleyicinin adını gösterir. |
 | Strateji | **Strateji** | Seçim algoritması (aşağıya bakın). |
 
 #### Strateji ve gözlem parametreleri
@@ -3846,6 +3876,8 @@ Bir outbound veya yük dengeleyici silinirken panel, aynı işlemde **yönlendir
 ### 11.6. DNS
 
 `dns` bölümü. Etkinleştirme: **DNS'yi Etkinleştir** (açıklama: *«Yerleşik DNS sunucusunu etkinleştir»*).
+
+> 3.5.0'dan itibaren **özel IP'lerdeki** DNS sunucuları (örneğin aynı docker ağındaki kendi AdGuard/Pi-hole'unuz) «kutudan çıktığı gibi» çalışır: panel, yönetilen bir izin kuralını (DNS sunucusunun portuyla sınırlı direct) engelleyici `geoip:private` kuralının **önüne** otomatik olarak ekler, sürdürür ve `dns.servers` değiştiğinde senkronize eder. Önceden Xray'in kendi DNS sorguları bu kuralla sessizce engelleniyor ve her yeni alan adına ~4 s gecikme ekliyordu; artık elle kural gerekmez (elle oluşturulanlara dokunulmaz).
 
 #### Genel DNS parametreleri
 
@@ -4066,7 +4098,7 @@ Xray ayarları kaydedilirken panel şu işlemleri gerçekleştirir (bu sırayla)
 
 ### 11.12. Abonelikten outbound (otomatik güncelleme ile)
 
-3.3.0 sürümünden itibaren panel, VPN sağlayıcılarının istemci uygulamaları için dağıttığı biçimle aynı formattaki abonelik URL'sinden doğrudan `outbound`'ları içe aktarabilir. Abonelikler arka planda düzenli olarak yeniden okunur, böylece sunucudaki `outbound`'lar yapılandırma şablonu manuel olarak düzenlenmeden güncel tutulur.
+3.3.0 sürümünden itibaren panel, VPN sağlayıcılarının istemci uygulamaları için dağıttığı biçimle aynı formattaki abonelik URL'sinden doğrudan `outbound`'ları içe aktarabilir. Abonelikler arka planda düzenli olarak yeniden okunur, böylece sunucudaki `outbound`'lar yapılandırma şablonu manuel olarak düzenlenmeden güncel tutulur. 3.5.0'dan itibaren query parametreli (`?plugin=`, `?type=`) veya sonda `/` bulunan `ss://` bağlantılarının (SIP002) portu doğru ayrıştırılır (önceden sessizce `0` oluyordu); portu gerçekten geçersiz olan bağlantı ise bozuk şekilde içe aktarılmak yerine atlanır.
 
 Bölüm panelde **«Giden Abonelikleri»** olarak adlandırılır, açıklaması: «Uzak abonelik URL'lerinden (vmess/vless/trojan/ss/...) gidenleri içe aktarın. Etiketler yük dengeleyicilerde ve yönlendirme kurallarında kullanım için değişmeden kalır. Güncelleme otomatik olarak yapılır.» Bölüm, Xray sayfasında `outbound` ayar panelinin üzerinde yer alır.
 
@@ -4425,7 +4457,19 @@ Topoloji düz olmayabilir: bir düğüm kendisi de kendi düğümleri için mast
 - Alt düğümün kimliği GUID'iyle belirlenir; bu sayede çevrimiçi istemciler ve inbound'lar, `Node1 → Node2 → Node3` zincirinde bile fiziksel olarak barındıran düğüme atanır (master, her doğrudan düğüm üzerinden bir seviye derine «geçer»).
 - Doğrudan düğüm erişilemez hale gelirse alt düğüm önbelleği temizlenir ve bağlantı yenilenene kadar alt düğümler ağaçtan kaybolur.
 
-### 12.9. Düğümler: 3.3.0'daki Yenilikler
+### 12.9. 3.5.0 Düzeltmeleri (düğüm kararlılığı)
+
+3.5.0'daki, düğüm operatörünün fark edeceği düzeltme paketi:
+
+- **İstemciyi değişiklik yapmadan kaydetmek artık düğüm trafiğini bozmuyor.** Önceden istemcinin herhangi bir şekilde kaydedilmesi (hatta «açtım — kaydettim») düğüme, Xray işleyicisinin yeniden oluşturulmasını içeren tam bir inbound güncellemesi gönderiyordu — düğüm çevrimiçi görünüyor ama elle yeniden başlatılana kadar trafik geçirmiyordu. Artık no-op kaydetmeler hiçbir şey yapmaz; gerçek düzenlemeler ise yeniden oluşturma olmadan tek bir hafif güncellemeyle gider.
+- **Düğümün Host geçersiz kılmaları master'a alınır**: düğümün inbound'u ilk kez kabul edildiğinde Hosts satırları (SNI, parmak izi, ALPN vb.) içe aktarılır ve abonelikler doğru TLS parametrelerini taşır.
+- **Düğümdeki otomatik yenileme yeni bir kota penceresi açar** («30 günde bir 100 GB» türü paket yeniden tam hacmi verir).
+- **İstemcinin master'da silinmesi onu düğümlerde tamamen siler** (kayıt + trafik), yalnızca bağlantısını kesmez; önceki toplu silmelerden kalanlar, düğümdeki «Bağsız İstemcileri Sil» işlemiyle temizlenebilir.
+- **Düğümün inbound'ları ilk kabulden önce süpürülmez**: yeni eklenmiş bir düğümü kaydetmek artık onun canlı inbound'larını silemez.
+- **Tek bir hatalı inbound, düğümün trafik senkronizasyonunu durdurmaz** (ayrıca düğümlerdeki eski `socks` inbound'ları `mixed` olarak yeniden adlandırılır).
+- **Port çakışması denetimi kendi düğümüyle sınırlandırıldı** — düğümdeki inbound'un dinleme adresini düzenlemek, başka bir düğümdeki aynı port nedeniyle artık reddedilmez («port … already used by inbound …»).
+
+### 12.10. Düğümler: 3.3.0'daki Yenilikler
 
 3.3.0 sürümünde **Düğümler** bölümü üç önemli iyileştirme aldı: çok atlamalı (multi-hop) topolojilerde doğru trafik ve çevrimiçi istemci ataması, düğümler arasında istemci IP senkronizasyonu ve düğümün paneli çevrimiçiyken Xray çekirdeğinin çökmesi durumu için ayrı bir durum göstergesi.
 
@@ -4963,7 +5007,7 @@ Kullanıcının Telegram User ID'siyle eşleşen hiçbir istemci yoksa bot şu m
 
 ### 14.3. Bot Komutları
 
-Botun Telegram'daki «/» menüsünde görünen dört kayıtlı komutu vardır:
+3.5.0 sürümünden itibaren botun Telegram'daki «/» menüsünde **sekiz** kayıtlı komutu vardır:
 
 | Komut | Açıklama (menüden) | Erişim | Ne yapar |
 |---|---|---|---|
@@ -4971,8 +5015,12 @@ Botun Telegram'daki «/» menüsünde görünen dört kayıtlı komutu vardır:
 | `/help` | Bot yardımı | herkes | Genel karşılama ve menü seçimi önerisi gösterir. |
 | `/status` | Bot durumunu kontrol et | herkes | «✅ Bot normal çalışıyor» yanıtını verir. |
 | `/id` | Telegram ID'nizi göster | herkes | «🆔 User ID'niz: <code>…</code>» döndürür. Kendi User ID'nizi öğrenmek için kullanışlıdır. |
+| `/usage` | İstemci kullanımını göster: /usage email | herkes (aşağıya bakın) | 3.5.0'da menüye eklendi. |
+| `/inbound` | inbound ara: /inbound remark (admin) | yönetici | 3.5.0'da menüye eklendi. |
+| `/restart` | Xray çekirdeğini yeniden başlat (admin) | yönetici | 3.5.0'da menüye eklendi. |
+| `/clearall` | Tüm istemcilerin trafiğini sıfırla (admin) | yönetici | **3.5.0'da yeni**: onay ister («İptal» / «Trafik sıfırlamayı onayla» düğmeleri) ve tüm istemcilerin trafiğini sıfırlar. |
 
-Kayıtlı komutlara ek olarak «/» menüsünde görünmeyen ancak çalışan üç bağımsız değişken komutu daha işlenir:
+Bağımsız değişkenli komutların ayrıntıları:
 
 - **`/usage [Email]`** — e-postaya göre istemci arama.
   - **Yönetici** için tam istemci kartını (yönetim düğmeleriyle birlikte) gösterir.
@@ -4981,6 +5029,8 @@ Kayıtlı komutlara ek olarak «/» menüsünde görünmeyen ancak çalışan ü
 - **`/restart`** — yalnızca yönetici için. Xray Core'u yeniden başlatır. Olası yanıtlar: «✅ Xray çekirdeği başarıyla yeniden başlatıldı», «❗ Xray Core çalışmıyor» (çekirdek çalışmıyorsa), «❗ Xray core yeniden başlatılırken hata. <Hata>». `/restart`'tan sonra herhangi bir bağımsız değişken, `/restart` ipucuyla birlikte bilinmeyen komut mesajı üretir.
 
 Grup sohbetlerinde `/komut@botusername` biçimindeki komutlar yalnızca kullanıcı adı mevcut botun adıyla eşleşiyorsa işlenir.
+
+3.5.0'daki üç değişiklik daha: **çevrimiçi istemciler** listesindeki düğmeler `email - inbound açıklaması` olarak etiketlenir (farklı inbound'lardaki aynı adlar artık karışmaz); **yedek** ve **ban günlüğü** mesajları `Hostname==…` satırıyla başlar — tek bot birden fazla panele hizmet verirken kullanışlıdır; istemci kartının **Telegram ID** ile aranması, ayarların JSON biçimlendirmesinden bağımsız çalışır (önceden düğümlerden veya içe aktarmadan gelen «kompakt» kayıtlar bulunamıyordu).
 
 Yönetici yardımı («Komutlar» düğmesi):
 
@@ -5337,7 +5387,7 @@ Panel iki farklı veritabanı motorunu destekler ve yedekleme davranışı buna 
 
 - **SQLite** (varsayılan seçenek) — veriler `x-ui.db` dosyasında saklanır.
 - **PostgreSQL** — panel PostgreSQL kullanacak şekilde yapılandırılmışsa blokta şu bilgi görüntülenir:
-  > «Bu panel PostgreSQL üzerinde çalışmaktadır. «Yedek» bir pg_dump arşivi (.dump) indirir, «Geri Yükle» ise bunu pg_restore aracılığıyla geri yükler. Sunucuda PostgreSQL istemci araçlarının (pg_dump ve pg_restore) kurulu olması gerekir.»
+  > «Bu panel PostgreSQL üzerinde çalışmaktadır. «Yedek» bir pg_dump arşivi (.dump) indirir, «Geri Yükle» ise bunu pg_restore aracılığıyla geri yükler. Geri yükleme ayrıca bir SQLite veritabanını (.db) veya SQLite geçiş dökümünü de kabul eder ve verilerini PostgreSQL'e aktarır. Sunucuda PostgreSQL istemci araçlarının (pg_dump ve pg_restore) kurulu olması gerekir.»
 
 #### Dışa Aktarma (Yedek Oluşturma)
 
@@ -5378,8 +5428,10 @@ Panel temel bir yol (Web Base Path) ile açılmışsa bunu URL'ye eklemeniz gere
 **«Veritabanını İçe Aktar»** düğmesi (İng. `Restore`) dosya seçimi açar ve geri yükleme için dosyayı sunucuya yükler (`POST /panel/api/server/importDB`, form alanı `db`).
 
 Arayüz ipuçları:
-- SQLite: «Veritabanını yedekten geri yüklemek için cihazınızdan bir .db dosyası seçip yüklemek için tıklayın.»
-- PostgreSQL: «PostgreSQL veritabanını geri yüklemek için bir .dump dosyası seçip yüklemek için tıklayın. Bu işlem mevcut tüm verilerin yerini alır.»
+- SQLite: «Veritabanını geri yüklemek için cihazınızdan bir .db dosyası veya geçiş dökümü (.dump) seçip yüklemek için tıklayın.»
+- PostgreSQL: «Veritabanını geri yüklemek için bir PostgreSQL yedeği (.dump), SQLite veritabanı (.db) veya SQLite geçiş dökümü seçip yüklemek için tıklayın. Bu işlem mevcut tüm verilerin yerini alır.»
+
+3.5.0'dan itibaren dosya türü uzantıya göre değil içeriğe göre belirlenir (`PGDMP` — pg_dump arşivi; «SQLite format 3» başlığı — `.db` veritabanı; baştaki `PRAGMA`/`BEGIN TRANSACTION` — metin SQL dökümü); seçim iletişim kutusu her iki DBMS'te de `.dump,.db` kabul eder. PostgreSQL paneline yüklenen SQLite dosyaları PostgreSQL'e tek işlemle (transaction) aktarılır (bkz. 3.14); içe aktarmadan önce dosyanın gerçek bir panel veritabanı olduğu denetlenir, eski şemalar otomatik olarak güncel şemaya taşınır. Bir `pg_dump` arşivini geri yüklemeden önce panel (Xray durdurulmadan) okunabilirliğini önceden denetler: döküm daha yeni bir PostgreSQL ile oluşturulmuşsa, tam komutu içeren bir hata gösterilir — örneğin «…run 'x-ui pgclient 17'…».
 
 **SQLite için içe aktarma süreci (atomik ve geri alınabilir olduğunu anlamak önemlidir):**
 1. Yüklenen dosya format açısından doğrulanır — geçerli bir SQLite veritabanı olmalıdır; aksi takdirde «Invalid db file format» hatası döner.
@@ -5404,16 +5456,15 @@ Arayüz ipuçları:
 
 Normal yedekten ayrı olarak **«Geçiş Dosyasını İndir»** (`Download Migration`, `GET /panel/api/server/getMigration` isteği) işlevi de mevcuttur. Bu işlev, farklı bir veritabanı motoruna geçiş için taşınabilir bir dosya oluşturur:
 
+3.5.0'dan itibaren düğme **yalnızca PostgreSQL panellerinde** gösterilir (SQLite'ta normal `.db` yedeği artık doğrudan PostgreSQL'e geri yüklenebiliyor — ayrı bir dışa aktarma gerekmez):
+
 | Mevcut Motor | İndirilen | Dosya Adı | Amaç |
 |----------------|-----------------|-----------|------------|
-| SQLite | Taşınabilir SQL dökümü (metin) | `x-ui.dump` | Verilerinizle PostgreSQL'i başlatmak |
 | PostgreSQL | PostgreSQL verilerinden oluşturulan SQLite veritabanı | `x-ui.db` | Paneli tekrar SQLite'a geçirmek |
 
-İpuçları:
-- SQLite üzerinde: «SQLite veritabanınızın taşınabilir .dump dışa aktarmasını (SQL metni) indirmek için tıklayın.»
-- PostgreSQL üzerinde: «PostgreSQL verilerinizden oluşturulan ve paneli SQLite üzerinde çalıştırmaya hazır SQLite veritabanını (.db) indirmek için tıklayın.»
+İpucu: «PostgreSQL verilerinizden oluşturulan ve paneli SQLite üzerinde çalıştırmaya hazır SQLite veritabanını (.db) indirmek için tıklayın.»
 
-SQLite için `.db ⇄ .dump` dönüştürmesi CLI'dan `x-ui migrateDB [file]` komutuyla da yapılabilir (bkz. bölüm 16.7).
+SQLite için `.db ⇄ .dump` dönüştürmesi CLI'dan `x-ui migrateDB [file]` komutuyla da yapılabilir (bkz. bölüm 16.7). Ayrıca 3.5.0'dan itibaren motorlar arası geçiş **işlemsel (transactional) ve kayıpsız** hale geldi (istemci grupları ve genel trafik sayaçları da taşınır; başarısız içe aktarma hedef veritabanını değiştirmez); PostgreSQL istemci araçlarını güncellemek için **`x-ui pgclient [sürüm]`** komutu ve PostgreSQL menüsünde **10. Install/Upgrade client tools (pg_dump/pg_restore)** öğesi eklendi (gerekirse resmi PostgreSQL deposu bağlanır).
 
 #### Telegram Botu Üzerinden Yedekleme
 
@@ -5498,7 +5549,7 @@ Xray'in günlükleme parametreleri **«Xray Yapılandırmaları»** sayfasındak
 
 > Boş erişim günlüğünün yalnızca bu pencereyi etkilediğine dikkat edin. «Dashboard»'daki çevrimiçi istemci listesi ve istemci formundaki IP sayısı limiti **erişim günlüğüne bağlı değildir** — panel, çevrimiçi istemcileri belirler ve IP adreslerini Xray çekirdeğinin online-stats API'si (bağlantı istatistikleri) aracılığıyla sayar. Bu API'nin bulunmadığı eski çekirdek sürümlerinde panel otomatik olarak önceki yönteme (erişim günlüğü okuma) geri döner; bu durumda IP limiti için burada erişim günlüğü yolu hâlâ gereklidir.
 
-> **IP sayısı limiti ve fail2ban.** İstemcideki IP sayısı kısıtlamasının (istemci formunda ve toplu ekleme sırasında «IP Limit» alanı) sunucuda uygulanabilmesi için **fail2ban** kurulu olmalıdır — limiti aşan adresleri banlamak fail2ban'ın görevidir. Panel fail2ban'ın varlığını denetler (`GET /panel/api/server/fail2banStatus`); yoksa «IP Limit» alanı açıklayıcı bir ipucuyla (Windows'ta ayrı bir mesajla) devre dışı kalır ve daha önce ayarlanmış limitler bu sunucularda otomatik olarak sıfırlanır çünkü zaten geçerli değillerdi. fail2ban engellemesi hem TCP hem de UDP'ye uygulanır. Normal sunucularda fail2ban artık panel kurulumu ve güncellemesi sırasında otomatik olarak yüklenir (bkz. bölüm 16.5).
+> **IP sayısı limiti ve fail2ban.** İstemcideki IP sayısı kısıtlamasının (istemci formunda ve toplu ekleme sırasında «IP Limit» alanı) sunucuda uygulanabilmesi için **fail2ban** kurulu olmalıdır — limiti aşan adresleri banlamak fail2ban'ın görevidir. Panel fail2ban'ın varlığını denetler (`GET /panel/api/server/fail2banStatus`); yoksa «IP Limit» alanı açıklayıcı bir ipucuyla (Windows'ta ayrı bir mesajla) devre dışı kalır ve daha önce ayarlanmış limitler bu sunucularda otomatik olarak sıfırlanır çünkü zaten geçerli değillerdi. fail2ban engellemesi hem TCP hem de UDP'ye uygulanır. 3.5.0'dan itibaren «ölü» bağlantı (istemcinin TCP'yi düzgün kapatmadan kaybolması) her 10 saniyelik taramada değil, **bir kez** kaydedilir: `[LIMIT_IP]` satırı ve bağlantı kesme döngüsü yalnızca gerçek bir yeniden bağlanmada tekrarlanır; bu nedenle fail2ban sayacı şişmez ve `maxretry` değerini yükseltmeye artık gerek yoktur (günlük biçimi ve failregex değişmedi). Normal sunucularda fail2ban artık panel kurulumu ve güncellemesi sırasında otomatik olarak yüklenir (bkz. bölüm 16.5).
 
 **Örnek: «Xray Günlükleri» penceresinin kayıt göstermesini sağlayan `log` bloğu.** Xray JSON yapılandırmasında şöyle görünür:
 
@@ -5599,6 +5650,14 @@ Dev derlemelerinde panel sürümünü kararlı bir sürüm numarası yerine `dev
 
 `install.sh` ve `update.sh` betikleri artık yalnızca IPv6'ya sahip sunucularda da düzgün çalışır: sürüm, `x-ui.sh` betiği ve servis dosyalarının indirilmesi artık zorunlu olarak IPv4'ü (`curl -4`) kullanmaz, mevcut protokolü alır. Bu nedenle panel IPv4 adresi olmayan bir ana bilgisayara da kurulabilir ve güncellenebilir.
 
+#### 3.5.0'daki Betik Düzeltmeleri
+
+- **RHEL ailesi** (Rocky/Alma/RHEL/Oracle): menüden yerel PostgreSQL kurulumu artık çalışıyor (ident yerine parolayla kimlik doğrulama); IP limiti için fail2ban **EPEL**'den kuruluyor.
+- **Arch/Manjaro**: kurulum ve güncelleme artık tam sistem yükseltmesi `pacman -Syu` çalıştırmıyor — yalnızca paket veritabanı güncelleniyor.
+- **32 bit ARM**: indirilen Xray ikili dosyası `xray-linux-arm32` olarak adlandırılıyor — panelin onu çalıştırdığı adla birebir aynı (önceden güncelleme dosyayı farklı bir adla koyuyor ve panel eski çekirdeği çalıştırmaya devam ediyordu).
+- **IP sertifikası**: otomatik algılanan genel IPv4, sertifika verilmeden önce onay için gösteriliyor (Enter — kabul); reddedilirse — doğrulanan elle giriş.
+- **ACME portu seçimi**: Enter (varsayılan port 80'i kabul) artık yanlış «Your input is invalid» mesajı üretmiyor.
+
 #### `XUI_PORT` Değişkeniyle Panel Portunu Geçersiz Kılma
 
 Web panelinin dinleme portu `XUI_PORT` ortam değişkeniyle geçersiz kılınabilir — bu değişken yalnızca mevcut sürecin çalışma süresi boyunca geçerlidir ve veritabanındaki `webPort` değerini **değiştirmez**. İzin verilen değerler `1` ile `65535` arasındadır; boş, hatalı veya aralık dışı değerler yok sayılır (`webPort` kullanılır) ve günlüğe bir uyarı yazılır. Bu özellik dağıtımda, özellikle Docker'da kullanışlıdır: köprü ağı kullanırken yayınlanan konteyner portu `XUI_PORT` ile eşleşmelidir — örneğin `XUI_PORT=8080` ve `ports: "8080:8080"`.
@@ -5632,7 +5691,8 @@ Panel başlangıçta bir dizi arka plan görevi kaydeder. Zamanlamaları sabitti
 | Xray trafiği toplama | her 5 s (başlangıçtan 5 s sonra başlar) | inbound/istemci trafik muhasebesi |
 | İstemci IP kontrolü | her 10 s | Günlük aracılığıyla IP limitini denetleme |
 | Düğüm heartbeat ve trafik senkronizasyonu | her 5 s | Düğümlerle (node'larla) veri alışverişi |
-| **Günlük temizleme** | **günlük** (`@daily`) | IP-limit günlüklerini ve kalıcı erişim günlüğünü temizler; mevcut günlüğü `*.prev.log` olarak döndürür |
+| **Günlük temizleme** | **günlük** (`@daily`) | IP-limit günlüklerini ve kalıcı erişim günlüğünü temizler; mevcut günlüğü `*.prev.log` olarak döndürür. 3.5.0'dan itibaren günlük temizleme **Xray'in error günlüğünü de** kapsar (önceden yalnızca access) |
+| **Xray günlük büyümesini sınırlama** | **her 10 dakikada** (`@every 10m`) | **3.5.0'da yeni.** Xray'in access ve error günlüklerini, herhangi biri **64 MiB**'ı aştığında kırpar; devre dışı günlüklere (`none`/boş) dokunulmaz |
 | **Periyoda göre trafik sıfırlama** | `@hourly`, `@daily`, `@weekly`, `@monthly` | İlgili otomatik sıfırlama periyodu ayarlanmış inbound'ların (ve istemcilerinin) trafik sayaçlarını sıfırlar |
 | Telegram raporu | bot ayarlarında belirtilir (varsayılan `@daily`) | Yöneticilere rapor gönderimi; seçenek etkinse — ekli veritabanı yedeğiyle birlikte (bölüm 16.1) |
 | Telegram hash deposu sıfırlama | her 2 m | Yalnızca bot etkinleştirilmişken |

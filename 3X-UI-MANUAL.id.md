@@ -2,7 +2,7 @@
 
 🇸🇦 [العربية](3X-UI-MANUAL.ar.md) · 🇬🇧 [English](3X-UI-MANUAL.en.md) · 🇪🇸 [Español](3X-UI-MANUAL.es.md) · 🇮🇷 [فارسی](3X-UI-MANUAL.fa.md) · 🇮🇩 Bahasa Indonesia · 🇯🇵 [日本語](3X-UI-MANUAL.ja.md) · 🇧🇷 [Português](3X-UI-MANUAL.pt.md) · 🇷🇺 [Русский](3X-UI-MANUAL.ru.md) · 🇹🇷 [Türkçe](3X-UI-MANUAL.tr.md) · 🇺🇦 [Українська](3X-UI-MANUAL.uk.md) · 🇻🇳 [Tiếng Việt](3X-UI-MANUAL.vi.md) · 🇨🇳 [简体中文](3X-UI-MANUAL.zh-CN.md) · 🇹🇼 [繁體中文](3X-UI-MANUAL.zh-TW.md)
 
-**Versi 3X-UI: 3.4.2.** Panduan ini disusun berdasarkan versi tersebut dan berlaku untuk versi ini. Ringkasan perubahan 3.4.2 dibandingkan 3.4.1 tersedia di bagian [«Apa yang Baru di 3.4.2»](#apa-yang-baru-di-342).
+**Versi 3X-UI: 3.5.0.** Panduan ini disusun berdasarkan versi tersebut dan berlaku untuk versi ini. Ringkasan perubahan 3.5.0 dibandingkan 3.4.2 tersedia di bagian [«Apa yang Baru di 3.5.0»](#apa-yang-baru-di-350).
 
 > Panduan lengkap berbahasa Indonesia untuk panel web **3X-UI** (pengelolaan
 > Xray-core): fitur, konfigurasi, dan pengoperasian, dengan penjelasan setiap
@@ -13,7 +13,7 @@
 
 ## Daftar Isi
 
-- [Apa yang Baru di 3.4.2](#apa-yang-baru-di-342)
+- [Apa yang Baru di 3.5.0](#apa-yang-baru-di-350)
 - [1. Pendahuluan, Persyaratan, dan Instalasi](#1-pendahuluan-persyaratan-dan-instalasi)
   - [1.1. Apa Itu 3X-UI](#11-apa-itu-3x-ui)
   - [1.2. Sistem Operasi dan Arsitektur yang Didukung](#12-sistem-operasi-dan-arsitektur-yang-didukung)
@@ -135,7 +135,8 @@
   - [12.6. Riwayat metrik](#126-riwayat-metrik)
   - [12.7. Cara inbound dan klien disinkronkan](#127-cara-inbound-dan-klien-disinkronkan)
   - [12.8. Rantai node (sub-node / node transitif)](#128-rantai-node-sub-node--node-transitif)
-  - [12.9. Node: hal baru di 3.3.0](#129-node-hal-baru-di-330)
+  - [12.9. Perbaikan 3.5.0 (stabilitas node)](#129-perbaikan-350-stabilitas-node)
+  - [12.10. Node: hal baru di 3.3.0](#1210-node-hal-baru-di-330)
 - [13. Pengaturan Panel](#13-pengaturan-panel)
   - [13.1. Menyimpan dan Me-restart Panel](#131-menyimpan-dan-me-restart-panel)
   - [13.2. Pengaturan Umum (tab "Panel" / *General*)](#132-pengaturan-umum-tab-panel--general)
@@ -173,70 +174,78 @@
   - [16.8. Menghapus panel](#168-menghapus-panel)
   - [16.9. Perintah `x-ui migrateDB`](#169-perintah-x-ui-migratedb)
 
-## Apa yang Baru di 3.4.2
+## Apa yang Baru di 3.5.0
 
-Versi 3.4.2 adalah pembaruan besar: WireGuard dialihkan ke model multi-klien, REALITY mendapat pemindai target langsung, balancer memperoleh tab Observatory/Burst Observatory, dan ditambahkan konfirmasi pengaturan sensitif dengan kode 2FA. Berikut adalah perubahan dibandingkan 3.4.1, dikelompokkan berdasarkan bagian panduan.
+Versi 3.5.0 adalah rilis besar: MTProto dialihkan ke model multi-klien (mesin mtg-multi, secret personal, kuota, dan ad-tag), host terkelola menjadi grup (beberapa inbound dan alamat dalam satu entri), pemulihan pada panel PostgreSQL menerima backup SQLite, outbound mendapat «Target Strategy», uji «Real delay», dan kolom Egress/Country, serta balancer dapat menggunakan balancer lain sebagai fallback. Inti Xray 26.7.11 sudah disertakan. Berikut adalah perubahan dibandingkan 3.4.2, dikelompokkan berdasarkan bagian panduan.
 
 ### Perubahan di bagian 1 — Pendahuluan, Persyaratan, dan Instalasi
 
-- Di menu samping (dan di laci geser pada perangkat seluler) muncul tombol **«Dokumentasi»** (ikon buku) — membuka dokumentasi resmi `https://docs.sanaei.dev/`.
-- Versi Xray minimum yang dapat diperbarui oleh panel dinaikkan menjadi **26.6.27** (inti Xray 26.6.27 sudah disertakan).
+- Inti Xray diperbarui ke **26.7.11**. Migrasi otomatis penyerta: cipher Shadowsocks `none`/`plain` dan VMess `none`/`zero` dihapus dari inti (konfigurasi tersimpan ditulis ulang otomatis), dan outbound VLESS/Trojan tanpa enkripsi ke alamat publik ditolak saat penyimpanan.
+- Perintah baru **`x-ui pgclient [versi]`** dan item **10. Install/Upgrade client tools (pg_dump/pg_restore)** di menu PostgreSQL — instalasi/pembaruan alat klien PostgreSQL.
+- Perbaikan skrip: instalasi PostgreSQL dan fail2ban pada keluarga RHEL (EPEL), Arch tanpa `pacman -Syu` penuh, nama biner Xray yang benar pada ARM 32-bit (`xray-linux-arm32`), konfirmasi IPv4 yang terdeteksi otomatis sebelum penerbitan sertifikat IP, serta perbaikan pesan keliru «Your input is invalid» saat memilih port ACME default.
 
 ### Perubahan di bagian 2 — Login Panel dan Keamanan Akses
 
-- Saat 2FA diaktifkan, mengganti login/password administrator dan menonaktifkan 2FA kini memerlukan **memasukkan kode saat ini** dari aplikasi autentikator (konfirmasi perubahan sensitif).
-- LDAP: sakelar baru **«Lewati verifikasi sertifikat TLS»** (`ldapInsecureSkipVerify`) — menonaktifkan verifikasi sertifikat saat LDAPS; hanya tersedia jika «Gunakan TLS (LDAPS)» diaktifkan.
-
-### Perubahan di bagian 3 — Ikhtisar / Dashboard
-
-- Tombol versi panel kini selalu membuka jendela pembaruan (lihat bagian 16 — saluran dev).
-- Peningkatan **aksesibilitas** secara menyeluruh: label aria untuk ikon dan aktivasi elemen dengan Enter/Space (untuk pembaca layar dan navigasi keyboard).
+- Batas IP: koneksi «mati» kini diblokir **satu kali saja**, bukan pada setiap pemindaian 10 detik — penghitung fail2ban tidak lagi terus bertambah, dan `maxretry` tidak perlu dinaikkan berlebihan.
 
 ### Perubahan di bagian 4 — Inbounds: pembuatan dan parameter umum
 
-- Tindakan **«Ekspor semua tautan»** kini membentuk tautan melalui mesin langganan — menerapkan template remark ke setiap klien dan memilih endpoint Host terkelola (sebelumnya remark tetap `inbound-email`).
+- Daftar inbound kini memiliki **kolom pencarian** (berdasarkan catatan, port, dan protokol), dan daftar dropdown node («Deploy ke», filter «Node») kini mendukung pencarian.
 
 ### Perubahan di bagian 5 — Protokol
 
-- **WireGuard dialihkan ke model multi-klien.** Peer kini menjadi klien biasa (dengan penetapan alamat tunnel otomatis, dukungan langganan, batas lalu lintas/masa berlaku, dan grup); daftar inline «Peer» dari formulir inbound dihapus.
-- Pada inbound WireGuard ditambahkan field **DNS** yang dapat dikonfigurasi (default `1.1.1.1, 1.0.0.1`) dan **kartu konfigurasi klien** — salin/unduh/QR `.conf` lengkap serta tautan `wireguard://`/`wg://`.
-
-### Perubahan di bagian 6 — Transport (Stream Settings)
-
-- Pada XHTTP untuk inbound baru, parameter `maxConnections` di **xmux** kini default-nya **6** (sebelumnya `0` — tanpa batas). Inbound yang sudah ada mempertahankan nilainya.
+- **MTProto dialihkan ke model multi-klien** (mesin mtg-multi): pengguna MTProto kini menjadi klien biasa dengan secret, kuota, masa berlaku, ad-tag, dan tautan `tg://proxy` personal masing-masing. Field «Secret» di tingkat inbound dihapus (inbound yang ada dikonversi otomatis), dan «FakeTLS domain» menjadi domain default untuk secret baru. Field inbound baru: **Max connections** (pembatasan koneksi) dan **Public IPv4/IPv6** (untuk ad-tag middle proxy). Perubahan klien diterapkan «on the fly» tanpa memutus sesi Telegram pengguna lain.
+- WireGuard: menu inbound mendapat rangkaian lengkap tindakan klien (Export All URLs, penautan/pelepasan, grup), ekspor dibagi menjadi tab **Config** dan **Links**, field **«IP yang diizinkan WireGuard» kini dapat diedit** (beberapa entri dipisahkan koma), dan pada konfigurasi klien untuk inbound yang berjalan di node, `Endpoint` kini menunjuk ke alamat node.
 
 ### Perubahan di bagian 7 — Keamanan Koneksi: TLS, XTLS, dan REALITY
 
-- Ditambahkan **pemindai target REALITY langsung**: tombol **«Pindai»** (memeriksa target saat ini «secara langsung») dan **«Cari target»** (memindai domain atau rentang **IP/CIDR** dan memilih target yang cocok berdasarkan sertifikatnya). Field «Target» dan SNI kini kosong saat REALITY pertama kali dipilih.
+- Kombinasi **Finalmask + REALITY ditolak** saat penyimpanan (kombinasi ini menyebabkan Xray-core crash pada koneksi pertama); placeholder minClientVer diperbarui menjadi 26.3.27.
+- Tipe mask TCP Finalmask baru — **XMC (Minecraft)**: menyamarkan aliran sebagai trafik Minecraft (Hostname, Usernames, dan Password wajib dengan pembuatan otomatis).
 
 ### Perubahan di bagian 8 — Klien
 
-- Perpanjangan masa berlaku/kuota melalui `bulkAdjust` kini **secara otomatis mengaktifkan** klien yang dinonaktifkan hanya karena habis (masa berlaku berakhir atau kuota terlampaui), jika perpanjangan mengembalikannya ke dalam batas. Klien yang dinonaktifkan secara manual atau yang masih habis tetap nonaktif.
+- Kolom baru **«Kecepatan»** — kecepatan langsung setiap klien (↑/↓, rata-rata bergerak ~5 detik).
+- Pencarian klien kembali dapat menemukan berdasarkan **Telegram ID**; di formulir klien, inbound yang dinonaktifkan disembunyikan dari daftar penautan; penumpukan duplikat di jendela «Lepas Tautan» diperbaiki.
+- Klien MTProto memiliki field tersendiri: **«MTProto secret»** (dengan tombol pembuatan ulang) dan **«Ad-tag (kanal sponsor)»** (32 karakter hex); kuota dan masa berlaku kini benar-benar diterapkan pada MTProto.
 
 ### Perubahan di bagian 9 — Grup Klien
 
-- **«Reset Traffic»** pada grup kini hanya menol-kan **penghitung grup itu sendiri**; penghitung, kuota, dan status masing-masing klien tidak terpengaruh, dan restart Xray tidak diperlukan. Ini adalah perubahan dari perilaku sebelumnya (sebelumnya lalu lintas semua klien grup direset).
+- Jendela informasi klien kini menampilkan **grup** klien tersebut.
 
 ### Perubahan di bagian 10 — Langganan (Subscription)
 
-- Pada **host terkelola**, field **VLESS route** didefinisikan ulang: kini berupa satu nilai `0-65535` (bukan daftar port), dan nilai itu benar-benar «ditanamkan» ke UUID setiap langganan (raw/JSON/Clash).
-- Variabel `{{EMAIL}}` (dan sinonimnya `{{USERNAME}}`) di template remark kini hanya ditampilkan pada **tautan pertama** klien — sama seperti blok lalu lintas/masa berlaku.
+- **Host terkelola menjadi grup**: satu entri mencakup **beberapa inbound** (multi-pilih) dan **beberapa alamat** (input tag, setiap entri dapat memiliki `:port` sendiri; pelengkapan otomatis alamat; kosong — mewarisi alamat inbound). Kolom daftar menampilkan chip alamat dan inbound (dengan «+N»), tindakan dan API bekerja dengan grup (`groupId`), dan tersedia endpoint massal `POST /panel/api/hosts/bulk/add`. Pengurutan host kini global (berdasarkan urutan, lalu berdasarkan remark).
+- Teks **pengumuman** (`subAnnounce`) kini ditampilkan sebagai banner di halaman info langganan; variabel `announce` tersedia untuk template kustom.
+- Halaman info di browser kini juga terbuka melalui **tautan JSON/Clash** (bukan hanya tautan utama).
+- Pengaturan host **Final Mask** dan **Allow insecure** kini juga berlaku masing-masing di tautan raw (`fm=`) dan untuk **Hysteria2** (`insecure=1` / `skip-cert-verify: true`).
+- Rentang «Interval pembaruan langganan» (`subUpdates`) diperbaiki menjadi **0–525600** (batas UI lama 168 memblokir penyimpanan pengaturan setelah upgrade dari 2.x).
+- Klien **WireGuard native kini masuk ke langganan Clash dan JSON** (sebelumnya hanya ke raw).
 
 ### Perubahan di bagian 11 — Xray: Routing, Outbounds, DNS, dan Ekstensi
 
-- **Balancer**: halaman dibagi menjadi tab **«Pengaturan balancer»** dan **«Observatory»**; alih-alih JSON mentah — formulir Observatory dan Burst Observatory (pada Burst ditambahkan field **«Metode HTTP»**). Balancer Random/Round-robin dengan `fallbackTag` kini otomatis membuat Burst Observatory.
-- Saat menghapus outbound atau balancer, panel secara otomatis membersihkan tautan terkait di routing dan menampilkan **pratinjau dampak** di dialog konfirmasi.
-- Dalam aturan routing, kriteria jaringan **L4** ditulis ke config dalam huruf kecil (`tcp`/`udp`), tetapi ditampilkan dalam huruf kapital di tabel.
-- Kesalahan pada formulir penambahan/pengeditan balancer kini ditangguhkan hingga field pertama disentuh atau penyimpanan dicoba.
+- Editor outbound: field baru **«Target Strategy»** (11 nilai dari `AsIs` hingga `ForceIPv4`), mode uji **«Real delay»** (waktu penuh termasuk pembentukan tunnel; mode HTTP kini diukur pada koneksi «hangat»), serta kolom **Egress** (IP keluar di balik ikon «mata») dan **Country** (bendera + negara, label WARP) setelah uji HTTP/Real.
+- **Fallback balancer dapat menunjuk ke balancer lain**: panel sendiri membangun objek loopback tersembunyi (`_bl_…`), melindungi dari siklus dan dari penghapusan balancer yang sedang digunakan; prefiks `_bl_` dicadangkan.
+- Tab «Routing dasar» mendapat selektor **«Default Outbound»** — outbound mana yang menangani trafik yang tidak cocok dengan aturan mana pun (outbound yang dipilih dipindahkan ke posisi pertama).
+- Server DNS pada IP privat tidak lagi diblokir oleh aturan `geoip:private` — panel sendiri memelihara aturan allow terkelola.
+- Happy Eyeballs di pengaturan dial (sockopt) kini benar-benar aktif; «Try delay» kini default 250 md, nilai `0` eksplisit tetap disimpan.
+- Impor langganan outbound: port pada tautan `ss://` dengan `?plugin=`/`/` di akhir kini diurai dengan benar.
 
 ### Perubahan di bagian 12 — Node (multipanel, master/slave)
 
-- Notifikasi «disimpan secara lokal, node offline — akan disinkronkan nanti» kini hanya ditampilkan ketika node benar-benar offline atau dimatikan (sebelumnya — pada setiap penyimpanan ke node online).
+- Paket perbaikan: menyimpan klien tanpa perubahan tidak lagi merusak trafik aktif inbound node; penggantian Host dari node diterima ke master pada penerimaan pertama; perpanjangan otomatis membuka jendela kuota yang baru; penghapusan klien di master menghapusnya sepenuhnya di node; inbound node tidak lagi disapu sebelum penerimaan pertama; satu inbound yang tidak valid tidak menghentikan sinkronisasi trafik node; pemeriksaan konflik port dibatasi pada node itu sendiri.
+
+### Perubahan di bagian 14 — Bot Telegram
+
+- Menu perintah bot mendapat tambahan **`/usage`**, **`/inbound`**, **`/restart`**, dan perintah admin baru **`/clearall`** (reset trafik semua klien, dengan konfirmasi).
+- Daftar klien online kini diberi label `email - remark inbound`; pesan backup dan log ban menyertakan nama host; pencarian berdasarkan Telegram ID berfungsi terlepas dari pemformatan pengaturan.
 
 ### Perubahan di bagian 16 — Operasional: Cadangan, Log, Pembaruan, CLI
 
-- Nama file cadangan kini menyertakan alamat server dan **tanggal-waktu**: `{host}_YYYY-MM-DD_HHMMSS.db` (`.dump` untuk PostgreSQL), misalnya `panel.example.com_2026-06-27_000000.db` — baik saat diunduh dari panel maupun pada cadangan yang dikirim bot Telegram.
-- Saluran **dev** pembaruan kini dapat diaktifkan dari build stabil: tombol versi selalu membuka jendela pembaruan, dan muncul sakelar **«Saluran Dev»** dengan peringatan tentang ketidakstabilan dan tidak adanya rollback otomatis.
+- **Pemulihan pada panel PostgreSQL menerima file SQLite**: backup biasa `.db` atau dump migrasi `.dump` diimpor langsung ke PostgreSQL (dalam satu transaksi, dengan pemeriksaan sebelum Xray dihentikan). Dialog pemilihan file menerima `.dump,.db` di kedua DBMS; «Unduh file migrasi» kini hanya tersedia di panel PostgreSQL.
+- Sebelum memulihkan arsip `pg_dump`, panel memeriksa keterbacaan dump dan, jika versi tidak cocok, menyarankan perintah persisnya `x-ui pgclient <versi>`.
+- Perbaikan otomatis saat startup: penghitung trafik yang meluap dijepit dan dipulihkan; batasan UNIQUE usang pada port inbound dihapus (menghambat multi-node).
+- Log Xray: tugas baru setiap 10 menit memangkas log access dan error saat melebihi **64 MiB**; pembersihan harian kini membersihkan keduanya.
+- Docker: perpanjangan otomatis sertifikat diperbaiki (crond dijalankan, status acme.sh disimpan dalam volume).
 
 ## 1. Pendahuluan, Persyaratan, dan Instalasi
 
@@ -360,7 +369,7 @@ Untuk menjalankan dengan layanan PostgreSQL bawaan, uncomment baris `XUI_DB_*` d
 docker compose --profile postgres up -d
 ```
 
-Image menyertakan Fail2ban (aktif secara default) untuk menerapkan batas IP per klien. Fail2ban memblokir pelanggar melalui `iptables`, yang memerlukan kapabilitas `NET_ADMIN`. Kapabilitas ini sudah disediakan di `docker-compose.yml` melalui `cap_add`. Saat menjalankan secara manual melalui `docker run`, kapabilitas perlu ditambahkan secara manual, jika tidak, pemblokiran hanya akan dicatat di log tetapi tidak diterapkan:
+Image menyertakan Fail2ban (aktif secara default) untuk menerapkan batas IP per klien. Fail2ban memblokir pelanggar melalui `iptables`, yang memerlukan kapabilitas `NET_ADMIN`. Kapabilitas ini sudah disediakan di `docker-compose.yml` melalui `cap_add`. Mulai 3.5.0, **perpanjangan otomatis sertifikat** yang diterbitkan melalui menu SSL diperbaiki di dalam container: entrypoint menjalankan `crond` dan mendaftarkan ulang tugas cron acme.sh, dan `docker-compose.yml` mendapat volume terpisah untuk status acme.sh — perpanjangan tetap berjalan meski container dibuat ulang (sebelumnya sertifikat kedaluwarsa secara diam-diam setelah ~90 hari). Saat menjalankan secara manual melalui `docker run`, kapabilitas perlu ditambahkan secara manual, jika tidak, pemblokiran hanya akan dicatat di log tetapi tidak diterapkan:
 
 **Contoh: perintah `docker run` lengkap.** Varian minimal dengan meneruskan port panel, kapabilitas jaringan, dan volume persisten untuk database:
 
@@ -963,7 +972,7 @@ curl -X POST 'https://panel.example.com:2053/xpanel/installXray/v25.6.8' \
   -b cookie.txt
 ```
 
-Di sini `v25.6.8` adalah tag dari daftar yang dikembalikan oleh `GET /getXrayVersion`. Versi harus ada dalam daftar ini, jika tidak, panel akan menolak permintaan. Mulai versi 3.4.2, versi Xray minimum yang diizinkan untuk instalasi dinaikkan menjadi **26.6.27** (inti Xray 26.6.27 sudah disertakan), sehingga build yang lebih lama tidak tersedia untuk pembaruan.
+Di sini `v25.6.8` adalah tag dari daftar yang dikembalikan oleh `GET /getXrayVersion`. Versi harus ada dalam daftar ini, jika tidak, panel akan menolak permintaan. Mulai versi 3.4.2, versi Xray minimum yang diizinkan untuk instalasi dinaikkan menjadi **26.6.27**, dan paket 3.5.0 menyertakan inti **Xray 26.7.11**. Perubahan inti penyerta: cipher Shadowsocks `none`/`plain` dan VMess `none`/`zero` dihapus (konfigurasi tersimpan ditulis ulang otomatis: SS — ke cipher yang didukung, VMess — ke `auto`), dan outbound VLESS/Trojan tanpa enkripsi ke alamat publik ditolak saat penyimpanan — inti tidak akan dapat dijalankan dengan konfigurasi semacam itu.
 1. Versi yang dipilih diverifikasi keberadaannya dalam daftar rilis terkini (jika tidak — ditolak).
 2. Xray dihentikan.
 3. Arsip `Xray-<os>-<arch>.zip` diunduh dari GitHub untuk OS dan arsitektur saat ini (mendukung amd64/64, arm64-v8a, arm32-v7a/v6/v5, 386/32, s390x; untuk Windows — `xray.exe`). Ukuran arsip dan binary dibatasi 200 MB.
@@ -1034,15 +1043,13 @@ Skenario untuk **SQLite** aman, dengan rollback:
 3. File baru menggantikan basis data kerja, inisialisasi dan migrasi dilakukan. Jika terjadi kesalahan — fallback dipulihkan.
 4. Xray dijalankan kembali.
 
-Untuk **PostgreSQL**, `.dump` diunggah (tanda tangan `PGDMP` diverifikasi) dan diterapkan melalui `pg_restore --clean --if-exists --single-transaction …`. Tooltip secara eksplisit memperingatkan: «Ini akan menggantikan semua data saat ini».
+Untuk **PostgreSQL**, mulai 3.5.0 «Pemulihan» menerima **tiga jenis file** (tipe ditentukan berdasarkan isi, bukan ekstensi): arsip `pg_dump` (`PGDMP`) — diterapkan melalui `pg_restore --clean --if-exists --single-transaction …`; **basis data SQLite `.db`** (cadangan biasa) dan **dump migrasi SQLite `.dump`** — keduanya diverifikasi, bila perlu dibangun ulang, dan diimpor ke PostgreSQL **dalam satu transaksi** dengan mesin yang sama seperti `x-ui migrate-db --dsn` (jika terjadi kesalahan, PostgreSQL tetap tidak tersentuh). Dialog pemilihan file menerima `.dump,.db` di kedua DBMS; mengunggah arsip `pg_dump` ke panel SQLite menghasilkan pesan kesalahan yang jelas. Tooltip secara eksplisit memperingatkan: «Ini akan menggantikan semua data saat ini».
 
 Pesan: «Basis data berhasil diimpor», «Terjadi kesalahan saat mengimpor basis data», «…saat membaca basis data», «…saat mengambil basis data».
 
 #### File Migrasi (antara SQLite dan PostgreSQL)
 
-Tombol «Unduh File Migrasi» (*Download Migration*) memanggil `GET /getMigration` dan membentuk ekspor portabel untuk menjalankan panel pada DBMS lain:
-- Pada **SQLite**, `x-ui.dump` (dump SQL teks) diunduh.
-- Pada **PostgreSQL**, `x-ui.db` diunduh — basis data SQLite siap pakai yang dikumpulkan dari data PostgreSQL.
+Tombol «Unduh File Migrasi» (*Download Migration*) memanggil `GET /getMigration`. Mulai 3.5.0 tombol ini ditampilkan **hanya di panel PostgreSQL** dan mengunduh `x-ui.db` — basis data SQLite siap pakai yang dikumpulkan dari data PostgreSQL (jalur «kembali ke SQLite»). Di panel SQLite tombol dihapus karena berlebihan: cadangan biasa `.db` kini juga dapat dipulihkan langsung ke panel PostgreSQL.
 
 ### 3.15. Elemen Antarmuka Tambahan
 
@@ -1223,7 +1230,7 @@ Tanda aktifitas inbound. Peralihan flag ini dalam daftar diproses oleh endpoint 
 | Label | **«Deploy ke»**, **«Panel lokal»** |
 | Default | kosong (panel lokal) |
 
-Pilihan di mana inbound beroperasi secara fisik: pada panel lokal atau pada salah satu node yang terdaftar. Fitur implementasi: `nodeId = 0` dinormalisasi menjadi `nil`, karena `0` bukan id node yang valid, melainkan artefak binding formulir; `nil`/`0` berarti panel lokal. Saat menyimpan inbound pada node yang offline, mungkin muncul toast «perubahan akan disinkronkan saat node terhubung kembali». Mulai versi 3.4.2, toast ini hanya ditampilkan ketika node benar-benar offline atau dimatikan (sebelumnya, toast dapat muncul juga saat menyimpan ke node online).
+Pilihan di mana inbound beroperasi secara fisik: pada panel lokal atau pada salah satu node yang terdaftar. Mulai 3.5.0, daftar «Deploy ke» (seperti juga filter «Node» di atas daftar inbound) mendukung **pencarian dengan pengetikan**, dan di atas daftar inbound itu sendiri muncul **kolom pencarian** (berdasarkan catatan, port, dan protokol; bekerja bersama filter node). Fitur implementasi: `nodeId = 0` dinormalisasi menjadi `nil`, karena `0` bukan id node yang valid, melainkan artefak binding formulir; `nil`/`0` berarti panel lokal. Saat menyimpan inbound pada node yang offline, mungkin muncul toast «perubahan akan disinkronkan saat node terhubung kembali». Mulai versi 3.4.2, toast ini hanya ditampilkan ketika node benar-benar offline atau dimatikan (sebelumnya, toast dapat muncul juga saat menyimpan ke node online).
 
 #### Strategi alamat untuk tautan (Share address strategy)
 
@@ -1787,7 +1794,7 @@ Field inbound (blok `settings`):
 | «Kunci privat WireGuard» | Kunci privat klien (dapat diedit, ada tombol «Hasilkan ulang»); saat dimasukkan, kunci publik dihitung otomatis darinya |
 | «Kunci publik WireGuard» | Hanya baca; dihitung dari kunci privat |
 | «Kunci bersama WireGuard» (PSK) | Kunci bersama tambahan yang opsional |
-| «IP yang diizinkan WireGuard» | Hanya baca (dalam mode edit): alamat tunnel yang diberikan kepada klien, misalnya `10.0.0.2/32` |
+| «IP yang diizinkan WireGuard» | Mulai 3.5.0 — **dapat diedit** (placeholder `10.0.0.2/32`, petunjuk «Biarkan kosong untuk penetapan otomatis; pisahkan entri dengan koma»). Kosong — alamat diberikan otomatis; server memvalidasi setiap entri (IP atau CIDR), menormalisasi alamat tunggal menjadi `/32`, dan menolak alamat yang sudah dipakai klien lain pada inbound yang sama |
 
 Alamat tunnel diberikan oleh server secara otomatis dari subnet inbound (default `10.0.0.0/24`: server menempati `.1`, klien — mulai dari `.2`); jika klien yang ada menggunakan `/24` lain, alamat baru diberikan di subnet yang sama.
 
@@ -1798,6 +1805,10 @@ Selain yang disebutkan di atas, inbound WireGuard memiliki field **Domain Strate
 > Field **Workers** (`workers`, jumlah thread pekerja) telah dihapus dari formulir WireGuard (baik inbound maupun outbound): mulai dari xray-core v26.6.22, engine tidak lagi menggunakannya dan mengandalkan mekanisme internal wireguard-go. Konfigurasi yang tersimpan sebelumnya berfungsi tanpa perubahan — saat parsing, field hanya diabaikan, tidak perlu migrasi.
 
 Untuk WireGuard juga tersedia tab **«Transport»** — tetapi dalam bentuk terbatas: hanya `sockopt` dan obfuskasi **Finalmask** yang dikonfigurasi di dalamnya. Daftar dropdown pemilihan transport (`network`) disembunyikan, karena WireGuard selalu mendengarkan via UDP. Dalam catatan noise (noise), Finalmask memiliki field terpisah **Rand Range** (rentang byte 0–255, dengan validasi), dan sebagai metode obfuskasi untuk WireGuard dan Hysteria tersedia **Salamander**.
+
+#### Tindakan inbound dan ekspor (mulai 3.5.0)
+
+Menu baris inbound WireGuard kini memuat rangkaian tindakan «multi-klien» lengkap — **«Ekspor semua tautan»**, ekspor melalui langganan, **penautan/pelepasan klien**, penambahan ke grup, dan penghapusan semua klien (sebelumnya hanya ada ekspor/reset/kloning/hapus), dan daftar menampilkan penghitung klien. Untuk WireGuard, jendela «Ekspor semua tautan» dibagi menjadi dua tab: **Config** (blok-blok `.conf` yang digabungkan, satu per klien) dan **Links** (tautan `wireguard://` personal); «Salin» dan «Unduh» berlaku pada tab yang sedang terbuka. Untuk inbound yang ditempatkan di node, `Endpoint` dalam `.conf`/QR klien kini menunjuk ke **alamat node**, bukan panel utama.
 
 #### Konfigurasi dan sharing klien WireGuard
 
@@ -1844,13 +1855,12 @@ Kapan memilih Hysteria: ketika diperlukan transport QUIC dan ketahanan pada salu
 
 MTProto adalah protokol proksi bawaan Telegram. Di 3X-UI, inbound semacam ini **dilayani bukan oleh Xray, melainkan oleh proses `mtg` terpisah**, yang dikelola oleh panel itu sendiri. Panel secara berkala mencocokkan inbound MTProto yang diaktifkan dengan proses `mtg` yang berjalan: menjalankan yang kurang, menghentikan yang berlebih, dan mengambil penghitung lalu lintas dari metrik `mtg`. Oleh karena itu **pencatatan lalu lintas** pada inbound semacam ini berfungsi seperti protokol biasa.
 
-Petunjuk resmi dalam formulir:
-
-> «MTProto dilayani oleh proses mtg terpisah, bukan Xray. Pengaturan transport dan klien tidak berlaku di sini — bagikan link di bawah ini di Telegram.»
+**Mulai versi 3.5.0, MTProto adalah protokol multi-klien** (mesin diganti dengan fork `mtg-multi`): satu inbound melayani banyak pengguna, yang masing-masing merupakan **klien** biasa (lihat bagian 8) dengan secret FakeTLS, kuota trafik, masa berlaku, sakelar aktif, ad-tag opsional, dan tautan `tg://proxy` personalnya sendiri. Model lama «satu inbound = satu secret» dihapus: field «Secret» di tingkat inbound dihilangkan dari formulir, dan saat panel diperbarui, secret tunggal yang ada otomatis diubah menjadi klien pertama inbound tersebut (tidak diperlukan tindakan manual).
 
 Konsekuensinya:
 
-- Tab **«Transport» (Stream Settings) dan «Klien» tidak berlaku untuk inbound ini** — akses ditetapkan oleh satu secret, bukan daftar klien.
+- Tab **«Transport» (Stream Settings) tidak berlaku untuk inbound ini**; sedangkan klien kini dikelola seperti pada protokol lain — penautan/pelepasan, batas, grup, langganan.
+- Perubahan klien (penambahan, penghapusan, penggantian secret, aktif/nonaktif, ad-tag) diterapkan **«on the fly»** melalui management-API `mtg` tanpa memutus sesi Telegram pengguna lain; hanya perubahan struktural inbound (alamat, domain fronting, batas koneksi, IP publik) yang me-restart proses.
 - Inbound MTProto berjalan **hanya di panel utama**; ke node anak tidak dideploy (inbound dengan `NodeID` tertentu dilewati).
 
 - Tab **«Sniffing»** untuk MTProto disembunyikan — protokol ini dilayani oleh proses `mtg`, bukan Xray, sehingga sniffing tidak berlaku untuknya.
@@ -1862,10 +1872,11 @@ Konsekuensinya:
 | Remark | `remark` | Label inbound. |
 | Listen IP | `listen` | IP untuk mendengarkan (kosong = semua antarmuka). |
 | Port | `port` | Port proksi. |
-| Secret | `settings.secret` | Secret akses dalam format **FakeTLS**. |
-| Domain penyamaran (FakeTLS) | `settings.fakeTlsDomain` | Domain yang lalu lintasnya ditiru oleh proksi sebagai HTTPS. |
+| Domain penyamaran (FakeTLS) | `settings.fakeTlsDomain` | Default `www.cloudflare.com`. Mulai 3.5.0 — **domain default untuk menghasilkan secret klien baru** (petunjuk: «Default FakeTLS domain used to generate a new client's secret. Each client can front its own domain»); setiap klien dapat berlindung di balik domainnya sendiri melalui secret-nya. |
+| Max connections | `settings.throttleMaxConnections` | **Baru di 3.5.0.** Pembatasan koneksi simultan untuk semua pengguna dengan pembagian yang adil; `0` — tanpa batas. |
+| Public IPv4 / Public IPv6 | `settings.publicIpv4` / `settings.publicIpv6` | **Baru di 3.5.0.** Alamat publik server untuk ad-tag middle proxy (placeholder `1.2.3.4` / `2001:db8::1`); kosong — `mtg` menentukannya sendiri. |
 
-**Format secret (FakeTLS).** Panel secara otomatis menyesuaikan secret ke bentuk yang benar: hasilnya = `ee` + 32 karakter hex + kode hex domain penyamaran, yaitu `ee<hex32><hex(fakeTlsDomain)>`. Prefix `ee` mengaktifkan mode FakeTLS, dan domain (misalnya, situs terkenal) digunakan untuk menyamarkan lalu lintas sebagai HTTPS biasa. Cukup tentukan domain — sisanya akan dibangun oleh panel secara otomatis.
+**Format secret (FakeTLS).** Secret kini hidup **pada setiap klien** (field **«MTProto secret»** di formulir klien, dengan tombol pembuatan ulang; di sampingnya — **«Ad-tag (kanal sponsor)»** opsional, tepat 32 karakter hex). Bentuk secret tidak berubah: `ee` + 32 karakter hex + kode hex domain penyamaran (`ee<hex32><hex(domain)>`); saat klien baru ditautkan ke inbound MTProto, secret dihasilkan otomatis dari domain default inbound. Kuota trafik dan masa berlaku klien mulai 3.5.0 **benar-benar diterapkan** (melalui batas mtg-multi): klien yang habis atau kedaluwarsa diputus aksesnya, dan reset trafik segera mengembalikan akses.
 
 #### Domain-fronting dan opsi lanjutan mtg
 
@@ -1893,7 +1904,7 @@ tg://proxy?server=203.0.113.10&port=443&secret=ee1a2b3c4d5e6f70819293a4b5c6d7e8f
 tg://proxy?server=<alamat>&port=<port>&secret=<secret>
 ```
 
-(setara — `https://t.me/proxy?server=…&port=…&secret=…`). Link ini dan kode QR perlu dikirimkan ke pengguna Telegram — saat dibuka, proksi langsung ditambahkan ke aplikasi. Link juga tersedia melalui server langganan.
+(setara — `https://t.me/proxy?server=…&port=…&secret=…`). Mulai 3.5.0 link ini **bersifat personal** — dibangun dari secret klien tertentu, dan fragmen `#remark` dihapus darinya (parser Telegram yang tidak ketat menggabungkannya dengan secret dan merusak impor); catatan ditampilkan sebagai label terpisah di jendela informasi. Link ini dan kode QR perlu dikirimkan ke pengguna Telegram — saat dibuka, proksi langsung ditambahkan ke aplikasi. Link juga tersedia melalui server langganan.
 
 **Kapan menggunakan.** Cara standar untuk melewati pemblokiran Telegram; penyamaran FakeTLS (domain penyamaran) membuat lalu lintas terlihat seperti kunjungan biasa ke situs yang ditentukan.
 
@@ -2453,7 +2464,7 @@ Field blok `realitySettings`. REALITY tidak menggunakan sertifikat SSL: sebagai 
 | **Target** (`target`) | `""` (mulai 3.4.2 tetap kosong saat REALITY diaktifkan) | **Field wajib.** Domain nyata yang TLS-handshake-nya dipinjam oleh REALITY. Tooltip kata demi kata: «*Wajib. Harus mengandung port (misalnya example.com:443). Tanpa port, Xray-core tidak dapat dijalankan.*» Validasi panel memeriksa keberadaan dan kebenaran port; jika tidak, ditampilkan kesalahan «Target REALITY wajib diisi» / «Target REALITY harus mengandung port…» / «Target REALITY memiliki port yang tidak valid». Di sebelah field terdapat tombol **«Pindai»** (memeriksa target saat ini «secara langsung») dan **«Cari target»** (membuka pemindai target REALITY); lihat di bawah. |
 | **SNI** (`serverNames`) | `[]` (dimasukkan bersama target) | Daftar SNI yang diizinkan (input ganda dengan tag). Harus sesuai dengan domain dari **Target**. Saat pemindaian target berhasil, SNI diisi berdasarkan sertifikatnya. |
 | **Maks. Perbedaan Waktu (ms)** (`maxTimediff`) | `0` | Perbedaan jam maksimum yang diizinkan antara klien dan server dalam milidetik (`0` — tanpa batas). Minimum `0`. |
-| **Versi Klien Min.** (`minClientVer`) | `""` | Versi klien Xray minimum (placeholder `25.9.11`). Kosong — tanpa batas. |
+| **Versi Klien Min.** (`minClientVer`) | `""` | Versi klien Xray minimum (placeholder mulai 3.5.0 — `26.3.27`). Kosong — tanpa batas. |
 | **Versi Klien Maks.** (`maxClientVer`) | `""` | Versi klien Xray maksimum. Kosong — tanpa batas. |
 | **Short IDs** (`shortIds`) | `[]` (dihasilkan saat diaktifkan) | Daftar identifier pendek (hex) yang membedakan klien. Input ganda dengan tag; tombol refresh menghasilkan kumpulan acak. |
 | **SpiderX** (`settings.spiderX`) | `/` | Path «spider» (bagian klien dari REALITY), digunakan saat mengimitasi akses ke situs eksternal. Masuk ke tautan undangan. |
@@ -2709,7 +2720,7 @@ Untuk klien individual (melalui kartu **Informasi Klien** atau menu konteks **Ti
 
 #### Melihat Informasi, Kode QR, dan Tautan
 
-- **Informasi Klien** — kartu dengan semua kolom, lalu lintas terpakai/tersisa (**Sisa**), masa berlaku, dan inbound yang terikat.
+- **Informasi Klien** — kartu dengan semua kolom, lalu lintas terpakai/tersisa (**Sisa**), masa berlaku, dan inbound yang terikat. Mulai 3.5.0 kartu juga menampilkan **grup** klien (baris "Grup" dengan label, di atas "Komentar"), jika grup ditetapkan.
 
 Permintaan klien melalui API (`GET /panel/api/clients/get/:email`) di samping kolom `client` dan `inboundIds` juga mengembalikan `usedTraffic` — lalu lintas yang benar-benar terpakai (kirim + terima, termasuk data dari node), yang mempermudah perbandingan penggunaan dengan kuota `totalGB`.
 - **Kode QR** dan **Tautan** — tautan konfigurasi klien untuk diimpor ke aplikasi klien. Dibentuk berdasarkan semua inbound yang terikat dengan protokol yang didukung (`GET /links/:email`). Jika tidak ada tautan yang sesuai: "Tidak ada tautan berbagi — tautkan klien ke inbound dengan protokol yang didukung terlebih dahulu.".
@@ -2742,7 +2753,7 @@ Dalam daftar klien, beberapa rekaman dapat dipilih (**Pilih Semua**, **Hapus Sem
   - Jika hari, lalu lintas, maupun flow tidak ditentukan: "Tentukan hari, lalu lintas, atau flow sebelum menerapkan.". Toast: "Diubah: {count}" / "Diubah: {ok}, dilewati: {skipped}".
 
 **Contoh: perpanjang klien yang dipilih selama 30 hari dan tambahkan 50 GB.** Dalam dialog **Ubah**, masukkan **Tambah Hari** = `30`, **Tambah Lalu Lintas (GB)** = `50`. Untuk sebaliknya, mengurangi seminggu dan memotong kuota sebesar 10 GB, masukkan nilai negatif: **Tambah Hari** = `-7`, **Tambah Lalu Lintas (GB)** = `-10` (klien dengan masa berlaku tidak terbatas atau tanpa batas lalu lintas untuk kolom yang sesuai akan dilewati).
-- **Tautkan ({count})** / **Lepas Tautan ({count})** (`POST /bulkAttach` / `bulkDetach`) — pemasangan/pelepasan massal klien yang dipilih ke inbound yang dipilih. Target hanya inbound multi-pengguna. Hasil pelepasan: "Dilepas {detached}, dilewati {skipped}.".
+- **Tautkan ({count})** / **Lepas Tautan ({count})** (`POST /bulkAttach` / `bulkDetach`) — pemasangan/pelepasan massal klien yang dipilih ke inbound yang dipilih. Target hanya inbound multi-pengguna. Hasil pelepasan: "Dilepas {detached}, dilewati {skipped}.". Mulai 3.5.0, selektor inbound di formulir klien **menyembunyikan inbound yang dinonaktifkan** (kecuali yang sudah ditautkan ke klien), dan di jendela **Lepas Tautan** penumpukan entri duplikat untuk satu klien telah dihilangkan (data diperbaiki otomatis saat panel dijalankan).
 - **Tautan Sub ({count})** — tabel ringkasan URL langganan dan langganan JSON klien yang dipilih dengan tombol **Salin Semua**. Jika tidak ada yang memiliki subId: "Tidak ada satu pun klien yang dipilih memiliki ID Langganan.".
 - **Tambah ke Grup** dan **Pisah dari Grup** — penetapan dan penghapusan label grup.
 
@@ -2763,9 +2774,11 @@ Saat tidak ada yang dipilih, di menu **Lainnya** pada halaman **Klien** tersedia
 
 ### 8.5. Pencarian, Filter, dan Pengurutan
 
-Di atas daftar terdapat kolom pencarian ("Cari email, komentar, sub ID, UUID, kata sandi, auth…") — pencarian dilakukan berdasarkan email, komentar, subId, UUID, kata sandi, dan auth. Penghitung hasil: "Ditampilkan {shown} dari {total}".
+Di atas daftar terdapat kolom pencarian ("Cari email, komentar, sub ID, UUID, kata sandi, auth, Telegram ID…") — pencarian dilakukan berdasarkan email, komentar, subId, UUID, kata sandi, auth, dan (kembali sejak 3.5.0) **Telegram ID**. Penghitung hasil: "Ditampilkan {shown} dari {total}".
 
 Daftar klien diperbarui secara otomatis: panel secara berkala mengambil halaman saat ini, sehingga klien yang baru terhubung dan urutan pengurutan yang berubah muncul tanpa pembaruan manual (indikator pemuatan tidak berkedip saat polling latar belakang).
+
+Mulai 3.5.0, tabel memiliki kolom **"Kecepatan"** (antara "Lalu Lintas" dan "Sisa"): kecepatan langsung klien — label biru `↑ unggah / ↓ unduh` (rata-rata bergerak ~5 detik, diperbarui setiap 5 detik); jika tidak ada trafik — tanda hubung abu-abu. Di perangkat seluler, kecepatan ditampilkan sebagai baris di kartu klien.
 
 Panel **Filter Klien** memungkinkan pemfilteran berdasarkan status (kategori), protokol, inbound yang terikat, rentang masa berlaku, rentang lalu lintas terpakai, keberadaan perpanjangan otomatis (**Ada/Tidak Ada**), keberadaan Telegram ID dan komentar, serta grup. Pada panel dengan node, muncul multi-select **Node**: daftar dapat dibatasi ke klien dari node yang dipilih; item terpisah **Panel Lokal** memfilter klien inbound tanpa tautan ke node (filter hanya terlihat jika ada node). Pengurutan: **Terlama/Terbaru**, **Baru Diperbarui**, **Baru Online**, **Email A→Z / Z→A**, **Lalu Lintas Terbanyak**, **Sisa Terbanyak**, **Hampir Kedaluwarsa**.
 
@@ -3159,7 +3172,7 @@ Jika kedua path ditetapkan dan sertifikat berhasil dimuat, server langganan berj
 
 | Field (UI) | Kunci | Default | Deskripsi |
 |---|---|---|---|
-| Interval pembaruan langganan | `subUpdates` | `12` | Seberapa sering (dalam jam) aplikasi klien harus meminta ulang langganan. Petunjuk: «Interval antara pembaruan di aplikasi klien (dalam jam)». |
+| Interval pembaruan langganan | `subUpdates` | `12` | Seberapa sering (dalam jam) aplikasi klien harus meminta ulang langganan. Petunjuk: «Interval antara pembaruan di aplikasi klien (dalam jam)». Mulai 3.5.0 field menerima **0–525600** dan menampilkan rentangnya (batas antarmuka lama 168 tidak sesuai dengan server dan, setelah upgrade dari 2.x, memblokir penyimpanan pengaturan apa pun). |
 
 Nilai ini dikirimkan ke klien melalui header HTTP `Profile-Update-Interval`; klien modern menggunakannya sebagai periode pembaruan otomatis konfigurasi.
 
@@ -3204,7 +3217,7 @@ String-string ini dikirimkan ke klien dalam header respons HTTP dan ditampilkan 
 | Judul langganan | `subTitle` | `Profile-Title` (dalam Base64) | «Nama langganan yang dilihat klien di aplikasi VPN». Untuk Clash juga digunakan sebagai nama profil yang diimpor melalui `Content-Disposition`. |
 | URL dukungan | `subSupportUrl` | `Support-Url` | «Tautan dukungan teknis yang ditampilkan di aplikasi VPN». |
 | URL profil | `subProfileUrl` | `Profile-Web-Page-Url` | «Tautan ke situs Anda yang ditampilkan di aplikasi VPN». Jika tidak ditetapkan, URL permintaan langganan yang sebenarnya akan digunakan. |
-| Pengumuman | `subAnnounce` | `Announce` (dalam Base64) | «Teks pengumuman yang ditampilkan di aplikasi VPN». |
+| Pengumuman | `subAnnounce` | `Announce` (dalam Base64) | «Teks pengumuman yang ditampilkan di aplikasi VPN». Mulai 3.5.0 teks juga ditampilkan sebagai **banner informasi di bagian atas halaman info langganan** (jika tidak kosong), dan variabel `announce` tersedia untuk template kustom. |
 
 Selain itu, header `Subscription-Userinfo` dikirimkan dalam setiap respons dengan data traffic klien yang teragregasi: `upload`, `download`, `total`, dan `expire` (waktu kedaluwarsa dalam detik). Klien menggunakannya untuk menampilkan sisa traffic dan masa berlaku.
 
@@ -3255,15 +3268,17 @@ Jika karena ketidaksinkronan antar node klien yang sama masuk ke inbound JSON la
 
 Bagian **Hosts** (item menu samping; halaman ringkasan dengan jumlah Total/Enabled/Disabled dan daftar) menentukan penggantian alamat untuk tautan langganan. Untuk setiap inbound, Anda dapat menambahkan satu atau beberapa **host** — endpoint yang disubstitusikan ke dalam tautan langganan yang dikirimkan ke klien **menggantikan alamat, port, dan parameter TLS inbound itu sendiri**. Ini berguna untuk mendistribusikan traffic melalui CDN atau relay tanpa mengubah inbound itu sendiri.
 
-Setiap host memiliki:
+**Mulai versi 3.5.0, host adalah «grup»**: satu entri mencakup **beberapa inbound** dan **beberapa alamat** sekaligus. Tindakan daftar (aktifkan/nonaktifkan/hapus/susun ulang) dan API bekerja dengan grup (`groupId` berupa string); tersedia endpoint massal `POST /panel/api/hosts/bulk/add` (`{"inboundIds": [...], "hosts": [...], ...}`), dan `list`/`get`/`update`/`del`/`setEnable` beroperasi pada objek grup.
 
-- **Remark** dan deskripsi (Description), pengikatan ke **Inbound** tertentu, sakelar **Enable**, dan penetapan ke node (**Nodes**).
-- **Address** (kosong — mewarisi alamat inbound) dan **Port** (`0` — mewarisi port inbound); **Tags** (hanya diperhitungkan dalam langganan RAW).
+Setiap host (grup) memiliki:
+
+- **Remark** dan deskripsi (Description), pengikatan ke **Inbounds** (multi-pilih dengan pencarian; minimal satu), sakelar **Enable**, dan penetapan ke node (**Nodes**).
+- **Address** — mulai 3.5.0 ini adalah **daftar alamat** (input dengan tag; pemisah — koma, titik koma, spasi; placeholder `cdn.example.com, cdn2.example.com:443`). Setiap entri dapat memiliki `:port` tersemat sendiri (termasuk IPv6 dalam kurung siku `[::1]:443`); saran dropdown menawarkan alamat yang sudah dipakai host lain. Daftar kosong — alamat inbound itu sendiri diwarisi (di daftar ditandai label oranye **Inherits**). **Port** (`0` — mewarisi port inbound) berfungsi sebagai port default untuk entri tanpa port tersemat; **Tags** (hanya diperhitungkan dalam langganan RAW).
 - Tab **Security** — `same` / `tls` / `none` / `reality` dengan SNI, fingerprint, ALPN, pinned-cert, `allowInsecure`, dan ECH.
-- Tab **Advanced** — Host header, Path, rute VLESS, Mux, Sockopt, Final Mask, dan pengecualian host dari format langganan tertentu (raw / json / clash).
+- Tab **Advanced** — Host header, Path, rute VLESS, Mux, Sockopt, Final Mask, dan pengecualian host dari format langganan tertentu (raw / json / clash). Mulai 3.5.0, **Final Mask host juga masuk ke tautan raw** (`fm=`; sebelumnya hanya JSON/Clash): mask TCP/UDP host ditambahkan ke mask inbound, sedangkan parameter QUIC host hanya dipakai jika inbound tidak memilikinya. Sakelar **Allow insecure** kini juga berlaku untuk **Hysteria/Hysteria2** (`insecure=1` di tautan, `skip-cert-verify: true` di Clash).
 - Tab **Clash (mihomo)** — versi IP, Mihomo X25519, pengacakan host (Shuffle host).
 
-Host diurutkan dalam inbound mereka dan mendukung pengaktifan, penonaktifan, dan penghapusan massal. Host terkelola menggantikan array External Proxy yang lama.
+Dalam daftar, kolom **Endpoint** menampilkan alamat sebagai chip (yang pertama terlihat, sisanya di popover «+N»), dan kolom **Inbounds** — chip inbound yang diwarnai menurut protokol. Mulai 3.5.0, host diurutkan **secara global** (berdasarkan urutan sortir, lalu berdasarkan remark), bukan lagi dalam lingkup inbound; pengaktifan, penonaktifan, dan penghapusan massal tetap tersedia. Host terkelola menggantikan array External Proxy yang lama.
 
 **Route VLESS (VLESS route).** Mulai versi 3.4.2, ini berupa satu angka `0-65535` (bukan daftar port; petunjuk — «satu nilai VLESS route (0-65535) yang ditanamkan ke UUID, misalnya 443; kosong — tanpa itu», placeholder `443`). Nilai yang ditetapkan benar-benar «ditanamkan» ke UUID setiap langganan yang dihasilkan (raw / JSON / Clash): Xray membaca byte 6-7 UUID dan menyamarkannya sebelum autentikasi, sehingga klien tetap cocok. Nilai yang kosong atau tidak valid tidak mengubah UUID.
 
@@ -3288,7 +3303,7 @@ Endpoint `subJsonPath` (default `/json/`), diaktifkan dengan centang terpisah.
 |---|---|---|---|
 | Langganan JSON | `subJsonEnable` | `false` | «Aktifkan/nonaktifkan endpoint langganan JSON secara independen.». |
 
-Mengembalikan konfigurasi JSON lengkap (format yang dipahami sing-box dan klien turunannya — Podkop, OpenWRT sing-box, Karing, NekoBox). Parameter tambahan tersedia untuk format ini (tab `subFormats`):
+Mengembalikan konfigurasi JSON lengkap (format yang dipahami sing-box dan klien turunannya — Podkop, OpenWRT sing-box, Karing, NekoBox). Mulai 3.5.0, klien **inbound WireGuard native** juga masuk ke langganan JSON (`secretKey`, `address`, `peers[]` dengan `publicKey`/`endpoint`/`preSharedKey`/`keepAlive`/`allowedIPs`, `mtu`) — sebelumnya mereka dilewati begitu saja. Parameter tambahan tersedia untuk format ini (tab `subFormats`):
 
 - **Mux** (`subJsonMux`, default kosong) — pengaturan multipleksing JSON (Mux) yang dimasukkan ke dalam outbound setiap stream langganan JSON. «Transmisi beberapa stream data independen dalam satu koneksi.».
 - **Final Mask** (`subJsonFinalMask`, default kosong) — «Mask finalmask xray (TCP/UDP) dan pengaturan QUIC yang ditambahkan ke setiap stream langganan JSON. Memerlukan versi xray terbaru di klien.». Dikonfigurasi melalui sub-field: «Paket» (`packets`), «Panjang» (`length`), «Interval» (`interval`), «Maks. pembagian» (`maxSplit`), «Noise» (`noises`: «Tipe»/`type`, «Paket»/`packet`, «Penundaan (ms)»/`delayMs`, «Terapkan ke»/`applyTo`, tombol «+ Noise»), serta «Konkurensi» (`concurrency`), «Konkurensi xudp» (`xudpConcurrency`), dan «xudp UDP 443» (`xudpUdp443`).
@@ -3306,13 +3321,13 @@ Endpoint `subClashPath` (default `/clash/`), diaktifkan dengan centang terpisah.
 
 Respons dikirimkan dengan tipe `application/yaml; charset=utf-8`. Jika «Judul langganan» (`subTitle`) ditetapkan, judul tersebut juga dikirimkan di header `Content-Disposition` (`attachment; filename*=UTF-8''<title>`), agar klien Clash memberi nama profil yang diimpor dengan nama tersebut.
 
-Format tautan dan YAML yang dihasilkan dipertahankan dalam kondisi terkini untuk klien modern: Shadowsocks-2022 (SS2022) tidak lagi mengkodekan userinfo dalam Base64; tautan Shadowsocks dengan obfuskasi http dikirimkan dalam format SIP002 dengan plugin `obfs-local`; untuk langganan Clash/Mihomo tersedia set lengkap field XHTTP. Ini tidak memerlukan pengaturan terpisah — tautan hanya lebih tepat dikenali oleh klien.
+Format tautan dan YAML yang dihasilkan dipertahankan dalam kondisi terkini untuk klien modern: Shadowsocks-2022 (SS2022) tidak lagi mengkodekan userinfo dalam Base64; tautan Shadowsocks dengan obfuskasi http dikirimkan dalam format SIP002 dengan plugin `obfs-local`; untuk langganan Clash/Mihomo tersedia set lengkap field XHTTP. Mulai 3.5.0, klien **inbound WireGuard native** juga masuk ke langganan Clash/Mihomo (field `private-key`, `public-key`, `pre-shared-key`, `persistent-keepalive`, `ip`/`ipv6`, `mtu`, `dns`) — sebelumnya mereka dilewati begitu saja. Ini tidak memerlukan pengaturan terpisah — tautan hanya lebih tepat dikenali oleh klien.
 
 > Catatan: build ini mendukung tepat tiga format — tautan biasa (Base64/teks), JSON (kompatibel sing-box), dan Clash/Mihomo (YAML). Tidak ada format Outline terpisah di server langganan.
 
 ### 10.4. Halaman informasi langganan dan kode QR
 
-Jika Anda membuka tautan langganan di browser (atau secara eksplisit menambahkan parameter `?html=1` atau `?view=html` ke URL, atau mengirimkan header `Accept: text/html`), server alih-alih respons «mentah» akan mengirimkan **halaman informasi langganan** visual («Informasi langganan»). Klien VPN tetap mendapatkan respons mesin, karena mereka tidak meminta HTML.
+Jika Anda membuka **salah satu dari tiga tautan langganan** — raw, JSON, atau Clash — di browser (atau secara eksplisit menambahkan parameter `?html=1` atau `?view=html` ke URL, atau mengirimkan header `Accept: text/html`), server alih-alih respons «mentah» akan mengirimkan **halaman informasi langganan** visual («Informasi langganan»). Sebelum 3.5.0, hanya tautan utama `/sub/` yang berperilaku demikian, sedangkan `/json/` dan `/clash/` mengirimkan JSON/YAML mentah ke browser. Klien VPN tetap mendapatkan respons mesin, karena mereka tidak meminta HTML.
 
 Halaman (aplikasi satu halaman yang dibuild dengan Vite) menampilkan:
 
@@ -3492,6 +3507,8 @@ Kelompok logis pengaturan di dalam editor:
 | Field | Label | Deskripsi |
 |---|---|---|
 | `FreedomHappyEyeballs` | **Freedom Happy Eyeballs (IPv4/IPv6)** | Keterangan: *"Dual-stack dial untuk outbound langsung (freedom) — berguna pada server keluar dengan IPv4 dan IPv6."* Mengaktifkan algoritma Happy Eyeballs (percobaan simultan pada kedua keluarga alamat) untuk freedom-outbound. |
+
+Happy Eyeballs tersendiri juga ada di **pengaturan dial (sockopt) outbound tertentu**: mulai 3.5.0 sakelar ini benar-benar aktif (sebelumnya konfigurasi diserialisasi sebagai nonaktif dan sakelar «terlepas» kembali). «Try delay (ms)» kini default **250**; nilai `0` yang ditetapkan secara eksplisit (= nonaktif) tetap disimpan; tersedia juga Prioritize IPv6, interleave (1), dan maxConcurrentTry (4).
 | try delay | (keterangan) | *"Milidetik sebelum mencoba keluarga alamat lain. 150–250 md adalah titik awal yang baik."* Penundaan sebelum beralih ke keluarga alamat alternatif. Rentang yang disarankan adalah 150–250 md. |
 
 #### Overall Routing Strategy
@@ -3509,6 +3526,10 @@ Kelompok logis pengaturan di dalam editor:
 | `outboundTestUrl` | **URL untuk pengujian outbound** | URL untuk memeriksa konektivitas saat menguji outbound. Keterangan: *"URL untuk memeriksa koneksi outbound"*. Disimpan secara terpisah dari template, dengan kunci `xrayOutboundTestUrl`. | **`https://www.google.com/generate_204`** |
 
 Nilai ini disanitasi. Saat pengujian outbound, nilai ini juga divalidasi sebagai URL publik — ini adalah perlindungan terhadap SSRF: pengguna tidak dapat menyisipkan URL sembarang (termasuk internal) melalui klien, URL pengujian selalu diambil dari pengaturan server. Nilai kosong saat penyimpanan/pengujian diganti dengan `generate_204` default.
+
+#### Default Outbound (mulai 3.5.0)
+
+Item pertama pada tab **«Routing dasar»** — selektor **Default Outbound**: «Trafik yang tidak cocok dengan aturan routing mana pun menggunakan outbound ini (Xray mengambil outbound pertama dalam daftar)». Daftar berisi `direct`, `blocked`, dan semua tag yang ada; default `direct`. Pemilihan **memindahkan outbound yang ditunjuk ke posisi pertama** template; `direct`/`blocked` yang tidak ada dibuat secara otomatis, dan tidak dihapus saat pilihan diganti.
 
 #### Block BitTorrent
 
@@ -3635,6 +3656,7 @@ Dalam template referensi terdapat dua outbound wajib:
 | Protokol | — | Jenis outbound (lihat di bawah). |
 | Alamat / Port | **Alamat** / Port | Target koneksi. Alamat dan port wajib diisi. |
 | Kirim melalui | **Kirim melalui** | Alamat IP lokal antarmuka keluar (`sendThrough`). Placeholder: *"IP lokal"*. |
+| Target Strategy | **Target Strategy** | **Baru di 3.5.0.** Cara domain tujuan di-resolve sebelum koneksi. 11 nilai: `AsIs` (default, tanpa resolve), `UseIP`, `UseIPv4`, `UseIPv6`, `UseIPv6v4`, `UseIPv4v6` (resolve dengan fallback), `ForceIP`, `ForceIPv6v4`, `ForceIPv6`, `ForceIPv4v6`, `ForceIPv4` (mewajibkan resolve yang berhasil). Kosong = `AsIs` (tidak ditulis ke config); untuk `freedom`, nilai dibaca dengan fallback ke `domainStrategy` lama (kunci legasi tetap ditulis untuk inti versi lama). |
 | Dialer proxy (rantai) | — | Keterangan: *"Hubungkan outbound ini melalui outbound lain (berdasarkan tag) untuk membangun rantai proxy. Biarkan kosong untuk koneksi langsung."* Placeholder: *"Pilih outbound untuk rantai"*. Diimplementasikan melalui `streamSettings.sockopt.dialerProxy`. |
 
 Dropdown **Dialer Proxy** menampilkan tidak hanya outbounds lokal, tetapi juga tag outbounds dari langganan — sehingga rantai dapat dibangun melalui exit yang diperoleh dari langganan. Blackhole-outbound dan outbound yang sedang diedit tetap dikecualikan dari daftar. Biarkan field kosong untuk koneksi langsung.
@@ -3655,6 +3677,8 @@ Protokol yang didukung oleh formulir:
 Untuk outbound bertipe **loopback**, blok **Sniffing** tersedia dengan parameter yang sama seperti pada inbound: aktifkan, **destOverride**, **Metadata Only**, **Route Only**, dan daftar **domain yang dikecualikan**.
 
 Dalam mask **UDP** (FinalMask) untuk **Hysteria2**, mode tambahan tersedia. Mask **Salamander** memiliki selektor **Mode** dengan nilai **Salamander** dan **Gecko**: mode Gecko menambahkan padding paket acak dengan field ukuran **Min**/**Max** (`packetSize`, rentang 1–2048, default 512–1200) — ini melindungi dari fingerprinting berdasarkan panjang paket. Mask **Realm** (UDP hole-punching) mendapatkan blok **TLS Config** opsional dengan field **Server Name** (SNI), **ALPN** (`h3`/`h2`/`http/1.1`), **Fingerprint** (uTLS), dan sakelar **Allow Insecure**.
+
+Mulai 3.5.0, tersedia tipe **mask TCP** baru — **XMC (Minecraft)** (`xmc`): aliran disamarkan sebagai protokol Minecraft. Field: **Hostname** (opsional; «alamat server yang diimitasi dalam handshake»), **Usernames** (daftar opsional; «nama pemain yang ditawarkan kepada prober; secara default inti menggunakan Dream»), dan **Password** yang wajib (16 karakter, pembuatan otomatis dengan tombol ↻; «kata sandi obfuskasi»). Penting: **kombinasi TCP-Finalmask dengan REALITY ditolak saat penyimpanan** — kombinasi ini membuat Xray-core crash pada koneksi pertama (kesalahan: «Finalmask is not supported with REALITY security…»; lihat Xray-core#6453). Mask UDP dengan REALITY diizinkan; kombinasi tidak valid yang tersimpan sebelumnya otomatis «disembuhkan» (mask dibuang) saat konfigurasi dibangun.
 
 **Contoh: rantai melalui SOCKS upstream.** Outbound `upstream` terhubung ke proxy SOCKS5 eksternal, dan `chained` mengirimkan lalu linasnya melaluinya (`dialerProxy`), membentuk rantai. Dalam `outbounds`:
 
@@ -3721,7 +3745,13 @@ Dua mode (keterangan: *"TCP: probe dial-only cepat. HTTP: permintaan penuh melal
 - **TCP** (`mode=tcp`) — dial sederhana ke `host:port`, dieksekusi secara paralel di semua endpoint, ~timeout 5 d. Hanya memeriksa keterjangkauan TCP, tidak memvalidasi protokol proxy. Untuk `freedom`/`blackhole`/tag `blocked` akan mengembalikan *"Outbound has no testable endpoint"*.
 - **HTTP** (`mode=http` atau kosong) — menjalankan instance Xray sementara, melakukan permintaan HTTP nyata (probe URL = `outboundTestUrl` server), mengukur latensi nyata. Mode otoritatif tetapi berat: diserialisasi dengan kunci global (*"Another outbound test is already running, please wait"*). Timeout satu percobaan — 10 d, jendela tunggu hasil — 15 d (ditingkatkan agar outbound yang sehat pada saluran lambat atau bertunnel tidak ditandai sebagai "Failed"). Jika gagal, penyebab sebenarnya (kesalahan DNS, connection refused, habis deadline, kesalahan TLS, dll.) ditulis ke log panel/Xray, yang ditunjukkan oleh pesan timeout umum.
 
+- **Real delay** (**baru di 3.5.0**) — mode ketiga pada sakelar. Menggunakan instance Xray sementara yang sama, tetapi melaporkan **waktu penuh permintaan «dingin», termasuk pembentukan tunnel** — angka yang mendekati yang ditampilkan aplikasi klien. Keterangan sakelar: «TCP: probe dial cepat. HTTP: permintaan penuh melalui xray. Real delay: waktu penuh, termasuk pembentukan koneksi». Mode **HTTP** biasa mulai 3.5.0 diukur pada koneksi «hangat» (keep-alive), sehingga angkanya lebih rendah dan lebih mendekati latensi satu permintaan.
+
 > Protokol UDP (`wireguard`, `hysteria`) dan transport UDP (`kcp`, `quic`, `hysteria`) **selalu** diuji dalam mode HTTP, bahkan jika TCP diminta — dial UDP murni tidak dapat membedakan endpoint "hidup" dari "mati". Untuk wireguard dalam konfigurasi uji, `noKernelTun: true` dipaksa.
+
+#### Kolom Egress dan Country (mulai 3.5.0)
+
+Setelah uji **HTTP** atau **Real delay** berhasil, panel melalui rute sementara yang sama meminta metadata Cloudflare trace dan menampilkan dua kolom di daftar outbound: **Egress** — IP keluar (IPv4/IPv6, masing-masing disembunyikan di balik ikon «mata»; selama belum ada uji — tanda hubung dengan keterangan «Jalankan uji HTTP untuk menampilkan IP keluar dan negara») dan **Country** — bendera dan nama negara keluar; jika keluaran melewati Cloudflare WARP, label oranye WARP ditambahkan. Uji TCP tidak mengisi kolom-kolom ini; di perangkat seluler data ditampilkan di kartu outbound.
 
 #### Pemeriksaan batch dan perincian tahapan
 
@@ -3741,7 +3771,7 @@ Di tab Balancers terdapat kolom status langsung: **Live Target** menampilkan tar
 |---|---|---|
 | Tag | **Tag** (keterangan: *"Tag unik"*) | Identifier unik. Placeholder: *"tag balancer unik"*. Validasi: *"Tag wajib diisi"*, *"Tag sudah digunakan oleh balancer lain"*. |
 | Selektor | **Selektor** | Daftar tag outbound (berdasarkan substring) yang menjadi pilihan balancer. Setidaknya satu harus dipilih: *"Pilih setidaknya satu outbound"*. |
-| Fallback | **Fallback** | Tag outbound cadangan jika tidak ada selektor yang cocok. |
+| Fallback | **Fallback** | Tag cadangan jika tidak ada selektor yang cocok. **Mulai 3.5.0 balancer lain juga dapat dipilih** (dalam daftar, opsi semacam itu ditandai label biru «Balancer», keterangan «Pilih balancer lain sebagai fallback»). Xray tidak mendukung ini secara native, sehingga panel sendiri membangun loopback-outbound tersembunyi `_bl_<target>` dan aturan routing (jalur: balancer → loopback → server → balancer target → outbound; peringatan tentang «hop» ekstra ditampilkan di formulir). Ada perlindungan dari siklus (kesalahan «tidak dapat dipilih — akan terjadi ketergantungan siklik», opsi dalam daftar diblokir dengan keterangan jalur siklusnya) dan dari penghapusan balancer yang sedang digunakan («Tidak dapat menghapus — digunakan sebagai fallback oleh: …»). Prefiks tag `_bl_` dicadangkan (dilarang dalam tag); objek layanan `_bl_` disembunyikan dari daftar Outbounds/Routing, dan kolom Fallback/Live Target/Override menampilkan nama balancer target, bukan tag loopback. |
 | Strategi | **Strategi** | Algoritma pemilihan (lihat di bawah). |
 
 #### Strategi dan parameter observasi
@@ -3847,6 +3877,8 @@ Saat menghapus outbound atau balancer, dalam tindakan yang sama panel **membersi
 ### 11.6. DNS
 
 Bagian `dns`. Aktifkan: **Aktifkan DNS** (keterangan: *"Mengaktifkan server DNS bawaan"*).
+
+> Mulai 3.5.0, server DNS pada **IP privat** (misalnya AdGuard/Pi-hole Anda sendiri di jaringan docker yang sama) berfungsi «langsung dari kotaknya»: panel secara otomatis menyisipkan dan memelihara aturan allow terkelola (direct, dibatasi pada port server DNS) **sebelum** aturan pemblokir `geoip:private` dan menyinkronkannya saat `dns.servers` berubah. Sebelumnya, permintaan DNS Xray sendiri diblokir diam-diam oleh aturan tersebut, menambah ~4 detik latensi untuk setiap domain baru; aturan manual tidak lagi diperlukan (aturan yang dibuat manual tidak disentuh).
 
 #### Parameter DNS umum
 
@@ -4067,7 +4099,7 @@ Saat menyimpan pengaturan Xray, panel melakukan (dalam urutan ini):
 
 ### 11.12. Outbound dari langganan (dengan pembaruan otomatis)
 
-Mulai versi 3.3.0, panel dapat mengimpor `outbound` langsung dari URL langganan — format yang sama yang disediakan oleh penyedia VPN untuk aplikasi klien. Langganan secara berkala dibaca ulang di latar belakang, sehingga kumpulan `outbound` di server tetap terkini tanpa pengeditan manual template konfigurasi.
+Mulai versi 3.3.0, panel dapat mengimpor `outbound` langsung dari URL langganan — format yang sama yang disediakan oleh penyedia VPN untuk aplikasi klien. Langganan secara berkala dibaca ulang di latar belakang, sehingga kumpulan `outbound` di server tetap terkini tanpa pengeditan manual template konfigurasi. Mulai 3.5.0, port pada tautan `ss://` (SIP002) dengan parameter query (`?plugin=`, `?type=`) atau `/` di akhir diurai dengan benar (sebelumnya diam-diam menjadi `0`); tautan dengan port yang benar-benar tidak valid dilewati, bukan diimpor dalam keadaan rusak.
 
 Bagian ini disebut **"Langganan outbound"**, deskripsi: "Impor outbounds dari URL langganan jarak jauh (vmess/vless/trojan/ss/...). Tag tetap tidak berubah untuk digunakan dalam balancer dan aturan routing. Pembaruan dilakukan secara otomatis." Bagian ini terletak di halaman Xray, di atas panel pengaturan `outbound`.
 
@@ -4426,7 +4458,19 @@ Topologi tidak harus datar: sebuah node sendiri bisa menjadi master bagi node-no
 - Identitas sub-node ditentukan oleh GUID-nya; berkat ini klien online dan inbound dihitung tepat di bawah node fisik yang menghosting mereka, bahkan dalam rantai `Node1 → Node2 → Node3` (master "menembus" satu level lebih dalam melalui setiap node langsung).
 - Jika node langsung menjadi tidak dapat dijangkau, cache sub-nodenya dihapus, dan sub-node menghilang dari pohon hingga koneksi pulih.
 
-### 12.9. Node: hal baru di 3.3.0
+### 12.9. Perbaikan 3.5.0 (stabilitas node)
+
+Paket perbaikan di 3.5.0 yang terasa bagi operator node:
+
+- **Menyimpan klien tanpa perubahan tidak lagi merusak trafik node.** Sebelumnya, setiap penyimpanan klien (bahkan «buka — simpan») mengirim pembaruan inbound penuh ke node dengan pembuatan ulang handler Xray — node tampak online, tetapi tidak meneruskan trafik sampai di-restart manual. Kini penyimpanan tanpa perubahan tidak melakukan apa pun, dan pengeditan nyata dikirim sebagai satu pembaruan ringan tanpa pembuatan ulang.
+- **Penggantian Host dari node diterima ke master**: saat inbound node pertama kali diterima, baris Hosts-nya (SNI, fingerprint, ALPN, dll.) ikut diimpor, dan langganan membawa parameter TLS yang benar.
+- **Perpanjangan otomatis di node membuka jendela kuota yang baru** (paket seperti «100 GB setiap 30 hari» kembali memberikan volume penuh).
+- **Penghapusan klien di master menghapusnya sepenuhnya di node** (rekaman + trafik), bukan sekadar melepas tautan; sisa dari penghapusan massal sebelumnya dapat dibersihkan dengan tindakan «Hapus Klien Tanpa Inbound» di node.
+- **Inbound node tidak disapu bersih sebelum penerimaan pertama**: menyimpan node yang baru ditambahkan tidak lagi dapat menghapus inbound aktifnya.
+- **Satu inbound yang tidak valid tidak menghentikan sinkronisasi trafik node** (sekaligus inbound legasi `socks` di node diganti namanya menjadi `mixed`).
+- **Pemeriksaan konflik port dibatasi pada node itu sendiri** — pengeditan alamat listen inbound node tidak lagi ditolak karena port yang sama di node lain («port … already used by inbound …»).
+
+### 12.10. Node: hal baru di 3.3.0
 
 Pada versi 3.3.0, bagian **Node** mendapatkan tiga peningkatan signifikan: atribusi lalu lintas dan klien online yang benar dalam topologi multi-level (multi-hop), sinkronisasi client-IP antar node, dan indikator status terpisah untuk kasus ketika panel node aktif tetapi inti Xray di dalamnya crash.
 
@@ -4964,7 +5008,7 @@ Jika pengguna tidak memiliki klien yang terhubung dengan Telegram User ID-nya, b
 
 ### 14.3. Perintah bot
 
-Bot memiliki empat perintah yang terdaftar dan terlihat di menu «/» Telegram:
+Mulai versi 3.5.0, **delapan** perintah terdaftar dan terlihat di menu «/» Telegram:
 
 | Perintah | Deskripsi (dari menu) | Akses | Yang dilakukan |
 |---|---|---|---|
@@ -4972,8 +5016,12 @@ Bot memiliki empat perintah yang terdaftar dan terlihat di menu «/» Telegram:
 | `/help` | Справка по боту | semua | Menampilkan sambutan umum dan ajakan memilih item menu. |
 | `/status` | Проверить статус бота | semua | Menjawab «✅ Бот функционирует нормально». |
 | `/id` | Показать ваш Telegram ID | semua | Mengembalikan «🆔 Ваш User ID: <code>…</code>». Berguna untuk mengetahui User ID Anda sendiri. |
+| `/usage` | Показать расход клиента: /usage email | semua (lihat di bawah) | Ditambahkan ke menu di 3.5.0. |
+| `/inbound` | Поиск inbound: /inbound remark (admin) | admin | Ditambahkan ke menu di 3.5.0. |
+| `/restart` | Перезапустить ядро Xray (admin) | admin | Ditambahkan ke menu di 3.5.0. |
+| `/clearall` | Сбросить трафик всех клиентов (admin) | admin | **Baru di 3.5.0**: meminta konfirmasi (tombol «Отмена» / «Подтвердить сброс трафика») dan me-nol-kan trafik semua klien. |
 
-Selain perintah yang terdaftar, ada tiga perintah argumen lagi yang diproses (tidak ditampilkan di menu «/», tetapi berfungsi):
+Detail perintah-perintah berargumen:
 
 - **`/usage [Email]`** — mencari klien berdasarkan email.
   - Untuk **administrator** menampilkan kartu klien lengkap (dengan tombol manajemen).
@@ -4982,6 +5030,8 @@ Selain perintah yang terdaftar, ada tiga perintah argumen lagi yang diproses (ti
 - **`/restart`** — hanya untuk administrator. Memulai ulang Xray Core. Kemungkinan jawaban: «✅ Ядро Xray успешно перезапущено», «❗ Xray Core не запущен» (jika inti tidak berjalan), «❗ Ошибка при перезапуске Xray-core. <Ошибка>». Argumen apa pun setelah `/restart` akan menghasilkan pesan perintah tidak dikenal dengan petunjuk `/restart`.
 
 Di obrolan grup, perintah dengan format `/perintah@botusername` hanya diproses jika username cocok dengan nama bot saat ini.
+
+Tiga perubahan lain di 3.5.0: dalam daftar **klien online**, tombol diberi label `email - remark inbound` (nama yang sama di inbound berbeda tidak lagi tertukar); pesan **backup** dan **log ban** diawali baris `Hostname==…` — praktis ketika satu bot melayani beberapa panel; pencarian kartu klien berdasarkan **Telegram ID** berfungsi terlepas dari pemformatan JSON pengaturan (sebelumnya entri «kompak» yang berasal dari node atau impor tidak ditemukan).
 
 Bantuan administrator (tombol «Команды»):
 
@@ -5338,7 +5388,7 @@ Panel mendukung dua mesin DB, dan perilaku backup bergantung pada pilihan terseb
 
 - **SQLite** (pilihan default) — data disimpan dalam file `x-ui.db`.
 - **PostgreSQL** — jika panel dikonfigurasi untuk PostgreSQL, blok menampilkan petunjuk:
-  > «Panel ini berjalan di PostgreSQL. «Cadangan» mengunduh arsip pg_dump (.dump), sedangkan «Pemulihan» mengunggahnya kembali melalui pg_restore. Alat klien PostgreSQL (pg_dump dan pg_restore) harus terinstal di server.»
+  > «Panel ini berjalan di PostgreSQL. «Cadangan» mengunduh arsip pg_dump (.dump), sedangkan «Pemulihan» mengunggahnya kembali melalui pg_restore. Pemulihan juga menerima basis data SQLite (.db) atau dump migrasi SQLite dan mengimpor datanya ke PostgreSQL. Alat klien PostgreSQL (pg_dump dan pg_restore) harus terinstal di server.»
 
 #### Ekspor (membuat cadangan)
 
@@ -5379,8 +5429,10 @@ Jika panel dibuka melalui base path (Web Base Path), tambahkan ke URL: `…:2053
 Tombol **«Impor database»** (Ingg. `Restore`) membuka pemilih file dan mengunggahnya ke server untuk pemulihan (`POST /panel/api/server/importDB`, field formulir `db`).
 
 Petunjuk di antarmuka:
-- SQLite: «Klik untuk memilih dan mengunggah file .db dari perangkat Anda guna memulihkan database dari cadangan.»
-- PostgreSQL: «Klik untuk memilih dan mengunggah file .dump guna memulihkan database PostgreSQL. Ini akan menggantikan semua data saat ini.»
+- SQLite: «Klik untuk memilih dan mengunggah file .db atau dump migrasi (.dump) dari perangkat Anda guna memulihkan database.»
+- PostgreSQL: «Klik untuk memilih dan mengunggah backup PostgreSQL (.dump), basis data SQLite (.db), atau dump migrasi SQLite guna memulihkan database. Ini akan menggantikan semua data saat ini.»
+
+Mulai 3.5.0, tipe file ditentukan berdasarkan isinya (`PGDMP` — arsip pg_dump; header «SQLite format 3» — basis data `.db`; `PRAGMA`/`BEGIN TRANSACTION` di awal — dump SQL teks), bukan berdasarkan ekstensi; dialog pemilihan menerima `.dump,.db` di kedua DBMS. File SQLite yang diunggah ke panel PostgreSQL diimpor ke PostgreSQL dalam satu transaksi (lihat 3.14); sebelum impor, file diverifikasi sebagai DB panel yang sesungguhnya, dan skema lama otomatis dimigrasikan. Sebelum memulihkan arsip `pg_dump`, panel memeriksa keterbacaannya lebih dahulu (sebelum Xray dihentikan): jika dump dibuat oleh PostgreSQL yang lebih baru, ditampilkan kesalahan dengan perintah persisnya — misalnya, «…run 'x-ui pgclient 17'…».
 
 **Proses impor untuk SQLite (penting dipahami: bersifat atomik dengan rollback):**
 1. File yang diunggah diperiksa formatnya — harus merupakan database SQLite yang valid; jika tidak, dikembalikan error «Invalid db file format».
@@ -5405,16 +5457,15 @@ Pesan antarmuka berdasarkan hasil:
 
 Terpisah dari backup biasa, terdapat fitur **«Unduh file migrasi»** (`Download Migration`, permintaan `GET /panel/api/server/getMigration`). Fitur ini menghasilkan file portabel untuk berpindah ke mesin DB lain:
 
+Mulai 3.5.0, tombol ini ditampilkan **hanya di panel PostgreSQL** (di SQLite, backup biasa `.db` kini dapat dipulihkan langsung ke PostgreSQL — ekspor terpisah tidak diperlukan):
+
 | Mesin saat ini | Yang diunduh | Nama file | Tujuan |
 |----------------|--------------|-----------|--------|
-| SQLite | Dump SQL portabel (teks) | `x-ui.dump` | Mengisi PostgreSQL dengan data Anda |
 | PostgreSQL | Database SQLite yang dibangun dari data PostgreSQL | `x-ui.db` | Memindahkan panel kembali ke SQLite |
 
-Petunjuk:
-- Di SQLite: «Klik untuk mengunduh ekspor .dump portabel (teks SQL) dari database SQLite Anda.»
-- Di PostgreSQL: «Klik untuk mengunduh database SQLite (.db) yang dibangun dari data PostgreSQL Anda dan siap untuk menjalankan panel di SQLite.»
+Petunjuk: «Klik untuk mengunduh database SQLite (.db) yang dibangun dari data PostgreSQL Anda dan siap untuk menjalankan panel di SQLite.»
 
-Konversi `.db ⇄ .dump` untuk SQLite juga dapat dilakukan dari CLI dengan perintah `x-ui migrateDB [file]` (lihat bagian 16.7).
+Konversi `.db ⇄ .dump` untuk SQLite juga dapat dilakukan dari CLI dengan perintah `x-ui migrateDB [file]` (lihat bagian 16.7). Selain itu, mulai 3.5.0 migrasi antar mesin menjadi **transaksional dan tanpa kehilangan data** (grup klien dan penghitung trafik global ikut dipindahkan; impor yang gagal tidak mengubah DB tujuan), dan untuk memperbarui alat klien PostgreSQL tersedia perintah **`x-ui pgclient [versi]`** serta item **10. Install/Upgrade client tools (pg_dump/pg_restore)** di menu PostgreSQL (bila perlu, repositori resmi PostgreSQL dihubungkan).
 
 #### Backup melalui bot Telegram
 
@@ -5499,7 +5550,7 @@ Parameter logging Xray itu sendiri diatur di halaman **«Konfigurasi Xray»** di
 
 > Perlu diperhatikan: access-log kosong hanya memengaruhi jendela ini. Daftar klien online di «Dashboard» dan batas jumlah IP di formulir klien **tidak bergantung** pada access-log — panel menentukan klien online dan menghitung alamat IP mereka melalui online-stats API inti Xray (statistik koneksi). Pada versi inti yang lebih lama yang tidak memiliki API ini, panel secara otomatis kembali ke metode lama (membaca access-log), dan dalam hal itu jalur ke access-log di sini tetap diperlukan untuk batas IP.
 
-> **Batas jumlah IP dan fail2ban.** Pembatasan jumlah IP klien (field «IP Limit» di formulir klien dan saat penambahan massal) diterapkan di server hanya jika **fail2ban** terinstal — fail2ban-lah yang memblokir alamat yang melampaui batas. Panel memeriksa keberadaan fail2ban (`GET /panel/api/server/fail2banStatus`); jika tidak ada, field «IP Limit» menjadi tidak aktif dengan petunjuk penjelasan (di Windows — dengan pesan terpisah), dan batas yang telah ditetapkan sebelumnya di server tersebut secara otomatis direset karena memang tidak berlaku. Pemblokiran fail2ban berlaku untuk TCP maupun UDP. Di server biasa, fail2ban kini diinstal otomatis saat instalasi dan pembaruan panel (lihat bagian 16.5).
+> **Batas jumlah IP dan fail2ban.** Pembatasan jumlah IP klien (field «IP Limit» di formulir klien dan saat penambahan massal) diterapkan di server hanya jika **fail2ban** terinstal — fail2ban-lah yang memblokir alamat yang melampaui batas. Panel memeriksa keberadaan fail2ban (`GET /panel/api/server/fail2banStatus`); jika tidak ada, field «IP Limit» menjadi tidak aktif dengan petunjuk penjelasan (di Windows — dengan pesan terpisah), dan batas yang telah ditetapkan sebelumnya di server tersebut secara otomatis direset karena memang tidak berlaku. Pemblokiran fail2ban berlaku untuk TCP maupun UDP. Mulai 3.5.0, koneksi «mati» (klien menghilang tanpa penutupan TCP yang benar) dicatat **satu kali saja**, bukan pada setiap pemindaian 10 detik: baris `[LIMIT_IP]` dan siklus pemutusan hanya diulang saat benar-benar terjadi koneksi ulang, sehingga penghitung fail2ban tidak terus bertambah dan `maxretry` tidak perlu lagi dinaikkan berlebihan (format log dan failregex tidak berubah). Di server biasa, fail2ban kini diinstal otomatis saat instalasi dan pembaruan panel (lihat bagian 16.5).
 
 **Contoh: blok `log` yang membuat jendela «Log Xray» mulai menampilkan entri.** Dalam konfigurasi JSON Xray, tampilannya seperti ini:
 
@@ -5600,6 +5651,14 @@ Agar batas jumlah IP klien (bagian 16.3) berfungsi langsung, saat instalasi dan 
 
 Skrip `install.sh` dan `update.sh` kini berfungsi dengan benar di server yang hanya memiliki IPv6: pengunduhan rilis, skrip `x-ui.sh`, dan file layanan tidak lagi memaksa IPv4 (`curl -4`), melainkan menggunakan protokol yang tersedia. Oleh karena itu, panel dapat diinstal dan diperbarui di host tanpa alamat IPv4.
 
+#### Perbaikan skrip di 3.5.0
+
+- **Keluarga RHEL** (Rocky/Alma/RHEL/Oracle): instalasi PostgreSQL lokal dari menu kini berfungsi (autentikasi kata sandi alih-alih ident), dan fail2ban untuk batas IP diinstal dari **EPEL**.
+- **Arch/Manjaro**: instalasi dan pembaruan tidak lagi menjalankan upgrade sistem penuh `pacman -Syu` — hanya pembaruan basis data paket.
+- **ARM 32-bit**: biner Xray yang diunduh dinamai `xray-linux-arm32` — persis seperti yang dijalankan panel (sebelumnya pembaruan menaruh file dengan nama lain, dan panel terus menjalankan inti lama).
+- **Sertifikat IP**: IPv4 publik yang terdeteksi otomatis ditampilkan untuk dikonfirmasi (Enter — terima) sebelum penerbitan; jika ditolak — input manual yang tervalidasi.
+- **Pemilihan port ACME**: Enter (menerima port 80 default) tidak lagi menampilkan pesan keliru «Your input is invalid».
+
 #### Mengganti port panel dengan variabel `XUI_PORT`
 
 Port listen panel web dapat diganti dengan variabel lingkungan `XUI_PORT` — variabel ini berlaku hanya selama proses saat ini berjalan dan **tidak mengubah** nilai `webPort` yang tersimpan di database. Nilai yang diizinkan adalah `1` hingga `65535`; nilai kosong, salah, atau di luar rentang diabaikan (digunakan `webPort`) dengan peringatan di log. Ini berguna saat deployment, terutama di Docker: saat menggunakan bridge network, port container yang dipublikasikan harus sesuai dengan `XUI_PORT` — misalnya, `XUI_PORT=8080` dan `ports: "8080:8080"`.
@@ -5633,7 +5692,8 @@ Panel mendaftarkan sejumlah tugas latar belakang saat startup. Jadwalnya tetap (
 | Pengumpulan traffic Xray | setiap 5 detik (mulai 5 detik setelah startup) | Pencatatan traffic inbound/klien |
 | Pemeriksaan IP klien | setiap 10 detik | Kontrol batas IP berdasarkan log |
 | Heartbeat dan sinkronisasi traffic node | setiap 5 detik | Komunikasi dengan node |
-| **Pembersihan log** | **harian** (`@daily`) | Membersihkan log batas IP dan persistent access-log, merotasi log saat ini ke `*.prev.log` |
+| **Pembersihan log** | **harian** (`@daily`) | Membersihkan log batas IP dan persistent access-log, merotasi log saat ini ke `*.prev.log`. Mulai 3.5.0, pembersihan harian juga mencakup **error-log Xray** (sebelumnya hanya access) |
+| **Pembatasan pertumbuhan log Xray** | **setiap 10 menit** (`@every 10m`) | **Baru di 3.5.0.** Memangkas log access dan error Xray ketika salah satunya melebihi **64 MiB**; log yang dinonaktifkan (`none`/kosong) tidak disentuh |
 | **Reset traffic berdasarkan periode** | `@hourly`, `@daily`, `@weekly`, `@monthly` | Mereset penghitung traffic inbound (dan kliennya) yang memiliki periode reset otomatis yang sesuai |
 | Laporan Telegram | diatur di pengaturan bot (default `@daily`) | Mengirim laporan ke administrator; jika opsi diaktifkan — dengan cadangan DB terlampir (bagian 16.1) |
 | Reset penyimpanan hash Telegram | setiap 2 menit | Hanya jika bot diaktifkan |

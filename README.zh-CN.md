@@ -2,7 +2,7 @@
 
 🇸🇦 [العربية](README.ar.md) · 🇬🇧 [English](README.md) · 🇪🇸 [Español](README.es.md) · 🇮🇷 [فارسی](README.fa.md) · 🇮🇩 [Bahasa Indonesia](README.id.md) · 🇯🇵 [日本語](README.ja.md) · 🇧🇷 [Português](README.pt.md) · 🇷🇺 [Русский](README.ru.md) · 🇹🇷 [Türkçe](README.tr.md) · 🇺🇦 [Українська](README.uk.md) · 🇻🇳 [Tiếng Việt](README.vi.md) · 🇨🇳 简体中文 · 🇹🇼 [繁體中文](README.zh-TW.md)
 
-用于 [3x-ui](https://github.com/MHSanaei/3x-ui) 面板的用户手册 — 一份为面板 **v3.4.2** 编写的综合使用指南。
+用于 [3x-ui](https://github.com/MHSanaei/3x-ui) 面板的用户手册 — 一份为面板 **v3.5.0** 编写的综合使用指南。
 
 > **只读镜像。** 此 GitHub 仓库为单向镜像 — 手册源文件存放于私有 GitLab，并自动推送至此，因此始终保持最新。发现错误或不准确之处？请[提交 Issue](https://github.com/yukh975/3X-UI-Manual/issues)。**不接受 Pull Request**（将自动关闭） — 修改须在源端进行。
 
@@ -24,70 +24,78 @@
 | **[3X-UI-MANUAL.zh-CN.md](3X-UI-MANUAL.zh-CN.md)** · [PDF](pdf/3X-UI-MANUAL.zh-CN.pdf) | 🇨🇳 简体中文 | Markdown + PDF |
 | **[3X-UI-MANUAL.zh-TW.md](3X-UI-MANUAL.zh-TW.md)** · [PDF](pdf/3X-UI-MANUAL.zh-TW.pdf) | 🇹🇼 繁體中文 | Markdown + PDF |
 
-## 3.4.2 新特性
+## 3.5.0 新特性
 
-3.4.2 是一次重大更新：WireGuard 改用多客户端模型，REALITY 新增了实时目标扫描器，负载均衡器获得了 Observatory / Burst Observatory 选项卡，并新增了对敏感设置以 2FA 代码进行确认。以下列出相对于 3.4.1 的变更，按手册章节分组。
+3.5.0 是一次重大发布：MTProto 改用多客户端模型（mtg-multi 引擎、每客户端独立密钥、配额与 ad-tag），托管主机改为分组式（一条记录内含多个 inbound 和多个地址），PostgreSQL 面板的恢复功能可接受 SQLite 备份，outbound 新增「Target Strategy」、「Real delay」测试以及 Egress/Country 列，负载均衡器可将另一个负载均衡器用作 fallback。随附 Xray 核心 26.7.11。以下列出相对于 3.4.2 的变更，按手册章节分组。
 
 ### 第 1 节的更改 — 简介、系统要求与安装
 
-- 侧边菜单（以及移动端抽屉）中新增了**「文档」**按钮（书本图标）——打开官方文档 `https://docs.sanaei.dev/`。
-- 面板更新所允许的最低 Xray 版本已提升至 **26.6.27**（随附 Xray 核心 26.6.27）。
+- Xray 核心已更新至 **26.7.11**。随之而来的自动迁移：Shadowsocks 的 `none`/`plain` 与 VMess 的 `none`/`zero` 加密方式已从核心中移除（已保存的配置会自动改写），指向公网地址的未加密 VLESS/Trojan outbound 在保存时会被拒绝。
+- 新增 **`x-ui pgclient [版本]`** 命令和 PostgreSQL 菜单中的 **10. Install/Upgrade client tools (pg_dump/pg_restore)** 菜单项——用于安装/升级 PostgreSQL 客户端工具。
+- 脚本修复：RHEL 系（EPEL）上的 PostgreSQL 与 fail2ban 安装、Arch 不再执行完整的 `pacman -Syu`、32 位 ARM 上 Xray 二进制文件名已修正（`xray-linux-arm32`）、签发 IP 证书前确认自动检测到的 IPv4，并修复了选择默认 ACME 端口时误报的「Your input is invalid」。
 
 ### 第 2 节的更改 — 登录面板与访问安全
 
-- 启用 2FA 后，修改管理员登录名/密码以及关闭 2FA，现在都需要**输入身份验证器应用中的当前代码**（对敏感修改进行确认）。
-- LDAP：新增**「跳过 TLS 证书校验」**开关（`ldapInsecureSkipVerify`）——在 LDAPS 下禁用证书校验；仅在启用「使用 TLS（LDAPS）」时可用。
-
-### 第 3 节的更改 — 概览 / 仪表盘
-
-- 面板版本按钮现在始终打开更新窗口（参见第 16 节——dev 渠道）。
-- 全面的**可访问性**改进：图标按钮的 aria 标签，以及通过 Enter/Space 激活元素（面向屏幕阅读器和键盘导航）。
+- IP 限制：「死」连接现在只封禁**一次**，而不是在每次 10 秒扫描时重复封禁——fail2ban 计数器不再虚增，无需再调高 `maxretry`。
 
 ### 第 4 节的更改 — Inbounds：创建与通用参数
 
-- **「导出所有链接」**操作现在通过订阅引擎生成链接——为每个客户端套用备注模板，并优先使用受管 Host 端点（此前为固定备注 `inbound-email`）。
+- inbound 列表新增**搜索**（按备注、端口和协议），节点下拉列表（「部署到」、「节点」筛选器）也支持搜索。
 
 ### 第 5 节的更改 — 协议
 
-- **WireGuard 改用多客户端模型。** peer 现在是普通客户端（隧道内地址自动分配，支持订阅、流量/有效期限制和分组）；inbound 表单中内联的「Peer」列表已移除。
-- WireGuard inbound 新增可配置的 **DNS** 字段（默认 `1.1.1.1, 1.0.0.1`）以及**客户端配置卡片**——可复制/下载/扫码完整的 `.conf` 以及 `wireguard://`/`wg://` 链接。
-
-### 第 6 节的更改 — 传输（Stream Settings）
-
-- 对于新建的 XHTTP inbound，**xmux** 中的 `maxConnections` 参数默认值现为 **6**（原为 `0`——不限制）。已有 inbound 保留其原值。
+- **MTProto 改用多客户端模型**（mtg-multi 引擎）：MTProto 用户现在是普通客户端，拥有自己的密钥、配额、有效期、ad-tag 和专属 `tg://proxy` 链接。inbound 级别的「Secret」字段已移除（现有 inbound 会自动转换），「FakeTLS domain」成为新密钥的默认域名。新的 inbound 字段：**Max connections**（连接数限制）、**Public IPv4/IPv6**（用于 ad-tag middle proxy）。客户端更改「热」应用，不会中断其他用户的 Telegram 会话。
+- WireGuard：inbound 菜单获得完整的客户端操作集（Export All URLs、绑定/解绑、分组），导出拆分为 **Config** 和 **Links** 两个选项卡，**「WireGuard 允许的 IP」字段变为可编辑**（多个条目以逗号分隔），节点 inbound 的客户端配置中 `Endpoint` 现在指向节点地址。
 
 ### 第 7 节的更改 — 连接安全：TLS、XTLS 与 REALITY
 
-- 新增 **REALITY 实时目标扫描器**：**「扫描」**按钮（「实时」检查当前目标）和**「查找目标」**按钮（扫描某个域名或 **IP/CIDR** 范围，并根据证书挑选可用目标）。首次选择 REALITY 时，「目标」和 SNI 字段现在为空。
+- **Finalmask + REALITY 组合在保存时会被拒绝**（该组合会导致 Xray-core 在首次连接时崩溃）；minClientVer 占位符已更新为 26.3.27。
+- Finalmask 新增 TCP 掩码类型——**XMC（Minecraft）**：将流量伪装成 Minecraft 流量（Hostname、Usernames，以及必填、可自动生成的 Password）。
 
 ### 第 8 节的更改 — 客户端
 
-- 通过 `bulkAdjust` 续期有效期/配额现在会**自动启用**仅因耗尽（有效期到期或配额超限）而被禁用的客户端——前提是续期使其重新回到限制范围内。手动禁用或仍处于耗尽状态的客户端保持禁用。
+- 新增**「速度」**列——每个客户端的实时速度（↑/↓，约 5 秒滑动平均值）。
+- 客户端搜索恢复支持按 **Telegram ID** 查找；客户端表单的绑定列表中隐藏已禁用的 inbound；修复了「解绑」窗口中重复条目累积的问题。
+- MTProto 客户端拥有专属字段：**「MTProto secret」**（可重新生成）和**「Ad-tag（赞助频道）」**（32 个十六进制字符）；配额和有效期现在对 MTProto 真正生效。
 
 ### 第 9 节的更改 — 客户端分组
 
-- 分组的**「重置流量」**现在仅清零**分组自身的计数器**；各个客户端的计数器、配额和状态均不受影响，无需重启 Xray。这是相对于以往行为的变更（此前会重置分组内所有客户端的流量）。
+- 客户端信息窗口现在会显示其所属**分组**。
 
 ### 第 10 节的更改 — 订阅（Subscription）
 
-- 在**受管主机**中，**VLESS route** 字段已重新定义：现为单个值 `0-65535`（而非端口列表），并会真正「嵌入」到每个订阅 UUID 中（raw/JSON/Clash）。
-- 备注模板中的 `{{EMAIL}}` 变量（及其同义词 `{{USERNAME}}`）现在仅在客户端的**第一条链接**上输出——与流量/有效期块一样。
+- **托管主机改为分组式**：一条记录可覆盖**多个 inbound**（多选）和**多个地址**（标签式输入，每个条目可带自己的 `:端口`；地址自动补全；留空则继承 inbound 地址）。列表的列以芯片形式显示地址和 inbound（带「+N」），操作和 API 均以分组（`groupId`）为单位，并新增了批量端点 `POST /panel/api/hosts/bulk/add`。主机排序现在是全局的（先按排序序号，再按备注）。
+- **公告**文本（`subAnnounce`）现在会以横幅形式显示在订阅信息页面上；自定义模板中可使用 `announce` 变量。
+- 现在通过 **JSON/Clash 链接**（而不仅是主链接）也能在浏览器中打开信息页面。
+- 主机设置 **Final Mask** 与 **Allow insecure** 现在分别也作用于 raw 链接（`fm=`）和 **Hysteria2**（`insecure=1` / `skip-cert-verify: true`）。
+- 「订阅更新间隔」（`subUpdates`）的取值范围修正为 **0–525600**（此前界面上限 168 会在从 2.x 升级后阻止保存设置）。
+- 原生 **WireGuard 客户端现在会进入 Clash 和 JSON 订阅**（此前仅进入 raw）。
 
 ### 第 11 节的更改 — Xray：路由、outbounds、DNS 与扩展
 
-- **负载均衡器**：页面拆分为**「均衡器设置」**和**「Observatory」**两个选项卡；以 Observatory 和 Burst Observatory 表单取代原始 JSON（Burst 新增**「HTTP 方法」**字段）。带 `fallbackTag` 的 Random/Round-robin 均衡器现在会自动创建 Burst Observatory。
-- 删除 outbound 或负载均衡器时，面板会自动清理路由中的相关引用，并在确认对话框中显示**影响预览**。
-- 路由规则中的网络条件 **L4** 在配置中以小写写入（`tcp`/`udp`），而在表格中以大写显示。
-- 负载均衡器添加/编辑表单中的错误现在会延迟到首次触碰字段或尝试保存时才提示。
+- Outbound 编辑器：新增**「Target Strategy」**字段（从 `AsIs` 到 `ForceIPv4` 共 11 个值）、**「Real delay」**测试模式（包含隧道建立在内的完整耗时；HTTP 模式现在按「热」连接测量），以及 HTTP/Real 测试后的 **Egress** 列（出口 IP，藏在「眼睛」图标后）和 **Country** 列（旗帜 + 国家名称，WARP 标记）。
+- **负载均衡器的 Fallback 可以指向另一个负载均衡器**：面板会自动构建隐藏的 loopback 对象（`_bl_…`），并防止循环依赖及删除正在使用的负载均衡器；`_bl_` 前缀已被保留。
+- 「基本路由」选项卡新增**「Default Outbound」**选择器——决定由哪个 outbound 处理未命中任何规则的流量（所选 outbound 会移至首位）。
+- 私有 IP 上的 DNS 服务器不再被 `geoip:private` 规则拦截——面板会自行维护一条受管的放行规则。
+- dial 设置（sockopt）中的 Happy Eyeballs 现在能真正启用；「Try delay」默认 250 毫秒，显式设置的 0 会被保留。
+- outbound 订阅导入：带 `?plugin=`/结尾 `/` 的 `ss://` 链接现在能正确解析端口。
 
 ### 第 12 节的更改 — 节点（多面板，master/slave）
 
-- 「已本地保存，节点离线——稍后同步」提示现在仅在节点确实离线或已关闭时显示（此前在每次保存到在线节点时都会出现）。
+- 一组修复：未做修改地保存客户端不再中断节点 inbound 的实时流量；节点的 Host 覆盖会在首次接受时导入主面板；自动续期会开启新的配额窗口；在主面板删除客户端会将其从节点上完全删除；节点的 inbound 在首次接受前不会被清除；单个异常 inbound 不再阻断节点流量同步；端口冲突检查仅限于所在节点。
 
-### 第 16 节的更改 — 运维：备份、日志、更新、CLI
+### 第 14 节的更改 — Telegram 机器人
 
-- 备份文件名现在包含服务器地址和**日期时间**：`{host}_YYYY-MM-DD_HHMMSS.db`（PostgreSQL 为 `.dump`），例如 `panel.example.com_2026-06-27_000000.db`——无论是从面板下载，还是 Telegram 机器人发送的备份都是如此。
-- 现在可以从稳定版构建启用**dev 渠道**更新：版本按钮始终打开更新窗口，新增**「Dev 渠道」**开关，并附有关于不稳定和无自动回滚的警告。
+- 机器人命令菜单新增 **`/usage`**、**`/inbound`**、**`/restart`**，以及新的管理员命令 **`/clearall`**（重置所有客户端流量，需确认）。
+- 在线客户端列表以 `email - inbound 备注` 标注；备份和封禁日志消息包含主机名；按 Telegram ID 搜索不受设置格式化方式影响。
+
+### 第 16 节的更改 — 日常运维：备份、日志、更新、CLI
+
+- **PostgreSQL 面板的恢复功能可接受 SQLite 文件**：普通 `.db` 备份或迁移 `.dump` 可直接导入 PostgreSQL（单个事务，并在停止 Xray 前完成检查）。两种数据库引擎的文件选择对话框均接受 `.dump,.db`；「下载迁移文件」仅保留在 PostgreSQL 面板上。
+- 恢复 `pg_dump` 归档前，面板会检查转储文件的可读性，版本不匹配时会提示准确的 `x-ui pgclient <版本>` 命令。
+- 启动时自动修复：溢出的流量计数器会被钳制并恢复；移除 inbound 端口上过时的 UNIQUE 约束（它曾妨碍 multi-node）。
+- Xray 日志：新的定时任务每 10 分钟运行一次，在 access 或 error 日志超过 **64 MiB** 时进行截断；每日清理现在两者都会清理。
+- Docker：证书自动续期已修复（crond 会启动，acme.sh 状态保存在卷中）。
 
 ---
 

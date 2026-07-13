@@ -2,7 +2,7 @@
 
 🇸🇦 [العربية](README.ar.md) · 🇬🇧 [English](README.md) · 🇪🇸 [Español](README.es.md) · 🇮🇷 [فارسی](README.fa.md) · 🇮🇩 [Bahasa Indonesia](README.id.md) · 🇯🇵 [日本語](README.ja.md) · 🇧🇷 Português · 🇷🇺 [Русский](README.ru.md) · 🇹🇷 [Türkçe](README.tr.md) · 🇺🇦 [Українська](README.uk.md) · 🇻🇳 [Tiếng Việt](README.vi.md) · 🇨🇳 [简体中文](README.zh-CN.md) · 🇹🇼 [繁體中文](README.zh-TW.md)
 
-Manual do usuário para o painel [3x-ui](https://github.com/MHSanaei/3x-ui) — um guia completo escrito para a versão **v3.4.2** do painel.
+Manual do usuário para o painel [3x-ui](https://github.com/MHSanaei/3x-ui) — um guia completo escrito para a versão **v3.5.0** do painel.
 
 > **Repositório somente leitura.** Este repositório no GitHub é um espelho unidirecional — o código-fonte do manual está em um GitLab privado e é enviado aqui automaticamente, portanto está sempre atualizado. Encontrou um erro ou imprecisão? Por favor, [abra uma Issue](https://github.com/yukh975/3X-UI-Manual/issues). **Pull requests não são aceitos** (são fechados automaticamente) — as correções são feitas na fonte.
 
@@ -24,70 +24,78 @@ Manual do usuário para o painel [3x-ui](https://github.com/MHSanaei/3x-ui) — 
 | **[3X-UI-MANUAL.zh-CN.md](3X-UI-MANUAL.zh-CN.md)** · [PDF](pdf/3X-UI-MANUAL.zh-CN.pdf) | 🇨🇳 简体中文 | Markdown + PDF |
 | **[3X-UI-MANUAL.zh-TW.md](3X-UI-MANUAL.zh-TW.md)** · [PDF](pdf/3X-UI-MANUAL.zh-TW.pdf) | 🇹🇼 繁體中文 | Markdown + PDF |
 
-## O que há de novo na 3.4.2
+## O que há de novo na 3.5.0
 
-A versão 3.4.2 é uma grande atualização: o WireGuard foi migrado para o modelo multicliente, o REALITY ganhou um scanner de destinos ao vivo, os balanceadores receberam as abas Observatory/Burst Observatory e foi adicionada a confirmação de configurações sensíveis com o código 2FA. A seguir, as alterações em relação à 3.4.1, agrupadas pelas seções do manual.
+A versão 3.5.0 é um grande lançamento: o MTProto foi migrado para o modelo multicliente (motor mtg-multi, segredos pessoais, cotas e ad-tag), os hosts gerenciados tornaram-se grupais (vários inbound e endereços em um único registro), a restauração no painel PostgreSQL aceita backups SQLite, os outbound ganharam «Target Strategy», o teste «Real delay» e as colunas Egress/Country, e um balanceador pode usar outro balanceador como fallback. O núcleo Xray 26.7.11 vem incluído. A seguir, as alterações em relação à 3.4.2 pelas seções do manual.
 
 ### Alterações na seção 1 — Introdução, requisitos e instalação
 
-- No menu lateral (e na gaveta móvel) apareceu o botão **«Documentação»** (ícone de livro) — abre a documentação oficial `https://docs.sanaei.dev/`.
-- A versão mínima do Xray para a qual o painel atualiza foi elevada para **26.6.27** (o núcleo Xray 26.6.27 vem incluído).
+- O núcleo Xray foi atualizado para **26.7.11**. Migrações automáticas associadas: as cifras Shadowsocks `none`/`plain` e VMess `none`/`zero` foram removidas do núcleo (as configurações salvas são reescritas automaticamente), e um outbound VLESS/Trojan sem criptografia para um endereço público é rejeitado ao salvar.
+- Novo comando **`x-ui pgclient [versão]`** e item **10. Install/Upgrade client tools (pg_dump/pg_restore)** no menu PostgreSQL — instalação/atualização das ferramentas de cliente do PostgreSQL.
+- Correções de scripts: instalação do PostgreSQL e do fail2ban na família RHEL (EPEL), Arch sem o `pacman -Syu` completo, nome correto do binário do Xray no ARM de 32 bits (`xray-linux-arm32`), confirmação do IPv4 autodetectado antes da emissão do certificado de IP, e corrigido o falso «Your input is invalid» ao escolher a porta ACME padrão.
 
-### Alterações na seção 2 — Acesso ao painel e segurança de acesso
+### Alterações na seção 2 — Acesso ao painel e segurança
 
-- Com a 2FA ativada, a alteração de login/senha do administrador e a desativação da 2FA agora exigem **inserir o código atual** do aplicativo autenticador (confirmação de alterações sensíveis).
-- LDAP: novo interruptor **«Pular verificação do certificado TLS»** (`ldapInsecureSkipVerify`) — desativa a verificação do certificado no LDAPS; disponível apenas quando «Usar TLS (LDAPS)» está ativado.
-
-### Alterações na seção 3 — Visão geral / Dashboard
-
-- O botão de versão do painel agora sempre abre a janela de atualização (veja a seção 16 — canal dev).
-- Melhoria transversal de **acessibilidade**: rótulos aria para ícones e ativação de elementos por Enter/Space (para leitores de tela e navegação por teclado).
+- Limite de IP: uma conexão «morta» agora é banida **uma única vez**, e não a cada varredura de 10 segundos — os contadores do fail2ban não são mais inflados, e não é preciso aumentar o `maxretry`.
 
 ### Alterações na seção 4 — Inbounds: criação e parâmetros gerais
 
-- A ação **«Exportar todos os links»** agora gera os links pelo motor de assinaturas — aplica o modelo de remark a cada cliente e prefere os endpoints Host gerenciados (antes havia um remark fixo `inbound-email`).
+- A lista de inbound ganhou uma **pesquisa** (por observação, porta e protocolo), e as listas suspensas de nós («Implantar em», filtro «Nós») tornaram-se pesquisáveis.
 
 ### Alterações na seção 5 — Protocolos
 
-- **O WireGuard foi migrado para o modelo multicliente.** Os peers agora são clientes comuns (com atribuição automática de endereço no túnel, suporte a assinaturas, limites de tráfego/prazo e grupos); a lista inline «Peers» do formulário do inbound foi removida.
-- No inbound WireGuard foi adicionado o campo configurável **DNS** (padrão `1.1.1.1, 1.0.0.1`) e um **cartão de configuração do cliente** — copiar/baixar/QR do `.conf` completo e do link `wireguard://`/`wg://`.
-
-### Alterações na seção 6 — Transporte (Stream Settings)
-
-- No XHTTP, para novos inbounds, o parâmetro `maxConnections` no **xmux** agora tem padrão **6** (era `0` — sem limite). Os inbounds existentes mantêm seu valor.
+- **O MTProto foi migrado para o modelo multicliente** (motor mtg-multi): os usuários do MTProto agora são clientes comuns, com seu próprio segredo, cota, prazo, ad-tag e link pessoal `tg://proxy`. O campo «Secret» no nível do inbound foi removido (os inbound existentes são convertidos automaticamente), e o «FakeTLS domain» tornou-se o domínio padrão para os novos segredos. Novos campos do inbound: **Max connections** (limitação de conexões), **Public IPv4/IPv6** (para o ad-tag middle proxy). As alterações de clientes são aplicadas «a quente», sem derrubar as sessões do Telegram dos demais.
+- WireGuard: o menu do inbound ganhou o conjunto completo de ações de clientes (Export All URLs, vincular/desvincular, grupos), a exportação foi dividida nas abas **Config** e **Links**, o campo **«IPs permitidos WireGuard» tornou-se editável** (várias entradas separadas por vírgula), e no config do cliente de um inbound de nó o `Endpoint` agora aponta para o endereço do nó.
 
 ### Alterações na seção 7 — Segurança da conexão: TLS, XTLS e REALITY
 
-- Foi adicionado um **scanner de destinos REALITY ao vivo**: os botões **«Escanear»** (verificar o destino atual «ao vivo») e **«Buscar destinos»** (escanear um domínio ou faixa **IP/CIDR** e selecionar destinos adequados pelos seus certificados). Os campos «Destino» e SNI agora ficam vazios na primeira seleção do REALITY.
+- A combinação **Finalmask + REALITY é rejeitada** ao salvar (ela levava à queda do Xray-core na primeira conexão); o placeholder do minClientVer foi atualizado para 26.3.27.
+- Novo tipo de máscara TCP do Finalmask — **XMC (Minecraft)**: mascaramento do fluxo como tráfego de Minecraft (Hostname, Usernames, Password obrigatório com geração automática).
 
 ### Alterações na seção 8 — Clientes
 
-- A extensão de prazo/cota via `bulkAdjust` agora **reativa automaticamente** um cliente desativado apenas por esgotamento (prazo vencido ou cota excedida), se a extensão o devolver aos limites. Os desativados manualmente ou ainda esgotados permanecem desligados.
+- Nova coluna **«Velocidade»** — velocidade ao vivo de cada cliente (↑/↓, média móvel de ~5 segundos).
+- A pesquisa de clientes volta a encontrar por **Telegram ID**; no formulário do cliente, os inbound desativados ficam ocultos da lista de vinculação; corrigido o acúmulo de duplicatas na janela «Desvincular».
+- Os clientes MTProto têm campos próprios: **«MTProto secret»** (com regeneração) e **«Ad-tag (canal patrocinador)»** (32 caracteres hex); a cota e o prazo agora são realmente aplicados ao MTProto.
 
 ### Alterações na seção 9 — Grupos de clientes
 
-- **«Zerar tráfego»** de um grupo agora zera **apenas o contador do próprio grupo**; os contadores, cotas e o estado dos clientes individuais não são afetados, e não é necessário reiniciar o Xray. Esta é uma mudança em relação ao comportamento anterior (antes, o tráfego de todos os clientes do grupo era zerado).
+- A janela de informações do cliente agora mostra o seu **grupo**.
 
 ### Alterações na seção 10 — Assinaturas (Subscription)
 
-- Nos **hosts gerenciados**, o campo **VLESS route** foi redefinido: agora é um único valor `0-65535` (e não uma lista de portas), que é realmente «embutido» no UUID de cada assinatura (raw/JSON/Clash).
-- A variável `{{EMAIL}}` (e seu sinônimo `{{USERNAME}}`) no modelo de remark agora é exibida apenas no **primeiro link** do cliente — assim como o bloco de tráfego/prazo.
+- **Os hosts gerenciados tornaram-se grupais**: um único registro abrange **vários inbound** (seleção múltipla) e **vários endereços** (tags, cada entrada pode ter seu próprio `:porta`; autocompletar de endereços; vazio — herda o endereço do inbound). As colunas da lista mostram chips de endereços e de inbound (com «+N»), as ações e a API trabalham com grupos (`groupId`), e surgiu o endpoint em massa `POST /panel/api/hosts/bulk/add`. A ordenação dos hosts agora é global (pela ordem, depois pela observação).
+- O texto do **aviso** (`subAnnounce`) agora é exibido como banner na página de informações da assinatura; nos modelos personalizados está disponível a variável `announce`.
+- A página de informações no navegador agora abre também pelos **links JSON/Clash** (e não apenas pelo principal).
+- As configurações de host **Final Mask** e **Allow insecure** agora atuam também nos links raw (`fm=`) e para o **Hysteria2** (`insecure=1` / `skip-cert-verify: true`), respectivamente.
+- O intervalo de «Intervalos de atualização» (`subUpdates`) foi corrigido para **0–525600** (o antigo limite de 168 da interface bloqueava o salvamento das configurações após o upgrade da 2.x).
+- Os **clientes WireGuard nativos agora entram nas assinaturas Clash e JSON** (antes — apenas na raw).
 
 ### Alterações na seção 11 — Xray: roteamento, outbounds, DNS e extensões
 
-- **Balanceadores**: a página foi dividida nas abas **«Configurações do balanceador»** e **«Observatory»**; em vez de JSON bruto — formulários Observatory e Burst Observatory (no Burst foi adicionado o campo **«Método HTTP»**). Um balanceador Random/Round-robin com `fallbackTag` agora cria automaticamente um Burst Observatory.
-- Ao excluir um outbound ou balanceador, o painel limpa por si só as referências relacionadas no roteamento e exibe uma **prévia das consequências** no diálogo de confirmação.
-- Nas regras de roteamento, o critério de rede **L4** é gravado no config em minúsculas (`tcp`/`udp`) e exibido em maiúsculas na tabela.
-- Os erros no formulário de adição/edição de balanceador agora são adiados até o primeiro toque no campo ou a tentativa de salvar.
+- Editor de outbound: novo campo **«Target Strategy»** (11 valores de `AsIs` a `ForceIPv4`), modo de teste **«Real delay»** (tempo completo com estabelecimento do túnel; o modo HTTP agora é medido em uma conexão «aquecida»), colunas **Egress** (IP de saída atrás do «olho») e **Country** (bandeira + país, rótulo WARP) após o teste HTTP/Real.
+- **O fallback do balanceador pode apontar para outro balanceador**: o painel constrói por conta própria um objeto loopback oculto (`_bl_…`), protege contra ciclos e contra a exclusão de um balanceador em uso; o prefixo `_bl_` é reservado.
+- A aba «Roteamento básico» ganhou o seletor **«Default Outbound»** — qual outbound processa o tráfego que não corresponde a nenhuma regra (o selecionado é movido para a primeira posição).
+- Servidores DNS em IPs privados não são mais bloqueados pela regra `geoip:private` — o painel mantém por conta própria uma regra allow gerenciada.
+- O Happy Eyeballs nas configurações de dial (sockopt) agora é realmente ativado; o «Try delay» padrão é 250 ms, e um 0 explícito é preservado.
+- Importação de assinaturas de outbound: nos links `ss://` com `?plugin=`/`/` final, a porta é analisada corretamente.
 
 ### Alterações na seção 12 — Nós (multipainel, master/slave)
 
-- A notificação «salvo localmente, nó offline — será sincronizado depois» agora só é exibida quando o nó está realmente offline ou desligado (antes — a cada salvamento em um nó online).
+- Pacote de correções: salvar um cliente sem alterações não derruba mais o tráfego ao vivo dos inbound de nó; as sobrescritas de Host do nó são aceitas no master na primeira aceitação; a renovação automática abre uma janela de cota nova; a exclusão de um cliente no master o exclui completamente nos nós; os inbound do nó não são varridos antes da primeira aceitação; um único inbound incorreto não interrompe a sincronização de tráfego do nó; a verificação de conflito de portas é limitada ao próprio nó.
+
+### Alterações na seção 14 — Bot do Telegram
+
+- Ao menu de comandos do bot foram adicionados **`/usage`**, **`/inbound`**, **`/restart`** e o novo comando de administrador **`/clearall`** (reset de tráfego de todos os clientes, com confirmação).
+- A lista de clientes online é rotulada como `email - observação do inbound`; as mensagens de backup e do log de banimentos contêm o nome do host; a busca por Telegram ID funciona independentemente da formatação das configurações.
 
 ### Alterações na seção 16 — Operação: backups, logs, atualização, CLI
 
-- Os nomes dos arquivos de backup agora contêm o endereço do servidor e a **data-hora**: `{host}_AAAA-MM-DD_HHMMSS.db` (`.dump` para PostgreSQL), por exemplo `panel.example.com_2026-06-27_000000.db` — tanto ao baixar do painel quanto nos backups enviados pelo bot do Telegram.
-- É possível ativar o **canal dev** de atualizações a partir de uma build estável: o botão de versão sempre abre a janela de atualização, e apareceu o interruptor **«Canal Dev»** com aviso sobre instabilidade e ausência de rollback automático.
+- **A restauração no painel PostgreSQL aceita arquivos SQLite**: um backup comum `.db` ou um `.dump` de migração é importado diretamente no PostgreSQL (em uma única transação, com verificações antes de parar o Xray). O diálogo de seleção de arquivo aceita `.dump,.db` em ambos os SGBDs; «Baixar arquivo de migração» permaneceu apenas nos painéis PostgreSQL.
+- Antes de restaurar um arquivo `pg_dump`, o painel verifica a legibilidade do dump e, em caso de divergência de versões, sugere o comando exato `x-ui pgclient <versão>`.
+- Autocorreções na inicialização: contadores de tráfego transbordados são limitados e restaurados; a restrição UNIQUE obsoleta na porta do inbound é removida (atrapalhava o multi-node).
+- Logs do Xray: um novo job a cada 10 minutos trunca o access-log e o error-log quando excedem **64 MiB**; a limpeza diária agora limpa ambos.
+- Docker: a renovação automática de certificados foi consertada (o crond é iniciado e o estado do acme.sh é preservado em um volume).
 
 ---
 

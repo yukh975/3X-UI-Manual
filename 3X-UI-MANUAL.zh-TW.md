@@ -2,7 +2,7 @@
 
 🇸🇦 [العربية](3X-UI-MANUAL.ar.md) · 🇬🇧 [English](3X-UI-MANUAL.en.md) · 🇪🇸 [Español](3X-UI-MANUAL.es.md) · 🇮🇷 [فارسی](3X-UI-MANUAL.fa.md) · 🇮🇩 [Bahasa Indonesia](3X-UI-MANUAL.id.md) · 🇯🇵 [日本語](3X-UI-MANUAL.ja.md) · 🇧🇷 [Português](3X-UI-MANUAL.pt.md) · 🇷🇺 [Русский](3X-UI-MANUAL.ru.md) · 🇹🇷 [Türkçe](3X-UI-MANUAL.tr.md) · 🇺🇦 [Українська](3X-UI-MANUAL.uk.md) · 🇻🇳 [Tiếng Việt](3X-UI-MANUAL.vi.md) · 🇨🇳 [简体中文](3X-UI-MANUAL.zh-CN.md) · 🇹🇼 繁體中文
 
-**3X-UI 版本：3.4.2。** 本手冊依據此版本撰寫，內容適用於該版本。3.4.2 相對於 3.4.1 的變更摘要，請見[「3.4.2 新功能」](#342-新功能)一節。
+**3X-UI 版本：3.5.0。** 本手冊依據此版本撰寫，內容適用於該版本。3.5.0 相對於 3.4.2 的變更摘要，請見[「3.5.0 新功能」](#350-新功能)一節。
 
 > 本手冊是 **3X-UI** 網頁面板（管理 Xray-core）的詳細使用說明，涵蓋
 > 功能介紹、設定方法與日常操作，並逐一說明介面中的每個欄位與
@@ -13,7 +13,7 @@
 
 ## 目錄
 
-- [3.4.2 新功能](#342-新功能)
+- [3.5.0 新功能](#350-新功能)
 - [1. 簡介、需求與安裝](#1-簡介需求與安裝)
   - [1.1. 什麼是 3X-UI](#11-什麼是-3x-ui)
   - [1.2. 支援的作業系統與架構](#12-支援的作業系統與架構)
@@ -135,7 +135,8 @@
   - [12.6. 指標歷史](#126-指標歷史)
   - [12.7. inbound 和用戶端如何同步](#127-inbound-和用戶端如何同步)
   - [12.8. 節點鏈（子節點/傳遞節點）](#128-節點鏈子節點傳遞節點)
-  - [12.9. 節點：3.3.0 版本的新功能](#129-節點330-版本的新功能)
+  - [12.9. 3.5.0 修正（節點穩定性）](#129-350-修正節點穩定性)
+  - [12.10. 節點：3.3.0 版本的新功能](#1210-節點330-版本的新功能)
 - [13. 面板設定](#13-面板設定)
   - [13.1. 儲存與重新啟動面板](#131-儲存與重新啟動面板)
   - [13.2. 一般設定（「面板」分頁 / *General*）](#132-一般設定面板分頁--general)
@@ -173,70 +174,78 @@
   - [16.8. 移除面板](#168-移除面板)
   - [16.9. `x-ui migrateDB` 命令](#169-x-ui-migratedb-命令)
 
-## 3.4.2 新功能
+## 3.5.0 新功能
 
-3.4.2 是一次重大更新：WireGuard 改採多用戶端模式，REALITY 新增即時目標掃描器，負載均衡器新增 Observatory／Burst Observatory 分頁，並為敏感設定加入 2FA 代碼確認。以下列出相對於 3.4.1 的變更，依手冊章節分組整理。
+3.5.0 是一次重大更新：MTProto 改採多客戶端模式（mtg-multi 引擎、個人 secret、配額與 ad-tag），受管主機改為群組式（一筆記錄可含多個 inbound 與多個地址），PostgreSQL 面板的還原功能可接受 SQLite 備份，outbound 新增「Target Strategy」、「Real delay」測試與 Egress/Country 欄位，負載均衡器可將另一個負載均衡器用作 fallback。隨附 Xray 核心 26.7.11。以下列出相對於 3.4.2 的變更，依手冊章節分組整理。
 
 ### 第 1 節的變更 — 簡介、需求與安裝
 
-- 側邊選單（以及行動版抽屜）新增了 **「文件」** 按鈕（書本圖示）——開啟官方文件 `https://docs.sanaei.dev/`。
-- 面板更新時可升級的最低 Xray 版本提升至 **26.6.27**（隨附 Xray 核心 26.6.27）。
+- Xray 核心更新至 **26.7.11**。隨附的自動遷移：Shadowsocks 的 `none`/`plain` 與 VMess 的 `none`/`zero` 加密方式已從核心移除（已儲存的設定會自動改寫），指向公網地址的未加密 VLESS/Trojan outbound 在儲存時會被拒絕。
+- 新增 **`x-ui pgclient [版本]`** 指令與 PostgreSQL 選單中的 **10. Install/Upgrade client tools (pg_dump/pg_restore)** 項目——安裝／更新 PostgreSQL 客戶端工具。
+- 腳本修正：RHEL 系上的 PostgreSQL 與 fail2ban 安裝（EPEL）、Arch 不再執行完整的 `pacman -Syu`、32 位元 ARM 上 Xray 二進位檔名稱正確（`xray-linux-arm32`）、簽發 IP 憑證前確認自動偵測的 IPv4、修正選擇預設 ACME 連接埠時誤報「Your input is invalid」的問題。
 
 ### 第 2 節的變更 — 登入面板與存取安全
 
-- 啟用 2FA 時，變更管理員登入名稱／密碼以及停用 2FA，現在都需要**輸入當前代碼**（驗證器應用程式中的代碼），以確認敏感變更。
-- LDAP：新增 **「略過 TLS 憑證驗證」** 切換開關（`ldapInsecureSkipVerify`）——在 LDAPS 時停用憑證驗證；僅在已啟用「使用 TLS（LDAPS）」時可用。
-
-### 第 3 節的變更 — 概覽 / 儀表板
-
-- 面板版本按鈕現在永遠開啟更新視窗（詳見第 16 節——dev 頻道）。
-- 全面提升**無障礙性**：圖示加上 aria 標籤，並可透過 Enter/Space 啟用元素（供螢幕報讀器與鍵盤導覽使用）。
+- IP 限制：「死」連線現在只會被封鎖**一次**，而非每次 10 秒掃描都觸發——fail2ban 計數器不再虛增，也無需調高 `maxretry`。
 
 ### 第 4 節的變更 — Inbounds：建立與通用參數
 
-- **「匯出所有連結」** 動作現在透過訂閱引擎生成連結——對每個用戶端套用備註範本，並優先使用受管的 Host 端點（先前使用固定備註 `inbound-email`）。
+- Inbound 清單新增**搜尋**功能（依備註、連接埠與協定），節點下拉選單（「Deploy to」、「節點」篩選器）也支援輸入搜尋。
 
-### 第 5 節的變更 — 協定
+### 第 5 節的變更 — 協議
 
-- **WireGuard 改採多用戶端模式。** Peer 現在是一般用戶端（在隧道中自動配發地址，支援訂閱、流量／時限限制與群組）；inbound 表單中內嵌的「Peer」清單已移除。
-- WireGuard inbound 新增可設定的 **DNS** 欄位（預設 `1.1.1.1, 1.0.0.1`），以及**用戶端設定卡片**——可複製／下載／QR 完整 `.conf` 與 `wireguard://`／`wg://` 連結。
+- **MTProto 改採多客戶端模式**（mtg-multi 引擎）：MTProto 使用者現在是一般客戶端，擁有自己的 secret、配額、有效期、ad-tag 和個人 `tg://proxy` 連結。inbound 層級的「Secret」欄位已移除（既有 inbound 會自動轉換），「FakeTLS domain」成為新 secret 的預設域名。新的 inbound 欄位：**Max connections**（連線數限制）、**Public IPv4/IPv6**（用於 ad-tag middle proxy）。客戶端變更「即時」套用，不會中斷其他人的 Telegram 工作階段。
+- WireGuard：inbound 選單獲得完整的客戶端操作集（Export All URLs、繫結/解除繫結、群組），匯出視窗拆分為 **Config** 與 **Links** 兩個分頁，**「WireGuard 允許的 IP」欄位改為可編輯**（多筆記錄以逗號分隔），節點 inbound 的客戶端設定中 `Endpoint` 現在指向節點地址。
 
-### 第 6 節的變更 — 傳輸（Stream Settings）
+### 第 7 節的變更 — 連線安全性：TLS、XTLS 與 REALITY
 
-- XHTTP 新建 inbound 的 **xmux** 中 `maxConnections` 參數現在預設為 **6**（先前為 `0`——無限制）。既有 inbound 保留其原值。
+- **Finalmask + REALITY 組合在儲存時會被拒絕**（它會導致 Xray-core 在首次連線時崩潰）；minClientVer 的輸入提示更新為 26.3.27。
+- 新的 Finalmask TCP 遮罩類型——**XMC（Minecraft）**：將流量偽裝成 Minecraft 流量（Hostname、Usernames、必填的 Password 且支援自動生成）。
 
-### 第 7 節的變更 — 連線安全：TLS、XTLS 與 REALITY
+### 第 8 節的變更 — 客戶端
 
-- 新增 **REALITY 即時目標掃描器**：**「掃描」** 按鈕（「即時」驗證當前目標）與 **「尋找目標」** 按鈕（掃描網域或 **IP/CIDR** 範圍，並依其憑證挑選合適的目標）。首次選擇 REALITY 時，「目標」與 SNI 欄位現在為空。
+- 新增**「速度」**欄位——每個客戶端的即時速度（↑/↓，約 5 秒滑動平均）。
+- 客戶端搜尋再次支援 **Telegram ID**；客戶端表單中已停用的 inbound 從綁定清單中隱藏；修正「解綁」視窗中重複項目累積的問題。
+- MTProto 客戶端擁有專屬欄位：**「MTProto secret」**（可重新生成）與 **「Ad-tag（贊助頻道）」**（32 個 hex 字元）；配額與有效期現在對 MTProto 實際生效。
 
-### 第 8 節的變更 — 用戶端
+### 第 9 節的變更 — 客戶端群組
 
-- 透過 `bulkAdjust` 延長時限／配額時，現在會**自動啟用**僅因耗盡（已過期或超出配額）而被停用的用戶端，前提是延長後使其回到限制範圍內。手動停用或仍處於耗盡狀態的用戶端維持停用。
-
-### 第 9 節的變更 — 用戶端群組
-
-- 群組的 **「重設流量」** 現在僅將**群組本身的計數器**歸零；個別用戶端的計數器、配額與狀態不受影響，也無需重啟 Xray。此為相對於先前行為的變更（先前會重設群組中所有用戶端的流量）。
+- 客戶端資訊視窗現在會顯示其**群組**。
 
 ### 第 10 節的變更 — 訂閱（Subscription）
 
-- **受管主機**中的 **VLESS route** 欄位已重新定義：現在是單一數值 `0-65535`（不再是連接埠清單），且會實際「嵌入」每份訂閱的 UUID 中（raw／JSON／Clash）。
-- 備註範本中的 `{{EMAIL}}` 變數（及其同義詞 `{{USERNAME}}`）現在僅在用戶端的**第一個連結**上輸出——與流量／時限區塊相同。
+- **受管主機改為群組式**：一筆記錄可涵蓋**多個 inbound**（多重選取）與**多個地址**（標籤式輸入，每筆記錄可帶自己的 `:連接埠`；地址自動完成；空白——繼承 inbound 地址）。清單欄位以標籤顯示地址與 inbound（帶「+N」），操作與 API 以群組（`groupId`）為單位運作，並新增批量端點 `POST /panel/api/hosts/bulk/add`。主機排序現在是全域的（先依順序，再依備註）。
+- **公告**文字（`subAnnounce`）現在會以橫幅顯示在訂閱資訊頁面上；自訂範本可使用 `announce` 變數。
+- 資訊頁面現在也可透過 **JSON/Clash 連結**在瀏覽器中開啟（不再僅限主連結）。
+- 主機設定 **Final Mask** 與 **Allow insecure** 現在分別也對 raw 連結（`fm=`）和 **Hysteria2**（`insecure=1` / `skip-cert-verify: true`）生效。
+- 「訂閱更新間隔」（`subUpdates`）範圍修正為 **0–525600**（先前的介面上限 168 會在從 2.x 升級後阻擋設定儲存）。
+- 原生 **WireGuard 客戶端現在會納入 Clash 與 JSON 訂閱**（先前僅 raw）。
 
 ### 第 11 節的變更 — Xray：路由、outbounds、DNS 與擴充功能
 
-- **負載均衡器**：頁面拆分為 **「負載均衡器設定」** 與 **「Observatory」** 分頁；以 Observatory 和 Burst Observatory 表單取代原始 JSON（Burst 新增 **「HTTP 方法」** 欄位）。帶 `fallbackTag` 的 Random/Round-robin 負載均衡器現在會自動建立 Burst Observatory。
-- 刪除 outbound 或負載均衡器時，面板會自動清除路由中相關的引用，並在確認對話框中顯示**影響預覽**。
-- 路由規則中的網路條件 **L4** 在設定中以小寫寫入（`tcp`/`udp`），在表格中以大寫顯示。
-- 新增/編輯負載均衡器表單中的錯誤現在會延後至首次接觸欄位或嘗試儲存時才顯示。
+- Outbound 編輯器：新增 **「Target Strategy」** 欄位（從 `AsIs` 到 `ForceIPv4` 共 11 個值）、**「Real delay」** 測試模式（含隧道建立的完整時間；HTTP 模式現在以「暖」連線測量），以及 HTTP/Real 測試後的 **Egress**（出口 IP，隱藏於「眼睛」圖示後）與 **Country**（旗幟 + 國家，WARP 標記）欄位。
+- **負載均衡器的 Fallback 可指向另一個負載均衡器**：面板會自行建立隱藏的 loopback 物件（`_bl_…`），並防範循環依賴與刪除使用中的負載均衡器；`_bl_` 前綴為保留字。
+- 「基本路由」分頁新增 **「Default Outbound」** 選擇器——決定未匹配任何規則的流量由哪個 outbound 處理（所選項目會移至首位）。
+- 私有 IP 上的 DNS 伺服器不再被 `geoip:private` 規則封鎖——面板會自行維護受管的放行規則。
+- Dial 設定（sockopt）中的 Happy Eyeballs 現在會確實啟用；「Try delay」預設為 250 毫秒，明確設定的 0 會被保留。
+- Outbound 訂閱匯入：帶 `?plugin=`／結尾 `/` 的 `ss://` 連結現在能正確解析連接埠。
 
 ### 第 12 節的變更 — 節點（多面板，master/slave）
 
-- 「已在本機儲存，節點離線——稍後同步」的通知現在僅在節點確實離線或關閉時才顯示（先前每次在線上節點儲存時都會出現）。
+- 修正合集：未變更的客戶端儲存不再中斷節點 inbound 的即時流量；節點的 Host 覆寫在首次接受時會匯入主面板；自動續期會開啟新的配額週期；在主面板刪除客戶端會在節點上完整刪除；節點的 inbound 在首次接受前不會被清除；單一異常 inbound 不會中止節點流量同步；連接埠衝突檢查僅限於自身節點。
 
-### 第 16 節的變更 — 日常維運：備份、日誌、更新、CLI
+### 第 14 節的變更 — Telegram 機器人
 
-- 備份檔案名稱現在包含伺服器位址與**日期時間**：`{host}_YYYY-MM-DD_HHMMSS.db`（PostgreSQL 為 `.dump`），例如 `panel.example.com_2026-06-27_000000.db`——從面板下載時與 Telegram 機器人傳送的備份皆是如此。
-- 現在可從穩定版本啟用更新的 **dev 頻道**：版本按鈕永遠開啟更新視窗，並新增 **「Dev 頻道」** 切換開關，附有不穩定且無自動回退的警告。
+- 機器人指令選單新增 **`/usage`**、**`/inbound`**、**`/restart`**，以及新的管理員指令 **`/clearall`**（重設所有客戶端的流量，需確認）。
+- 線上客戶端清單以 `email - inbound 備註` 標示；備份與封鎖日誌訊息包含主機名稱；依 Telegram ID 搜尋不受設定格式影響。
+
+### 第 16 節的變更 — 日常運維：備份、日誌、更新、CLI
+
+- **PostgreSQL 面板的還原功能可接受 SQLite 檔案**：一般 `.db` 備份或遷移用 `.dump` 可直接匯入 PostgreSQL（單一交易，並在停止 Xray 前先行檢查）。檔案選擇對話框在兩種資料庫上均接受 `.dump,.db`；「下載遷移檔案」僅保留於 PostgreSQL 面板。
+- 還原 `pg_dump` 封存檔前，面板會檢查轉儲的可讀性，版本不符時會提示確切的 `x-ui pgclient <版本>` 指令。
+- 啟動時自動修復：溢位的流量計數器會被箝制並復原；移除 inbound 連接埠上過時的 UNIQUE 限制（它妨礙 multi-node）。
+- Xray 日誌：新的任務每 10 分鐘檢查一次，當 access 或 error 日誌超過 **64 MiB** 時將其截斷；每日清理現在會同時清理兩者。
+- Docker：憑證自動續期已修復（crond 會啟動，acme.sh 狀態保存在磁碟區中）。
 
 ## 1. 簡介、需求與安裝
 
@@ -360,7 +369,7 @@ docker compose up -d
 docker compose --profile postgres up -d
 ```
 
-映像包含 Fail2ban（預設啟用），用於按客戶端執行 IP 限制。Fail2ban 透過 `iptables` 封鎖違規者，需要 `NET_ADMIN` 能力。`docker-compose.yml` 中已透過 `cap_add` 授予該能力。若手動使用 `docker run` 啟動，需自行添加此能力，否則封鎖操作僅會寫入日誌而不會實際執行：
+映像包含 Fail2ban（預設啟用），用於按客戶端執行 IP 限制。Fail2ban 透過 `iptables` 封鎖違規者，需要 `NET_ADMIN` 能力。`docker-compose.yml` 中已透過 `cap_add` 授予該能力。自 3.5.0 起，容器中透過 SSL 選單簽發之憑證的**自動續期**已修復：entrypoint 會啟動 `crond` 並重新登錄 acme.sh 的 cron 任務，且 `docker-compose.yml` 新增了存放 acme.sh 狀態的獨立磁碟區——續期可在容器重建後存續（先前憑證會在約 90 天後靜默過期）。若手動使用 `docker run` 啟動，需自行添加此能力，否則封鎖操作僅會寫入日誌而不會實際執行：
 
 **範例：完整的 `docker run` 指令。** 包含面板埠映射、網路能力和持久化資料庫磁碟區的最小配置：
 
@@ -963,7 +972,7 @@ curl -X POST 'https://panel.example.com:2053/xpanel/installXray/v25.6.8' \
   -b cookie.txt
 ```
 
-其中 `v25.6.8` 為 `GET /getXrayVersion` 回傳清單中的標籤。版本必須存在於該清單中，否則面板將拒絕請求。自 3.4.2 起，可安裝的最低 Xray 版本提升至 **26.6.27**（隨附 Xray 核心 26.6.27），因此更舊的版本無法用於更新。
+其中 `v25.6.8` 為 `GET /getXrayVersion` 回傳清單中的標籤。版本必須存在於該清單中，否則面板將拒絕請求。自 3.4.2 起，可安裝的最低 Xray 版本提升至 **26.6.27**，而 3.5.0 隨附 **Xray 核心 26.7.11**。核心的相關變更：Shadowsocks 的 `none`/`plain` 與 VMess 的 `none`/`zero` 加密方式已被移除（已儲存的設定會自動改寫：SS 改為受支援的加密方式，VMess 改為 `auto`），且指向公網地址的未加密 VLESS/Trojan outbound 在儲存時會被拒絕——帶有此類設定的核心根本無法啟動。
 1. 所選版本在當前版本清單中進行驗證（否則拒絕）。
 2. Xray 停止。
 3. 根據當前作業系統和架構從 GitHub 下載 `Xray-<os>-<arch>.zip` 壓縮檔（支援 amd64/64、arm64-v8a、arm32-v7a/v6/v5、386/32、s390x；Windows 使用 `xray.exe`）。壓縮檔與二進位檔的大小限制為 200 MB。
@@ -1034,15 +1043,13 @@ curl -X POST 'https://panel.example.com:2053/xpanel/updateGeofile/geosite_RU.dat
 3. 新檔案取代工作資料庫，執行初始化與遷移。若發生任何錯誤，則還原備用資料庫。
 4. 重新啟動 Xray。
 
-**PostgreSQL** 載入 `.dump` 檔案（驗證 `PGDMP` 簽名），並透過 `pg_restore --clean --if-exists --single-transaction …` 套用。提示說明明確警告：「這將替換所有當前資料」。
+自 3.5.0 起，**PostgreSQL** 的「還原」接受**三種檔案**（類型依內容判斷，而非副檔名）：`pg_dump` 封存檔（`PGDMP`）——透過 `pg_restore --clean --if-exists --single-transaction …` 套用；**SQLite 資料庫 `.db`**（一般備份）與 **SQLite 遷移 `.dump`**——它們會經過驗證、必要時重組，並以與 `x-ui migrate-db --dsn` 相同的引擎、**單一交易**匯入 PostgreSQL（出錯時 PostgreSQL 保持不變）。檔案選擇對話框在兩種資料庫上均接受 `.dump,.db`；將 `pg_dump` 封存檔上傳至 SQLite 面板會得到明確的錯誤訊息。提示說明明確警告：「這將替換所有當前資料」。
 
 訊息：「資料庫已成功匯入」、「匯入資料庫時發生錯誤」、「……讀取資料庫時」、「……取得資料庫時」。
 
 #### 遷移檔案（SQLite 與 PostgreSQL 之間）
 
-「下載遷移檔案」（*Download Migration*）按鈕呼叫 `GET /getMigration`，產生用於在不同資料庫系統上啟動面板的可攜式匯出：
-- **SQLite** 下載 `x-ui.dump`（文字 SQL 轉儲）。
-- **PostgreSQL** 下載 `x-ui.db`——從 PostgreSQL 資料構建的現成 SQLite 資料庫。
+「下載遷移檔案」（*Download Migration*）按鈕呼叫 `GET /getMigration`。自 3.5.0 起，它**僅顯示於 PostgreSQL 面板**，並下載 `x-ui.db`——從 PostgreSQL 資料構建的現成 SQLite 資料庫（「回到 SQLite」的路徑）。SQLite 面板上的此按鈕已作為多餘功能移除：一般 `.db` 備份現在本來就能直接還原至 PostgreSQL 面板。
 
 ### 3.15. 其他介面元素
 
@@ -1223,7 +1230,7 @@ inbound 的啟用狀態標記。在清單中切換此旗標是由一個獨立的
 | 標籤 | **「Deploy to」**、**「Local panel」** |
 | 預設值 | 空（本機面板） |
 
-選擇 inbound 實際運作的位置：在本機面板上，或在其中一個已註冊的節點上。實作細節：`nodeId = 0` 會被正規化為 `nil`，因為 `0` 並非有效的節點 id，而是表單繫結的產物；`nil`/`0` 代表本機面板。將 inbound 儲存到離線節點時，可能會出現「變更將在節點重新連線時同步」的提示訊息。自 3.4.2 起，此提示僅在節點確實離線或關閉時才顯示（先前在線上節點儲存時也可能出現）。
+選擇 inbound 實際運作的位置：在本機面板上，或在其中一個已註冊的節點上。自 3.5.0 起，「Deploy to」清單（以及 inbound 清單上方的「節點」篩選器）支援**輸入搜尋**，且 inbound 清單上方新增了**搜尋欄位**（依備註、連接埠與協定搜尋；可與節點篩選器搭配使用）。實作細節：`nodeId = 0` 會被正規化為 `nil`，因為 `0` 並非有效的節點 id，而是表單繫結的產物；`nil`/`0` 代表本機面板。將 inbound 儲存到離線節點時，可能會出現「變更將在節點重新連線時同步」的提示訊息。自 3.4.2 起，此提示僅在節點確實離線或關閉時才顯示（先前在線上節點儲存時也可能出現）。
 
 #### 連結用位址策略（Share address strategy）
 
@@ -1787,7 +1794,7 @@ inbound 欄位（`settings` 區塊）：
 | 「WireGuard 私鑰」 | 用戶端私鑰（可編輯，有「重新生成」按鈕）；輸入後會由它自動推導公鑰 |
 | 「WireGuard 公鑰」 | 唯讀；由私鑰推算 |
 | 「WireGuard 共享金鑰」（PSK） | 選填的額外預共享金鑰 |
-| 「WireGuard 允許的 IP」 | 唯讀（編輯模式下）：配發給用戶端的隧道內地址，例如 `10.0.0.2/32` |
+| 「WireGuard 允許的 IP」 | 自 3.5.0 起——**可編輯**（輸入提示 `10.0.0.2/32`，提示「留空以自動配發；多筆記錄以逗號分隔」）。留空——地址自動配發；伺服器會驗證每筆記錄（IP 或 CIDR），單一地址會正規化為 `/32`，並拒絕已被此 inbound 其他用戶端佔用的地址 |
 
 隧道內地址由伺服器從 inbound 的子網路中自動配發（預設 `10.0.0.0/24`：伺服器佔用 `.1`，用戶端從 `.2` 起算）；若既有用戶端使用其他 `/24`，則新地址也在同一子網路中配發。
 
@@ -1798,6 +1805,10 @@ inbound 欄位（`settings` 區塊）：
 > **Workers** 欄位（`workers`，工作執行緒數）已從 WireGuard 表單（包括 inbound 和 outbound）中移除：自 xray-core v26.6.22 起，引擎不再使用此欄位，而是依賴 wireguard-go 的內部機制。先前儲存的設定無需任何修改即可正常運作——解析時此欄位會被直接忽略，無需遷移。
 
 WireGuard 也有**「Transport」**分頁——但以精簡形式呈現：僅可設定 `sockopt` 和 **Finalmask** 混淆。傳輸方式選擇下拉選單（`network`）被隱藏，因為 WireGuard 始終在 UDP 上監聽。在 Finalmask 的雜訊記錄（noise）中，**Rand Range** 作為獨立欄位設定（範圍 0–255 位元組，帶驗證），WireGuard 和 Hysteria 可用的混淆方式還包括 **Salamander**。
+
+#### Inbound 操作與匯出（自 3.5.0 起）
+
+WireGuard inbound 的列選單現在包含完整的「多用戶端」操作集——**「匯出所有連結」**、依訂閱匯出、**繫結/解除繫結用戶端**、加入群組與刪除所有用戶端（先前僅有匯出／重設／複製／刪除），且清單中會顯示用戶端計數。對 WireGuard，「匯出所有連結」視窗分為兩個分頁：**Config**（串接的 `.conf` 區塊，每個用戶端一個）與 **Links**（個人 `wireguard://` 連結）；「複製」與「下載」作用於目前開啟的分頁。對部署在節點上的 inbound，用戶端 `.conf`/QR 中的 `Endpoint` 現在指向**節點地址**，而非主面板。
 
 #### WireGuard 用戶端設定與分享
 
@@ -1844,13 +1855,12 @@ WireGuard 用戶端在「資訊」/QR 視窗中有一張**可收合的設定卡�
 
 MTProto 是 Telegram 自有代理協議。在 3X-UI 中，此類 inbound **不由 Xray 管理，而由獨立的 `mtg` 行程管理**，面板本身控制該行程。面板會定期將已啟用的 MTProto inbound 與正在運行的 `mtg` 行程進行核對：啟動缺失的、停止多餘的，並從 `mtg` 的指標中讀取流量計數。因此，此類 inbound 的**流量統計**與普通協議一樣正常運作。
 
-表單中的官方提示：
-
-> 「MTProto 由獨立的 mtg 行程管理，而非 Xray。此處的傳輸設定和客戶端不適用——請透過 Telegram 分享以下連結。」
+**自 3.5.0 版起，MTProto 是多客戶端協議**（引擎改為 `mtg-multi` 分支）：一個 inbound 可服務多位使用者，每位使用者都是一般的**客戶端**（見第 8 節），擁有自己的 FakeTLS secret、流量配額、有效期、啟用開關、選填的 ad-tag 和個人 `tg://proxy` 連結。先前「一個 inbound = 一個 secret」的模式已廢除：表單中 inbound 層級的「Secret」欄位已移除，面板更新時，既有的單一 secret 會自動轉換為該 inbound 的第一個客戶端（無需手動操作）。
 
 相應說明：
 
-- **「Transport」（Stream Settings）和「客戶端」分頁不適用於此 inbound**——存取透過單一 secret 控制，而非客戶端列表。
+- **「Transport」（Stream Settings）分頁不適用於此 inbound**；客戶端則與其他協議一樣管理——繫結/解除繫結、限制、群組、訂閱。
+- 客戶端變更（新增、刪除、更換 secret、啟用/停用、ad-tag）會透過 `mtg` 的 management API **「即時」**套用，不會中斷其他使用者的 Telegram 工作階段；只有 inbound 的結構性變更（地址、domain fronting、連線數限制、公網 IP）會重啟行程。
 - MTProto inbound **僅在主面板上運行**；不會部署至子節點（nodes）（設有 `NodeID` 的 inbound 會被跳過）。
 
 - **「Sniffing」**分頁對 MTProto 隱藏——此協議由 `mtg` 行程管理，而非 Xray，因此 sniffing 不適用。
@@ -1862,10 +1872,11 @@ MTProto 是 Telegram 自有代理協議。在 3X-UI 中，此類 inbound **不�
 | Remark | `remark` | Inbound 標籤。 |
 | Listen IP | `listen` | 監聽 IP（空 = 所有介面）。 |
 | Port | `port` | 代理埠。 |
-| 秘鑰 | `settings.secret` | **FakeTLS** 格式的存取 secret。 |
-| 偽裝域名（FakeTLS） | `settings.fakeTlsDomain` | 代理所偽裝的 HTTPS 流量目標域名。 |
+| 偽裝域名（FakeTLS） | `settings.fakeTlsDomain` | 預設 `www.cloudflare.com`。自 3.5.0 起——**生成新客戶端 secret 時使用的預設域名**（提示：「Default FakeTLS domain used to generate a new client's secret. Each client can front its own domain」）；每個客戶端都可透過自己的 secret 使用自己的偽裝域名。 |
+| Max connections | `settings.throttleMaxConnections` | **3.5.0 新增。** 所有使用者的同時連線數上限（公平分配）；`0`——不限制。 |
+| Public IPv4 / Public IPv6 | `settings.publicIpv4` / `settings.publicIpv6` | **3.5.0 新增。** 伺服器的公網地址，用於 ad-tag middle proxy（輸入提示 `1.2.3.4` / `2001:db8::1`）；空白——由 `mtg` 自行偵測。 |
 
-**Secret 格式（FakeTLS）。** 面板自動將 secret 整理為正確格式：結果 = `ee` + 32 個 hex 字元 + 偽裝域名的 hex 編碼，即 `ee<hex32><hex(fakeTlsDomain)>`。前綴 `ee` 啟用 FakeTLS 模式，域名（例如知名網站）用於將流量偽裝成普通 HTTPS。只需指定域名——其餘部分面板會自動補全。
+**Secret 格式（FakeTLS）。** secret 現在屬於**每個客戶端**（客戶端表單中的 **「MTProto secret」** 欄位，帶重新生成按鈕；旁邊是選填的 **「Ad-tag（贊助頻道）」**，恰為 32 個 hex 字元）。secret 的格式不變：`ee` + 32 個 hex 字元 + 偽裝域名的 hex 編碼（`ee<hex32><hex(域名)>`）；將新客戶端繫結至 MTProto inbound 時，secret 會依 inbound 的預設域名自動生成。自 3.5.0 起，客戶端的流量配額與有效期**實際生效**（透過 mtg-multi 的限制）：已耗盡或已過期的客戶端會被停用，重置流量後立即恢復存取。
 
 #### Domain-fronting 與 mtg 進階選項
 
@@ -1893,7 +1904,7 @@ tg://proxy?server=203.0.113.10&port=443&secret=ee1a2b3c4d5e6f70819293a4b5c6d7e8f
 tg://proxy?server=<地址>&port=<埠>&secret=<secret>
 ```
 
-（等效形式為 `https://t.me/proxy?server=…&port=…&secret=…`）。將此連結和 QR 碼發送給 Telegram 用戶——打開後代理會立即添加至應用程式。此連結也透過訂閱伺服器提供。
+（等效形式為 `https://t.me/proxy?server=…&port=…&secret=…`）。自 3.5.0 起，此連結為**個人專屬**——由具體客戶端的 secret 生成，且其中的 `#remark` 片段已移除（Telegram 部分不嚴謹的解析器會將其與 secret 黏在一起而破壞匯入）；備註改以獨立標籤顯示在資訊視窗中。將此連結和 QR 碼發送給 Telegram 用戶——打開後代理會立即添加至應用程式。此連結也透過訂閱伺服器提供。
 
 **何時使用。** 這是繞過 Telegram 封鎖的標準方式；FakeTLS 偽裝（偽裝域名）使流量看起來像對指定網站的普通訪問。
 
@@ -2453,7 +2464,7 @@ Masquerade 讓基於 Hysteria 的 inbound 對主動探測看起來像普通的 H
 | **目標** (`target`) | `""` （自 3.4.2 起，啟用 REALITY 時保持為空） | **必填欄位。** REALITY 借用其 TLS 握手的真實域名。原文提示：「*必填。須包含連接埠（如 example.com:443）。未填連接埠時 Xray-core 無法啟動。*」面板驗證會檢查連接埠是否存在且合法；否則顯示錯誤「REALITY 目標為必填」/「REALITY 目標須包含連接埠…」/「REALITY 目標的連接埠無效」。欄位旁有 **「掃描」** 按鈕（「即時」驗證當前目標）與 **「尋找目標」** 按鈕（開啟 REALITY 目標掃描器）；詳見下文。 |
 | **SNI** (`serverNames`) | `[]` （與目標一同填入） | 允許的 SNI 清單（標籤式多重輸入）。須與 **目標** 中的域名相符。成功掃描目標時，SNI 會依其憑證填入。 |
 | **最大時間差（毫秒）** (`maxTimediff`) | `0` | 客戶端與伺服器時鐘允許的最大偏差（毫秒），`0` 為不限制。最小值 `0`。 |
-| **客戶端最低版本** (`minClientVer`) | `""` | Xray 客戶端的最低版本（輸入提示 `25.9.11`）。空白為不限制。 |
+| **客戶端最低版本** (`minClientVer`) | `""` | Xray 客戶端的最低版本（自 3.5.0 起輸入提示為 `26.3.27`）。空白為不限制。 |
 | **客戶端最高版本** (`maxClientVer`) | `""` | Xray 客戶端的最高版本。空白為不限制。 |
 | **Short IDs** (`shortIds`) | `[]` （啟用時生成） | 用於區分客戶端的短識別碼清單（十六進位）。標籤式多重輸入；重新整理按鈕生成隨機組合。 |
 | **SpiderX** (`settings.spiderX`) | `/` | 模擬存取外部網站時使用的「爬蟲」路徑（REALITY 客戶端部分），帶入邀請連結。 |
@@ -2709,7 +2720,7 @@ IP 限制通過 **Fail2ban** 機制實現，因此 **IP 限制**欄位僅在 Fai
 
 #### 查看資訊、QR 碼和連結
 
-- **客戶端資訊**——顯示所有欄位、已使用／剩餘流量（**剩餘**）、到期時間及綁定的 inbound 的卡片。
+- **客戶端資訊**——顯示所有欄位、已使用／剩餘流量（**剩餘**）、到期時間及綁定的 inbound 的卡片。自 3.5.0 起，若客戶端已設定群組，卡片還會顯示其**群組**（帶標籤的「群組」列，位於「備註」上方）。
 
 通過 API（`GET /panel/api/clients/get/:email`）查詢客戶端時，除 `client` 和 `inboundIds` 欄位外，還會返回 `usedTraffic`——實際已使用的流量（上傳 + 下載，包含節點數據），方便將實際用量與 `totalGB` 配額進行對比。
 - **QR 碼**和**連結**——供客戶端應用程式匯入的設定連結。根據所有綁定的受支援協議 inbound 產生（`GET /links/:email`）。若無合適的連結：「沒有可分享的連結——請先將客戶端綁定到支援的協議 inbound。」
@@ -2742,7 +2753,7 @@ IP 限制通過 **Fail2ban** 機制實現，因此 **IP 限制**欄位僅在 Fai
   - 若未指定天數、流量或 flow：「請在套用前指定天數、流量或 flow。」。提示訊息：「已修改：{count}」 / 「已修改：{ok}，已跳過：{skipped}」。
 
 **範例：將選定客戶端延長 30 天並新增 50 GB。** 在**修改**對話框中設定**新增天數** = `30`，**新增流量 (GB)** = `50`。若要反向扣除一週並削減 10 GB 配額，請輸入負值：**新增天數** = `-7`，**新增流量 (GB)** = `-10`（無限到期時間或無限流量的客戶端在對應欄位將被跳過）。
-- **綁定 ({count})** / **解綁 ({count})**（`POST /bulkAttach` / `bulkDetach`）——批量將選定客戶端綁定至或從選定 inbound 解綁。目標僅限多使用者 inbound。解綁結果：「已解綁 {detached}，已跳過 {skipped}。」
+- **綁定 ({count})** / **解綁 ({count})**（`POST /bulkAttach` / `bulkDetach`）——批量將選定客戶端綁定至或從選定 inbound 解綁。目標僅限多使用者 inbound。解綁結果：「已解綁 {detached}，已跳過 {skipped}。」自 3.5.0 起，客戶端表單中的 inbound 選擇器會**隱藏已停用的 inbound**（客戶端已綁定者除外），且「解綁」視窗中同一客戶端記錄重複累積的問題已修正（資料會在面板啟動時自動修復）。
 - **訂閱連結 ({count})**——顯示選定客戶端的訂閱 URL 和 JSON 訂閱 URL 彙總表，並提供**複製全部**按鈕。若無任何客戶端有 subId：「所選客戶端均無訂閱 ID。」
 - **加入群組**和**取消分組**——指定和移除群組標籤。
 
@@ -2763,9 +2774,11 @@ IP 限制通過 **Fail2ban** 機制實現，因此 **IP 限制**欄位僅在 Fai
 
 ### 8.5. 搜尋、篩選與排序
 
-清單上方有搜尋框（「搜尋 email、備註、sub ID、UUID、密碼、auth…」）——搜尋範圍涵蓋 email、備註、subId、UUID、密碼和 auth。結果計數：「顯示 {shown} / {total}」。
+清單上方有搜尋框（「搜尋 email、備註、sub ID、UUID、密碼、auth、Telegram ID…」）——搜尋範圍涵蓋 email、備註、subId、UUID、密碼、auth，以及（自 3.5.0 起再次支援）**Telegram ID**。結果計數：「顯示 {shown} / {total}」。
 
 客戶端清單會自動更新：面板每隔幾秒拉取當前頁面的最新數據，因此新連線的客戶端和排序順序的變化無需手動重新整理即可呈現（背景輪詢時不顯示閃爍的載入指示器）。
+
+自 3.5.0 起，表格新增**「速度」**欄位（位於「流量」與「剩餘」之間）：顯示客戶端的即時速度——藍色標記 `↑ 上傳 / ↓ 下載`（約 5 秒滑動平均，每 5 秒更新一次）；無流量時顯示灰色破折號。在行動裝置上，速度以單獨一行顯示在客戶端卡片中。
 
 **客戶端篩選**面板可按狀態（類別）、協議、已綁定的 inbound、到期時間範圍、已使用流量範圍、自動續期有無（**有/無**）、Telegram ID 有無、備註有無，以及群組進行篩選。在帶有節點的面板中，會出現**節點**多選框：可將清單限制為選定節點的客戶端；**本地面板**選項可篩選未綁定節點的 inbound 客戶端（僅在有節點時顯示此篩選器）。排序方式：**從舊到新／從新到舊**、**最近更新**、**最近在線**、**Email A→Z / Z→A**、**流量較多**、**剩餘較多**、**即將到期**。
 
@@ -3159,7 +3172,7 @@ Inbound 2 (Trojan): email = ivan@vpn,  subId = ivan2025
 
 | 欄位（UI） | 鍵名 | 預設值 | 說明 |
 |---|---|---|---|
-| 訂閱更新間隔 | `subUpdates` | `12` | 用戶端應用程式重新請求訂閱的頻率（以小時計）。提示：「用戶端應用程式更新間隔（以小時計）」。 |
+| 訂閱更新間隔 | `subUpdates` | `12` | 用戶端應用程式重新請求訂閱的頻率（以小時計）。提示：「用戶端應用程式更新間隔（以小時計）」。自 3.5.0 起，欄位接受 **0–525600** 並顯示範圍提示（先前的介面上限 168 與伺服器不一致，從 2.x 升級後會阻擋任何設定的儲存）。 |
 
 該值透過 HTTP 標頭 `Profile-Update-Interval` 傳遞給用戶端；現代用戶端將其用作配置自動更新的週期。
 
@@ -3204,7 +3217,7 @@ Inbound 2 (Trojan): email = ivan@vpn,  subId = ivan2025
 | 訂閱標題 | `subTitle` | `Profile-Title`（Base64 編碼） | 「VPN 用戶端中顯示給用戶端的訂閱名稱」。對於 Clash，也透過 `Content-Disposition` 作為匯入個人資料的名稱使用。 |
 | 支援 URL | `subSupportUrl` | `Support-Url` | 「VPN 用戶端中顯示的技術支援連結」。 |
 | 個人資料 URL | `subProfileUrl` | `Profile-Web-Page-Url` | 「VPN 用戶端中顯示的您的網站連結」。若未設定，則替換為訂閱請求的實際 URL。 |
-| 公告 | `subAnnounce` | `Announce`（Base64 編碼） | 「VPN 用戶端中顯示的公告文字」。 |
+| 公告 | `subAnnounce` | `Announce`（Base64 編碼） | 「VPN 用戶端中顯示的公告文字」。自 3.5.0 起，該文字（非空時）也會以**資訊橫幅顯示在訂閱資訊頁面頂部**，且自訂範本可使用 `announce` 變數。 |
 
 此外，每個回應都會傳送 `Subscription-Userinfo` 標頭，其中包含用戶端的彙整流量資料：`upload`、`download`、`total` 和 `expire`（以秒為單位的到期時間戳）。用戶端根據此標頭顯示剩餘流量和有效期。
 
@@ -3255,15 +3268,17 @@ Reverse proxy URI: https://cfg.example.com/u
 
 **Hosts** 章節（側邊選單項目；顯示 Total/Enabled/Disabled 數量及清單的彙整頁面）為訂閱連結定義地址覆寫規則。每個 inbound 可新增一個或多個**主機**——端點，這些端點將在傳遞給用戶端的訂閱連結中**替代 inbound 本身的地址、埠和 TLS 參數**。這讓您能透過 CDN 或中繼分發流量，而無需修改 inbound 本身。
 
-每個主機可設定：
+**自 3.5.0 起，主機是一個「群組」**：一筆記錄可同時涵蓋**多個 inbound** 與**多個地址**。清單操作（啟用/停用/刪除/排序）與 API 以群組為單位運作（字串型 `groupId`）；新增了批量端點 `POST /panel/api/hosts/bulk/add`（`{"inboundIds": [...], "hosts": [...], ...}`），而 `list`/`get`/`update`/`del`/`setEnable` 均以群組物件操作。
 
-- **Remark** 和說明（Description）、綁定至特定 **Inbound**、**Enable** 切換器及節點指派（**Nodes**）。
-- **Address**（空白——繼承 inbound 地址）和 **Port**（`0`——繼承 inbound 埠）；**Tags**（僅在 RAW 訂閱中生效）。
+每個主機（群組）可設定：
+
+- **Remark** 和說明（Description）、綁定至 **Inbounds**（可搜尋的多重選取；至少一個）、**Enable** 切換器及節點指派（**Nodes**）。
+- **Address**——自 3.5.0 起為**地址清單**（標籤式輸入；分隔符為逗號、分號、空格；輸入提示 `cdn.example.com, cdn2.example.com:443`）。每筆記錄可內嵌自己的 `:連接埠`（包括帶方括號的 IPv6 `[::1]:443`）；下拉建議會提示其他主機已使用過的地址。清單留空——繼承 inbound 本身的地址（清單中顯示橘色 **Inherits** 標籤）。**Port**（`0`——繼承 inbound 埠）作為未內嵌連接埠之記錄的預設連接埠；**Tags**（僅在 RAW 訂閱中生效）。
 - **Security** 分頁——`same` / `tls` / `none` / `reality`，含 SNI、指紋（fingerprint）、ALPN、憑證固定（pinned-cert）、`allowInsecure` 和 ECH。
-- **Advanced** 分頁——Host 標頭、Path、VLESS 路由、Mux、Sockopt、Final Mask，以及從個別訂閱格式（raw / json / clash）中排除主機的選項。
+- **Advanced** 分頁——Host 標頭、Path、VLESS 路由、Mux、Sockopt、Final Mask，以及從個別訂閱格式（raw / json / clash）中排除主機的選項。自 3.5.0 起，**主機的 Final Mask 也會進入 raw 連結**（`fm=`；先前僅 JSON/Clash）：主機的 TCP/UDP 遮罩會附加至 inbound 的遮罩，主機的 QUIC 參數僅在 inbound 未設定時採用。**Allow insecure** 切換器現在也對 **Hysteria/Hysteria2** 生效（連結中 `insecure=1`，Clash 中 `skip-cert-verify: true`）。
 - **Clash (mihomo)** 分頁——IP 版本、Mihomo X25519、主機隨機排序（Shuffle host）。
 
-主機在各自的 inbound 範圍內可排序，並支援批次啟用、停用和刪除。受管主機取代了先前的 External Proxy 陣列。
+清單中的 **Endpoint** 欄位以標籤形式顯示地址（第一個直接可見，其餘收合於「+N」彈出視窗），**Inbounds** 欄位則顯示依協議著色的 inbound 標籤。自 3.5.0 起，主機採**全域**排序（先依排序順序，再依備註），不再侷限於各自的 inbound；批次啟用、停用和刪除功能保留。受管主機取代了先前的 External Proxy 陣列。
 
 **VLESS 路由（VLESS route）。** 自 3.4.2 起，這是單一數值 `0-65535`（不再是連接埠清單；提示——「одно значение VLESS route (0-65535), зашиваемое в UUID, например 443; пусто — без него」，輸入提示 `443`）。設定的值會實際「嵌入」每份生成訂閱的 UUID 中（raw／JSON／Clash）：Xray 讀取 UUID 的第 6-7 位元組並在驗證前將其遮罩，因此用戶端仍可比對成功。空值或不正確的值不會更改 UUID。
 
@@ -3288,7 +3303,7 @@ trojan://p4ss@b.example.com:443?security=tls&...#srvB-ivan
 |---|---|---|---|
 | JSON 訂閱 | `subJsonEnable` | `false` | 「獨立啟用/停用 JSON 訂閱端點。」 |
 
-傳回完整的 JSON 配置（sing-box 及衍生用戶端可理解的格式——Podkop、OpenWRT sing-box、Karing、NekoBox）。此格式提供額外參數（`subFormats` 分頁）：
+傳回完整的 JSON 配置（sing-box 及衍生用戶端可理解的格式——Podkop、OpenWRT sing-box、Karing、NekoBox）。自 3.5.0 起，**原生 WireGuard inbound** 的用戶端也會納入 JSON 訂閱（`secretKey`、`address`、含 `publicKey`/`endpoint`/`preSharedKey`/`keepAlive`/`allowedIPs` 的 `peers[]`、`mtu`）——先前它們會被靜默跳過。此格式提供額外參數（`subFormats` 分頁）：
 
 - **Mux**（`subJsonMux`，預設空白）——注入至 JSON 訂閱每個串流 outbound 的多工（Mux）JSON 設定。「在單一連線中傳輸多個獨立資料串流。」
 - **Final Mask**（`subJsonFinalMask`，預設空白）——「新增至 JSON 訂閱每個串流的 xray finalmask（TCP/UDP）設定和 QUIC 設定。需要用戶端上的較新版本 xray。」透過子欄位進行配置：「封包」（`packets`）、「長度」（`length`）、「間隔」（`interval`）、「最大分割」（`maxSplit`）、「雜訊」（`noises`：「類型」/`type`、「封包」/`packet`、「延遲（毫秒）」/`delayMs`、「套用至」/`applyTo`、「+ 雜訊」按鈕），以及「並行數」（`concurrency`）、「xudp 並行數」（`xudpConcurrency`）和「xudp UDP 443」（`xudpUdp443`）。
@@ -3306,13 +3321,13 @@ trojan://p4ss@b.example.com:443?security=tls&...#srvB-ivan
 
 回應以 `application/yaml; charset=utf-8` 類型傳回。若已設定「訂閱標題」（`subTitle`），也會透過 `Content-Disposition` 標頭傳遞（`attachment; filename*=UTF-8''<標題>`），使 Clash 用戶端以此名稱命名匯入的個人資料。
 
-生成的連結和 YAML 格式針對現代用戶端保持最新狀態：Shadowsocks-2022（SS2022）不再對 userinfo 進行 Base64 編碼；帶有 http 混淆的 Shadowsocks 連結以 SIP002 格式配合 `obfs-local` 插件傳回；Clash/Mihomo 訂閱實現了完整的 XHTTP 欄位集。這不需要額外設定——連結只是被用戶端更正確地識別。
+生成的連結和 YAML 格式針對現代用戶端保持最新狀態：Shadowsocks-2022（SS2022）不再對 userinfo 進行 Base64 編碼；帶有 http 混淆的 Shadowsocks 連結以 SIP002 格式配合 `obfs-local` 插件傳回；Clash/Mihomo 訂閱實現了完整的 XHTTP 欄位集。自 3.5.0 起，**原生 WireGuard inbound** 的用戶端也會納入 Clash/Mihomo 訂閱（`private-key`、`public-key`、`pre-shared-key`、`persistent-keepalive`、`ip`/`ipv6`、`mtu`、`dns` 欄位）——先前它們會被靜默跳過。這不需要額外設定——連結只是被用戶端更正確地識別。
 
 > 備註：此版本支援三種格式——一般連結（Base64/文字）、JSON（sing-box 相容）和 Clash/Mihomo（YAML）。訂閱伺服器中沒有獨立的 Outline 格式。
 
 ### 10.4. 訂閱資訊頁面與 QR 碼
 
-若在瀏覽器中開啟訂閱連結（或在 URL 後明確加上 `?html=1` 或 `?view=html` 參數，或傳送 `Accept: text/html` 標頭），伺服器將傳回視覺化的**訂閱資訊頁面**（「訂閱資訊」），而非「原始」回應。VPN 用戶端仍會收到機器可讀回應，因為它們不請求 HTML。
+若在瀏覽器中開啟**三種訂閱連結中的任何一種**——raw、JSON 或 Clash（或在 URL 後明確加上 `?html=1` 或 `?view=html` 參數，或傳送 `Accept: text/html` 標頭），伺服器將傳回視覺化的**訂閱資訊頁面**（「訂閱資訊」），而非「原始」回應。3.5.0 之前只有主連結 `/sub/` 如此運作，`/json/` 與 `/clash/` 在瀏覽器中會傳回原始 JSON/YAML。VPN 用戶端仍會收到機器可讀回應，因為它們不請求 HTML。
 
 該頁面（由 Vite 構建的單頁應用程式）顯示：
 
@@ -3492,6 +3507,8 @@ freedom 的 `domainStrategy`（Xray-core 值）：`AsIs`（不在伺服器端解
 | 欄位 | 標籤 | 說明 |
 |---|---|---|
 | `FreedomHappyEyeballs` | **Freedom Happy Eyeballs（IPv4/IPv6）** | 提示：*「適用於直連（freedom）輸出的雙協議棧連線——在同時具有 IPv4 和 IPv6 的輸出伺服器上非常實用。」* 為 freedom outbound 啟用 Happy Eyeballs 演算法（同時嘗試兩個位址族）。 |
+
+**個別 outbound 的 dial 設定（sockopt）**中也有獨立的 Happy Eyeballs：自 3.5.0 起它會確實啟用（先前設定會被序列化為停用狀態，開關會「彈回」）。「Try delay (ms)」預設值現在為 **250**；明確設定的 `0`（= 停用）會被保留；另外還提供 Prioritize IPv6、interleave（1）與 maxConcurrentTry（4）。
 | try delay | （提示） | *「嘗試其他位址族前等待的毫秒數。150–250 毫秒是一個不錯的起點。」* 切換至替代位址族前的延遲。建議範圍為 150–250 毫秒。 |
 
 #### Overall Routing Strategy
@@ -3509,6 +3526,10 @@ freedom 的 `domainStrategy`（Xray-core 值）：`AsIs`（不在伺服器端解
 | `outboundTestUrl` | **Outbound 測試 URL** | 測試 outbound 連通性時所使用的 URL。提示：*「用於檢查 outbound 連線的 URL」*。以 `xrayOutboundTestUrl` 鍵單獨儲存，不存於範本。 | **`https://www.google.com/generate_204`** |
 
 該值會進行清理。在實際測試 outbound 時，它會額外被驗證為公開 URL——此為防範 SSRF 的保護措施：使用者無法透過客戶端傳入任意（包括內部）URL，測試 URL 始終取自伺服器設定。儲存或測試時，若為空值則以預設的 `generate_204` 取代。
+
+#### Default Outbound（自 3.5.0 起）
+
+**「基本路由」**分頁的第一個項目是 **Default Outbound** 選擇器：「未匹配任何路由規則的流量會使用此 outbound（Xray 取清單中的第一個 outbound）」。清單包含 `direct`、`blocked` 及所有現有標籤；預設為 `direct`。選擇後會**將指定的 outbound 移至範本的首位**；不存在的 `direct`/`blocked` 會即時建立，切換時不會被刪除。
 
 #### Block BitTorrent
 
@@ -3635,6 +3656,7 @@ MTProto inbound 有一個**「透過 Xray 路由」**開關（預設關閉）和
 | 協議 | — | Outbound 的類型（詳見下文）。 |
 | 位址 / 連接埠 | **位址** / 連接埠 | 連線目標。位址和連接埠為必填。 |
 | 傳送介面 | **傳送介面** | 外出介面的本地 IP 位址（`sendThrough`）。預留位置：*「本地 IP」*。 |
+| Target Strategy | **Target Strategy** | **3.5.0 新增。** 連線前如何解析目標域名。11 個值：`AsIs`（預設，不解析）、`UseIP`、`UseIPv4`、`UseIPv6`、`UseIPv6v4`、`UseIPv4v6`（解析並帶 fallback）、`ForceIP`、`ForceIPv6v4`、`ForceIPv6`、`ForceIPv4v6`、`ForceIPv4`（要求解析成功）。空白 = `AsIs`（不寫入設定）；對 `freedom` 而言，讀取該值時會回退至舊有的 `domainStrategy`（為舊版核心仍會寫入此舊鍵）。 |
 | Dialer proxy（鏈式代理） | — | 提示：*「透過另一個 outbound（依標籤）連接此 outbound，以建立代理鏈。留空則直連。」* 預留位置：*「選擇要鏈接的 outbound」*。透過 `streamSettings.sockopt.dialerProxy` 實現。 |
 
 **Dialer Proxy** 下拉列表不僅顯示本地 outbound，還顯示訂閱的 outbound 標籤——因此也可以透過訂閱取得的出口建立鏈式代理。列表中仍會排除 blackhole outbound 和正在編輯的 outbound 本身。留空則直連。
@@ -3655,6 +3677,8 @@ MTProto inbound 有一個**「透過 Xray 路由」**開關（預設關閉）和
 對於 **loopback** 類型的 outbound，可使用 **Sniffing** 區塊，其參數與 inbound 相同：啟用、**destOverride**、**Metadata Only**、**Route Only** 以及**排除網域**列表。
 
 在 **Hysteria2** 的 **UDP** 遮罩（FinalMask）中，可使用額外模式。**Salamander** 遮罩有一個 **Mode** 選擇器，值為 **Salamander** 和 **Gecko**：Gecko 模式會為封包添加隨機填充，帶有 **Min**/**Max** 大小欄位（`packetSize`，範圍 1–2048，預設 512–1200）——這可防止基於封包長度的指紋識別。**Realm** 遮罩（UDP hole-punching）新增了一個可選的 **TLS Config** 區塊，包含 **Server Name**（SNI）、**ALPN**（`h3`/`h2`/`http/1.1`）、**Fingerprint**（uTLS）和**允許不安全**開關欄位。
+
+自 3.5.0 起新增一種 **TCP 遮罩**類型——**XMC（Minecraft）**（`xmc`）：將流量偽裝成 Minecraft 協議。欄位：**Hostname**（選填；「握手中模擬的伺服器位址」）、**Usernames**（選填清單；「向探測者展示的玩家名稱；核心預設使用 Dream」）和必填的 **Password**（16 個字元，↻ 按鈕自動生成；「混淆密碼」）。重要：**TCP Finalmask 與 REALITY 的組合在儲存時會被拒絕**——它會在首次連線時使 Xray-core 崩潰（錯誤：「Finalmask is not supported with REALITY security…」；見 Xray-core#6453）。UDP 遮罩可與 REALITY 並用；先前儲存的錯誤組合會在生成設定時自動「修復」（捨棄遮罩）。
 
 **範例：透過上游 SOCKS 建立代理鏈。** Outbound `upstream` 連接至外部 SOCKS5 代理，而 `chained` 透過其傳送流量（`dialerProxy`），形成代理鏈。在 `outbounds` 中：
 
@@ -3721,7 +3745,13 @@ Outbound 可從分享連結（`vless://`、`vmess://` 等）匯入。匯入時�
 - **TCP**（`mode=tcp`）— 對 `host:port` 進行簡單撥號，對所有端點並行執行，逾時約 5 秒。僅驗證 TCP 可達性，不驗證代理協議。對 `freedom`/`blackhole`/`blocked` 標籤將返回 *「Outbound has no testable endpoint」*。
 - **HTTP**（`mode=http` 或空白）— 啟動一個臨時 Xray 實例，執行真實的 HTTP 請求（探測 URL = 伺服器的 `outboundTestUrl`），測量真實延遲。此為可靠但成本較高的模式：透過全域鎖定序列化（*「Another outbound test is already running, please wait」*）。單次嘗試逾時為 10 秒，結果等待視窗為 15 秒（已增加，以防止在緩慢或隧道連線上的健康 outbound 被標記為「Failed」）。失敗時，實際原因（DNS 錯誤、連線被拒、截止期限超時、TLS 錯誤等）會寫入面板/Xray 日誌，逾時的一般訊息會指向該日誌。
 
+- **Real delay**（**3.5.0 新增**）——切換器的第三種模式。使用同一個臨時 Xray 實例，但報告**「冷」請求的完整時間（含隧道建立）**——這一數字接近客戶端應用程式顯示的數值。切換器提示：「TCP：快速僅撥號探測。HTTP：透過 xray 進行完整請求。Real delay：包含連線建立的完整時間」。自 3.5.0 起，一般 **HTTP** 模式改以「暖」（keep-alive）連線測量，因此數字較低，更接近單次請求的延遲。
+
 > UDP 協議（`wireguard`、`hysteria`）和 UDP 傳輸（`kcp`、`quic`、`hysteria`）**始終**以 HTTP 模式測試，即使請求的是 TCP——裸 UDP 撥號無法區分「活躍」和「死亡」端點。對於 wireguard，測試設定中強制設定 `noKernelTun: true`。
+
+#### Egress 與 Country 欄位（自 3.5.0 起）
+
+**HTTP** 或 **Real delay** 測試成功後，面板會透過同一臨時路由請求 Cloudflare trace 中繼資料，並在 outbound 清單中顯示兩個欄位：**Egress**——出口 IP（IPv4/IPv6，各自隱藏在「眼睛」圖示後；尚未測試時顯示破折號並附提示「執行 HTTP 測試以顯示出口 IP 與國家」）與 **Country**——出口國家的旗幟與名稱；若出口經由 Cloudflare WARP，會加上橘色 WARP 標記。TCP 測試不會填入這些欄位；在行動裝置上，資料顯示在 outbound 卡片中。
 
 #### 批量檢測與階段分解
 
@@ -3741,7 +3771,7 @@ HTTP 模式下的**測試**和**全部測試**會為一批 outbound 啟動一個
 |---|---|---|
 | 標籤 | **標籤**（提示：*「唯一標籤」*） | 唯一識別碼。預留位置：*「唯一負載均衡器標籤」*。驗證：*「標籤為必填項」*、*「標籤已被其他負載均衡器使用」*。 |
 | 選擇器 | **選擇器** | Outbound 標籤列表（依子字串），負載均衡器在其中選擇出口。至少需選擇一個：*「請至少選擇一個 outbound」*。 |
-| Fallback | **Fallback** | 若沒有選擇器匹配時的備用 outbound 標籤。 |
+| Fallback | **Fallback** | 若沒有選擇器匹配時的備用標籤。**自 3.5.0 起也可選擇另一個負載均衡器**（清單中此類選項標有藍色「Balancer」標籤，提示「選擇另一個負載均衡器作為 fallback」）。Xray 原生不支援此功能，因此面板會自行建立隱藏的 loopback outbound `_bl_<目標>` 及路由規則（路徑：負載均衡器 → loopback → 伺服器 → 目標負載均衡器 → outbound；表單中會顯示多一個「跳點」的警告）。具備循環防護（錯誤「無法選擇——會產生循環依賴」，清單中的選項會被停用並提示循環路徑），也不允許刪除被用作 fallback 的負載均衡器（「無法刪除——正被以下負載均衡器用作 fallback：…」）。`_bl_` 標籤前綴為保留字（標籤中禁止使用）；服務性的 `_bl_` 物件會從 Outbounds/Routing 清單中隱藏，而 Fallback/Live Target/Override 欄位顯示的是目標負載均衡器的名稱，而非 loopback 標籤。 |
 | 策略 | **策略** | 選擇演算法（詳見下文）。 |
 
 #### 策略與監測參數
@@ -3847,6 +3877,8 @@ HTTP 模式下的**測試**和**全部測試**會為一批 outbound 啟動一個
 ### 11.6. DNS
 
 `dns` 部分。啟用：**啟用 DNS**（提示：*「啟用內建 DNS 伺服器」*）。
+
+> 自 3.5.0 起，**私有 IP** 上的 DNS 伺服器（例如同一 docker 網路中自建的 AdGuard/Pi-hole）可「開箱即用」：面板會自動插入並維護一條受管的放行規則（direct，且限定於該 DNS 伺服器的連接埠），置於封鎖規則 `geoip:private` **之前**，並在 `dns.servers` 變更時同步。先前 Xray 自身的 DNS 查詢會被該規則靜默封鎖，每個新域名增加約 4 秒延遲；不再需要手動規則（手動建立的規則不受影響）。
 
 #### DNS 通用參數
 
@@ -4067,7 +4099,7 @@ Inbound、outbound 和路由規則的變更可「即時」套用：點擊**儲�
 
 ### 11.12. 訂閱的 Outbound（含自動更新）
 
-從 3.3.0 版開始，面板能夠直接從訂閱 URL 匯入 `outbound`——與 VPN 提供商為客戶端應用提供的格式相同。訂閱在後台定期重新讀取，因此伺服器上的 `outbound` 集合無需手動編輯設定範本即可保持最新。
+從 3.3.0 版開始，面板能夠直接從訂閱 URL 匯入 `outbound`——與 VPN 提供商為客戶端應用提供的格式相同。訂閱在後台定期重新讀取，因此伺服器上的 `outbound` 集合無需手動編輯設定範本即可保持最新。自 3.5.0 起，帶 query 參數（`?plugin=`、`?type=`）或結尾 `/` 的 `ss://` 連結（SIP002）能正確解析連接埠（先前會靜默變為 `0`）；連接埠確實無效的連結會被跳過，而不會以損壞的形式匯入。
 
 此部分的說明：「從遠端訂閱 URL（vmess/vless/trojan/ss/...）匯入 outbound。標籤保持不變以供負載均衡器和路由規則使用。自動更新。」 此部分位於 Xray 頁面上，在 `outbound` 設定面板上方。
 
@@ -4426,7 +4458,19 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.abc123...
 - 子節點的身份由其 GUID 決定；因此，線上用戶端和 inbound 被精確歸屬於實際託管它們的物理節點，即使在 `Node1 → Node2 → Node3` 鏈中（主面板通過每個直接節點向下一層「穿透」）。
 - 如果直接節點變得不可達，其子節點快取將被清除，子節點在連線恢復之前會從樹中消失。
 
-### 12.9. 節點：3.3.0 版本的新功能
+### 12.9. 3.5.0 修正（節點穩定性）
+
+3.5.0 中節點操作者可感知的修正合集：
+
+- **未變更的用戶端儲存不再中斷節點流量。** 先前任何用戶端儲存（即使「開啟後直接儲存」）都會向節點發送完整的 inbound 更新並重建 Xray 處理器——節點顯示在線，但在手動重啟前不再傳輸流量。現在無實質變更（no-op）的儲存不做任何事，實際變更則以一次輕量更新送出，不重建處理器。
+- **節點的 Host 覆寫會匯入主面板**：首次接受節點的 inbound 時，其 Hosts 記錄（SNI、指紋、ALPN 等）會被匯入，訂閱因此帶有正確的 TLS 參數。
+- **節點上的自動續期會開啟新的配額週期**（「每 30 天 100 GB」之類的方案會再次發放完整額度）。
+- **在主面板刪除用戶端會在節點上完整刪除**（記錄 + 流量），而不只是解除繫結；先前批量刪除留下的殘餘可在節點上透過「刪除未綁定客戶端」操作清除。
+- **節點的 inbound 在首次接受前不會被清除**：儲存剛新增的節點不再可能刪除其正在運作的 inbound。
+- **單一異常 inbound 不會中止節點流量同步**（同時，節點上的舊式 `socks` inbound 會改名為 `mixed`）。
+- **連接埠衝突檢查僅限於自身節點**——編輯節點 inbound 的監聽地址不再因其他節點使用相同連接埠而被拒絕（「port … already used by inbound …」）。
+
+### 12.10. 節點：3.3.0 版本的新功能
 
 在 3.3.0 版本中，**節點**部分獲得了三項重大改進：多跳拓撲中流量和線上用戶端的正確歸屬、節點間用戶端 IP 的同步，以及在節點面板正常運行但其上的 Xray 核心崩潰時的獨立狀態指示器。以下 inbound/outbound 保持原文不譯。
 
@@ -4964,7 +5008,7 @@ User ID 是帳號的數字識別碼（非 username）。有兩種方式可取得
 
 ### 14.3. 機器人指令
 
-機器人已登錄四個可在 Telegram 的「/」選單中看到的指令：
+自 3.5.0 起，Telegram 的「/」選單中登錄了**八個**指令：
 
 | 指令 | 說明（選單中顯示） | 存取權限 | 功能 |
 |---|---|---|---|
@@ -4972,8 +5016,12 @@ User ID 是帳號的數字識別碼（非 username）。有兩種方式可取得
 | `/help` | 機器人說明 | 所有人 | 顯示一般歡迎訊息並建議選擇選單項目。 |
 | `/status` | 檢查機器人狀態 | 所有人 | 回覆「✅ 機器人運作正常」。 |
 | `/id` | 顯示您的 Telegram ID | 所有人 | 回傳「🆔 您的 User ID：<code>…</code>」。方便查詢自己的 User ID。 |
+| `/usage` | 顯示用戶端用量：/usage email | 所有人（見下文） | 3.5.0 起加入選單。 |
+| `/inbound` | 搜尋 inbound：/inbound remark (admin) | 管理員 | 3.5.0 起加入選單。 |
+| `/restart` | 重啟 Xray Core (admin) | 管理員 | 3.5.0 起加入選單。 |
+| `/clearall` | 重設所有用戶端的流量 (admin) | 管理員 | **3.5.0 新增**：會要求確認（「取消」／「確認重設流量」按鈕），並將所有用戶端的流量歸零。 |
 
-除已登錄的指令外，另有三個參數型指令（不顯示於「/」選單，但可正常使用）：
+參數型指令的細節：
 
 - **`/usage [Email]`** — 依 email 搜尋用戶端。
   - 對**管理員**：顯示完整用戶端卡片（含管理按鈕）。
@@ -4982,6 +5030,8 @@ User ID 是帳號的數字識別碼（非 username）。有兩種方式可取得
 - **`/restart`** — 僅限管理員。重啟 Xray Core。可能的回應：「✅ Xray Core 已成功重啟」、「❗ Xray Core 未在執行中」（若核心未運作）、「❗ 重啟 Xray Core 時發生錯誤。<錯誤訊息>」。`/restart` 後若帶有任何參數，將顯示未知指令訊息並提示使用 `/restart`。
 
 在群組聊天中，`/指令@botusername` 格式的指令僅在 username 與當前機器人名稱相符時才會被處理。
+
+3.5.0 還有三項變更：**線上用戶端**清單中的按鈕標示為 `email - inbound 備註`（不同 inbound 中的相同名稱不再混淆）；**備份**與**封鎖日誌**訊息以 `Hostname==…` 行開頭——當一個機器人服務多個面板時十分方便；依 **Telegram ID** 搜尋用戶端卡片不再受設定 JSON 格式影響（先前來自節點或匯入的「緊湊」記錄會找不到）。
 
 管理員說明（「指令」按鈕）：
 
@@ -5338,7 +5388,7 @@ ext:<檔案名稱.dat>:<標籤>
 
 - **SQLite**（預設選項）——資料儲存於 `x-ui.db` 檔案中。
 - **PostgreSQL**——若面板已設定使用 PostgreSQL，區塊中將顯示提示：
-  > 「本面板正在 PostgreSQL 上執行。「備份」會下載 pg_dump 封存檔（.dump），而「還原」會透過 pg_restore 將其上傳回去。伺服器上必須安裝 PostgreSQL 用戶端工具（pg_dump 和 pg_restore）。」
+  > 「本面板正在 PostgreSQL 上執行。「備份」會下載 pg_dump 封存檔（.dump），而「還原」會透過 pg_restore 將其上傳回去。還原也接受 SQLite 資料庫（.db）或 SQLite 遷移轉儲，並將其資料匯入 PostgreSQL。伺服器上必須安裝 PostgreSQL 用戶端工具（pg_dump 和 pg_restore）。」
 
 #### 匯出（建立備份）
 
@@ -5377,8 +5427,10 @@ curl -s -b cookies.txt -OJ \
 **「匯入資料庫」** 按鈕（`Restore`）開啟檔案選擇器，並將檔案上傳至伺服器進行還原（`POST /panel/api/server/importDB`，表單欄位 `db`）。
 
 介面提示：
-- SQLite：「點選以從您的裝置選取並上傳 .db 檔案，以從備份還原資料庫。」
-- PostgreSQL：「點選以選取並上傳 .dump 檔案以還原 PostgreSQL 資料庫。此操作將替換所有目前資料。」
+- SQLite：「點選以從您的裝置選取並上傳 .db 檔案或遷移轉儲（.dump），以還原資料庫。」
+- PostgreSQL：「點選以選取並上傳 PostgreSQL 備份（.dump）、SQLite 資料庫（.db）或 SQLite 遷移轉儲以還原資料庫。此操作將替換所有目前資料。」
+
+自 3.5.0 起，檔案類型依內容判斷（`PGDMP`——pg_dump 封存檔；「SQLite format 3」標頭——`.db` 資料庫；開頭為 `PRAGMA`/`BEGIN TRANSACTION`——文字 SQL 轉儲），而非依副檔名；檔案選擇對話框在兩種資料庫上均接受 `.dump,.db`。上傳至 PostgreSQL 面板的 SQLite 檔案會以單一交易匯入 PostgreSQL（見 3.14）；匯入前會先驗證檔案確為面板資料庫，舊 schema 會自動補齊遷移。還原 `pg_dump` 封存檔前，面板會預先（在停止 Xray 之前）檢查其可讀性：若轉儲由較新版本的 PostgreSQL 建立，會顯示帶有確切指令的錯誤——例如「…run 'x-ui pgclient 17'…」。
 
 **SQLite 的匯入流程（重要：此流程具原子性且支援回退）：**
 1. 檢查上傳檔案的格式——必須是有效的 SQLite 資料庫；否則返回錯誤「Invalid db file format」。
@@ -5403,16 +5455,15 @@ curl -s -b cookies.txt -OJ \
 
 除了一般備份之外，還有 **「下載遷移檔案」**（`Download Migration`，請求 `GET /panel/api/server/getMigration`）功能。它生成一個可攜式檔案，用於切換到另一種資料庫引擎：
 
+自 3.5.0 起，此按鈕**僅顯示於 PostgreSQL 面板**（在 SQLite 上，一般 `.db` 備份現在可直接還原至 PostgreSQL 面板——不再需要單獨的匯出）：
+
 | 目前引擎 | 下載內容 | 檔案名稱 | 用途 |
 |---------|---------|---------|------|
-| SQLite | 可攜式 SQL 轉儲（文字） | `x-ui.dump` | 以您的資料填充 PostgreSQL |
 | PostgreSQL | 根據 PostgreSQL 資料建立的 SQLite 資料庫 | `x-ui.db` | 將面板切換回 SQLite |
 
-提示：
-- 在 SQLite 上：「點選以下載 SQLite 資料庫的可攜式 .dump 匯出（SQL 文字）。」
-- 在 PostgreSQL 上：「點選以下載根據您的 PostgreSQL 資料建立的 SQLite 資料庫（.db），可直接用於在 SQLite 上執行面板。」
+提示：「點選以下載根據您的 PostgreSQL 資料建立的 SQLite 資料庫（.db），可直接用於在 SQLite 上執行面板。」
 
-使用 CLI 命令 `x-ui migrateDB [file]` 也可完成 SQLite 的 `.db ⇄ .dump` 轉換（見第 16.7 節）。
+使用 CLI 命令 `x-ui migrateDB [file]` 也可完成 SQLite 的 `.db ⇄ .dump` 轉換（見第 16.7 節）。此外，自 3.5.0 起，引擎間的遷移已改為**交易式且無損**（用戶端群組與全域流量計數器等也會一併轉移；匯入失敗不會變更目標資料庫），並新增 **`x-ui pgclient [版本]`** 指令與 PostgreSQL 選單中的 **10. Install/Upgrade client tools (pg_dump/pg_restore)** 項目，用於更新 PostgreSQL 用戶端工具（必要時會接入官方 PostgreSQL 套件庫）。
 
 #### 透過 Telegram Bot 備份
 
@@ -5497,7 +5548,7 @@ Xray 本身的日誌記錄參數在 **「Xray 設定」** 頁面的 **「日誌�
 
 > 請注意：空的 access 日誌僅影響此視窗。「儀表板」上的線上用戶端清單和用戶端表單中的 IP 數量限制**不依賴** access 日誌——面板透過 Xray 核心的 online-stats API（連線統計）確定線上用戶端並統計其 IP 地址。對於不具備此 API 的舊版核心，面板會自動回退到舊方法（讀取 access 日誌），此時 IP 限制仍需要此處設定 access 日誌路徑。
 
-> **IP 數量限制與 fail2ban。** 用戶端的 IP 數量限制本身（用戶端表單和批次新增中的「IP Limit」欄位）只有在安裝了 **fail2ban** 時才在伺服器上生效——正是 fail2ban 封鎖超出限制的地址。面板會檢查 fail2ban 是否存在（`GET /panel/api/server/fail2banStatus`）；若不存在，「IP Limit」欄位會變為不可用，並顯示說明提示（Windows 上顯示單獨訊息），而此類伺服器上先前設定的限制會自動歸零，因為它們本來就不會生效。fail2ban 封鎖同時適用於 TCP 和 UDP。在一般伺服器上，fail2ban 現在會在安裝和更新面板時自動安裝（見第 16.5 節）。
+> **IP 數量限制與 fail2ban。** 用戶端的 IP 數量限制本身（用戶端表單和批次新增中的「IP Limit」欄位）只有在安裝了 **fail2ban** 時才在伺服器上生效——正是 fail2ban 封鎖超出限制的地址。面板會檢查 fail2ban 是否存在（`GET /panel/api/server/fail2banStatus`）；若不存在，「IP Limit」欄位會變為不可用，並顯示說明提示（Windows 上顯示單獨訊息），而此類伺服器上先前設定的限制會自動歸零，因為它們本來就不會生效。fail2ban 封鎖同時適用於 TCP 和 UDP。自 3.5.0 起，「死」連線（用戶端未正確關閉 TCP 就消失）只會被記錄**一次**，而非每次 10 秒掃描都記錄：`[LIMIT_IP]` 行與斷線流程僅在實際重新連線時才會重複，因此 fail2ban 計數器不會虛增，也不再需要調高 `maxretry`（日誌格式與 failregex 均未變更）。在一般伺服器上，fail2ban 現在會在安裝和更新面板時自動安裝（見第 16.5 節）。
 
 **範例：能讓「Xray 日誌」視窗開始顯示記錄的 `log` 區塊。** 在 Xray 的 JSON 設定中，如下所示：
 
@@ -5598,6 +5649,14 @@ Xray 的狀態透過「儀表板」上的 Xray 卡片管理。目前狀態顯示
 
 `install.sh` 和 `update.sh` 腳本現在可在僅有 IPv6 的伺服器上正常工作：下載版本、`x-ui.sh` 腳本和服務檔案不再強制使用 IPv4（`curl -4`），而是使用可用的協議。因此，面板可以在沒有 IPv4 地址的主機上安裝和更新。
 
+#### 3.5.0 的腳本修正
+
+- **RHEL 系**（Rocky/Alma/RHEL/Oracle）：從選單本機安裝 PostgreSQL 現在可正常運作（改用密碼驗證而非 ident），IP 限制所需的 fail2ban 改從 **EPEL** 安裝。
+- **Arch/Manjaro**：安裝與更新不再執行完整的系統升級 `pacman -Syu`——僅更新套件資料庫。
+- **32 位元 ARM**：下載的 Xray 二進位檔命名為 `xray-linux-arm32`——與面板啟動它時使用的名稱一致（先前更新會以其他名稱存放檔案，面板因此繼續執行舊核心）。
+- **IP 憑證**：簽發前會顯示自動偵測到的公網 IPv4 供確認（Enter——接受）；拒絕時改為帶驗證的手動輸入。
+- **ACME 連接埠選擇**：按 Enter（接受預設連接埠 80）不再誤報「Your input is invalid」。
+
 #### 透過 `XUI_PORT` 變數覆蓋面板連接埠
 
 可以透過環境變數 `XUI_PORT` 覆蓋網頁面板的監聽連接埠——它僅在目前程序執行期間有效，**不會修改**資料庫中儲存的 `webPort` 值。允許值為 `1` 到 `65535`；空白、不正確或超出範圍的值將被忽略（使用 `webPort`），並在日誌中記錄警告。這在部署時（尤其是 Docker 中）很有用：使用 bridge 網路時，容器發布的連接埠必須與 `XUI_PORT` 一致——例如 `XUI_PORT=8080` 配合 `ports: "8080:8080"`。
@@ -5631,7 +5690,8 @@ curl -s -b cookies.txt -X POST \
 | 收集 Xray 流量 | 每 5 秒（面板啟動後 5 秒開始） | 統計 inbound/用戶端流量 |
 | 檢查用戶端 IP | 每 10 秒 | 根據日誌監控 IP 限制 |
 | 節點心跳與流量同步 | 每 5 秒 | 與節點交換資料 |
-| **清理日誌** | **每日**（`@daily`） | 清理 IP 限制日誌和持久 access 日誌，將目前日誌旋轉至 `*.prev.log` |
+| **清理日誌** | **每日**（`@daily`） | 清理 IP 限制日誌和持久 access 日誌，將目前日誌旋轉至 `*.prev.log`。自 3.5.0 起，每日清理也涵蓋 **Xray 的 error 日誌**（先前僅 access） |
+| **限制 Xray 日誌成長** | **每 10 分鐘**（`@every 10m`） | **3.5.0 新增。** 當 access 或 error 日誌任一超過 **64 MiB** 時將其截斷；已停用的日誌（`none`/空白）不受影響 |
 | **按週期重置流量** | `@hourly`、`@daily`、`@weekly`、`@monthly` | 重置設定了相應自動重置週期的 inbound（及其用戶端）的流量計數器 |
 | Telegram 報告 | 在 Bot 設定中設定（預設 `@daily`） | 向管理員傳送報告；啟用相應選項時附帶資料庫備份（第 16.1 節） |
 | 重置 Telegram 雜湊儲存 | 每 2 分鐘 | 僅在 Bot 已啟用時 |
