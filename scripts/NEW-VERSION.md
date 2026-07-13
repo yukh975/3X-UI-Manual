@@ -101,15 +101,12 @@ The push-mirror auto-syncs to GitHub (throttled ~5 min; branch *deletions* don't
 propagate — `git push <gh-url> --delete <branch>` directly). Verify GitHub caught
 up; remove `~/git/3x-ui-vNEW` and `/tmp/src` `/tmp/tr`.
 
-## 7. Publish to upstream — Release + per-version PR (within a day or two of vNEW)
-See memory `project-upstream-manual-pr` for the full recipe. In short:
-- **GitHub Release** on `yukh975/3X-UI-Manual`: tag `vNEW` (push to GitLab origin first,
-  then create the release on GitHub via `~/.gh-token`); assets = 13 PDFs +
-  `3X-UI-Manual-md-<vNEW>.zip` (`zip -j` of the md). PDFs live here, NOT in upstream.
-- **PR to `MHSanaei/3x-ui`** (fork `yukh975/3x-ui`; never push to upstream — PR only,
-  confirm first): branch `docs/manual-<vNEW>` off `main`; put 13 `manual/*.md` + `manual/LICENSE`
-  (md only — **no `manual/pdf/`**); add/refresh the README `## Documentation` section
-  (links `manual/` + PDFs at `…/3X-UI-Manual/releases/latest`, cadence note, CC BY 4.0).
-  First PR (3.4.1): MHSanaei/3x-ui#5592.
+## 7. Publish OUR GitHub Release (no upstream involvement)
+**Do NOT open PRs to MHSanaei repos — the maintainer declined documentation
+(closed the manual/ PR, then removed the 3x-ui-docs site repo). The manual is
+ours alone.** Publish only to our own repo:
+- **GitHub Release** on `yukh975/3X-UI-Manual`: tag `vNEW` at main HEAD (push the
+  tag to GitLab origin first, then create the release on GitHub via `~/.gh-token`);
+  assets = the 13 `pdf/*.pdf` + `3X-UI-Manual-md-<vNEW>.zip` (`zip -j` of the md).
 
 Languages (codes = panel locales): `ar en es fa id ja pt ru tr uk vi zh-CN zh-TW`.
