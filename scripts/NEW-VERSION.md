@@ -1,5 +1,13 @@
 # Releasing a new manual version — runbook
 
+> **LANGUAGE POLICY (from the first version after 3.5.0): Russian (primary) + English only.**
+> The other 11 languages were maintained through 3.5.0 (kept forever in the `3.5.0`
+> branch / tag / Release) and are REMOVED from `main` as part of the next bump:
+> delete the 11 `3X-UI-MANUAL.<L>.md`, their PDFs and `README.<L>.md`; reduce the
+> switcher and `readme-shells.json` / `build_readmes.py` LANGS to ru+en; the
+> translation step is a single EN agent (same diff-driven edits method). Steps
+> below that say "every language" now mean **en only**.
+
 When 3X-UI ships a new panel version `vNEW`, the manual is updated end-to-end with
 the steps below. `vPREV` = the version the manual currently documents (its `main`
 version note). The mechanical steps are committed scripts; three steps are
@@ -109,4 +117,4 @@ ours alone.** Publish only to our own repo:
   tag to GitLab origin first, then create the release on GitHub via `~/.gh-token`);
   assets = the 13 `pdf/*.pdf` + `3X-UI-Manual-md-<vNEW>.zip` (`zip -j` of the md).
 
-Languages (codes = panel locales): `ar en es fa id ja pt ru tr uk vi zh-CN zh-TW`.
+Languages: `ru` (source) + `en` — since the post-3.5.0 policy change. (Historic full set through 3.5.0: `ar en es fa id ja pt ru tr uk vi zh-CN zh-TW`.)
