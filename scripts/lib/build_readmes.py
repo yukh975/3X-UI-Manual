@@ -11,12 +11,10 @@ Usage: python3 scripts/lib/build_readmes.py shells.json
 """
 import sys, json
 
+# RU (primary) + EN only since the post-3.5.0 policy change; the other 11 live
+# on in the 3.5.0 branch/tag/Release.
 LANGS = [
-    ("ar", "🇸🇦", "العربية"), ("en", "🇬🇧", "English"), ("es", "🇪🇸", "Español"),
-    ("fa", "🇮🇷", "فارسی"), ("id", "🇮🇩", "Bahasa Indonesia"), ("ja", "🇯🇵", "日本語"),
-    ("pt", "🇧🇷", "Português"), ("ru", "🇷🇺", "Русский"), ("tr", "🇹🇷", "Türkçe"),
-    ("uk", "🇺🇦", "Українська"), ("vi", "🇻🇳", "Tiếng Việt"),
-    ("zh-CN", "🇨🇳", "简体中文"), ("zh-TW", "🇹🇼", "繁體中文"),
+    ("en", "🇬🇧", "English"), ("ru", "🇷🇺", "Русский"),
 ]
 
 shells = json.load(open(sys.argv[1], encoding="utf-8"))
