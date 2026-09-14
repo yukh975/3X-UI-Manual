@@ -2,7 +2,7 @@
 
 🇬🇧 English · 🇷🇺 [Русский](3X-UI-MANUAL.ru.md)
 
-**3X-UI version: 3.7.0.** This manual is based on and current for this version. A summary of changes in 3.7.0 relative to 3.6.0 is in the [What's new in 3.7.0](#whats-new-in-370) section.
+**3X-UI version: 3.8.0.** This manual is based on and current for this version. A summary of changes in 3.8.0 relative to 3.7.0 is in the [What's new in 3.8.0](#whats-new-in-380) section.
 
 > A detailed English-language manual for the **3X-UI** web panel (Xray-core
 > management): features, configuration and operation, with an explanation of
@@ -13,7 +13,7 @@
 
 ## Table of Contents
 
-- [What's new in 3.7.0](#whats-new-in-370)
+- [What's new in 3.8.0](#whats-new-in-380)
 - [1. Introduction, Requirements, and Installation](#1-introduction-requirements-and-installation)
   - [1.1. What Is 3X-UI](#11-what-is-3x-ui)
   - [1.2. Supported Operating Systems and Architectures](#12-supported-operating-systems-and-architectures)
@@ -48,6 +48,7 @@
   - [3.14. Database Backup and Restore](#314-database-backup-and-restore)
   - [3.15. Additional Interface Elements](#315-additional-interface-elements)
   - [3.16. What changed on the dashboard in 3.7.0](#316-what-changed-on-the-dashboard-in-370)
+  - [3.17. Command Palette (Ctrl+K)](#317-command-palette-ctrlk)
 - [4. Inbounds: creation and common parameters](#4-inbounds-creation-and-common-parameters)
   - [4.1. Common form fields](#41-common-form-fields)
   - [4.2. Sniffing](#42-sniffing)
@@ -70,7 +71,8 @@
   - [5.10. AmneziaWG](#510-amneziawg)
   - [5.11. Hysteria (v2 by default)](#511-hysteria-v2-by-default)
   - [5.12. MTProto (Telegram Proxy)](#512-mtproto-telegram-proxy)
-  - [5.13. Quick Protocol-Selection Reference](#513-quick-protocol-selection-reference)
+  - [5.13. TUIC v5](#513-tuic-v5)
+  - [5.14. Quick Protocol-Selection Reference](#514-quick-protocol-selection-reference)
 - [6. Transport (Stream Settings)](#6-transport-stream-settings)
   - [6.1. Choosing the transmission network](#61-choosing-the-transmission-network)
   - [6.2. RAW / TCP (`tcpSettings`)](#62-raw--tcp-tcpsettings)
@@ -115,6 +117,7 @@
   - [10.4. Output formats](#104-output-formats)
   - [10.5. Subscription info page and QR codes](#105-subscription-info-page-and-qr-codes)
   - [10.6. Custom subscription page templates](#106-custom-subscription-page-templates)
+  - [10.7. Happ client integration](#107-happ-client-integration)
 - [11. Xray: routing, outbounds, DNS, and extensions](#11-xray-routing-outbounds-dns-and-extensions)
   - [11.1. Editor structure: tabs/modes](#111-editor-structure-tabsmodes)
   - [11.2. General Settings](#112-general-settings)
@@ -152,6 +155,7 @@
   - [13.8. Other: Xray configuration template and test URL](#138-other-xray-configuration-template-and-test-url)
   - [13.9. Administrator account and API tokens](#139-administrator-account-and-api-tokens)
   - [13.10. API changes in 3.3.0 (important for integrations)](#1310-api-changes-in-330-important-for-integrations)
+  - [13.11. Discord bot ("Discord Bot" tab / *Discord Bot*)](#1311-discord-bot-discord-bot-tab--discord-bot)
 - [14. Telegram Bot](#14-telegram-bot)
   - [14.1. Enabling and configuring the bot](#141-enabling-and-configuring-the-bot)
   - [14.2. Main menu and buttons](#142-main-menu-and-buttons)
@@ -160,6 +164,7 @@
   - [14.5. Notifications and reports](#145-notifications-and-reports)
   - [14.6. Backup and logs](#146-backup-and-logs)
   - [14.7. Operational notes](#147-operational-notes)
+  - [14.8. Discord bot](#148-discord-bot)
 - [15. Geo databases (geoip / geosite and custom)](#15-geo-databases-geoip--geosite-and-custom)
   - [15.1. What geoip.dat and geosite.dat are](#151-what-geoipdat-and-geositedat-are)
   - [15.2. Standard geo files and their update](#152-standard-geo-files-and-their-update)
@@ -180,109 +185,118 @@
   - [16.9. Uninstalling the panel](#169-uninstalling-the-panel)
   - [16.10. The `x-ui migrateDB` command](#1610-the-x-ui-migratedb-command)
 
-## What's new in 3.7.0
+## What's new in 3.8.0
 
-Version 3.7.0 adds **native AmneziaWG** — the DPI-resistant protocol now runs on an embedded engine (`amneziawg-go` over the gVisor network stack), with no kernel module, no `awg-quick` and no second panel. The rest of the headline: **API tokens gained a scope and an expiry**; a client's renewal can be pinned to a **calendar day of the month** and capped by count; a client gained its **own traffic-reset cycle**, a **device limit (HWID)** with the list of registered devices, and **external links** merged into its subscription; the subscription can carry **balancers**; importing a database **keeps this machine's settings**. Below are the changes relative to 3.6.0, by manual section.
+Version 3.8.0 adds **a new protocol, TUIC v5** — it runs as a separate `tuic-server` process managed by the panel, like MTProto — along with **AmneziaWG as an outbound** and a **Discord bot** for notifications, reports and commands. The rest of the headline: **Happ client integration** (app-management headers, routing presets, encrypted links); the subscription can now serve **a separate info config with status**, **a routing profile and DNS servers for JSON**, **balancer member weights** and **a counter of free HWID slots**; WireGuard/AmneziaWG clients gained **Keepalive**; the interface gained a **"Command Palette" on Ctrl+K**. The core is updated to **Xray-core v26.9.9**: on the first start, saved configurations are rewritten to its keys, and an empty **"Min Client Ver"** in REALITY now means "no lower bound". Below are the changes relative to 3.7.0, by manual section.
 
 ### Changes in section 1 — Introduction, Requirements, and Installation
 
-- **Building from source requires Go 1.27** (3.6.0 needed 1.26). The Xray core version did not change.
-- The first start runs **automatic schema migrations**: the client's traffic-reset cycle and last subscription fetch, the node-sync bookkeeping columns, an index on `LOWER(email)`, the API token scope and expiry, and external-link normalization. **Back up the database before upgrading.**
-- Upgrading no longer deletes **your own files in `bin/`** (a hand-added `geoip.dat`, for instance).
-- `update.sh` now downloads **through the same proxy the panel is configured with**, so upgrades work on servers with no direct outbound access.
+- **Xray-core 26.9.9 and the `tuic-server` 1.0.0 binary are bundled**, the latter for the new TUIC protocol: `install.sh` and `update.sh` install it into the panel's `bin/`, and it ships in the release archives and the Docker image (in Docker, publish the TUIC port as UDP). There are no prebuilt binaries for armv5/armv6/s390x — TUIC is unavailable there. Building from source requires Go 1.27.1.
+- **Installation and updates verify the archive's SHA-256** against the published `.sha256` file, and `x-ui.sh`, `x-ui.rc` and the service unit files are taken from the same release's tag rather than from `main`.
+- **One-time migrations on the first start:** the Xray template is rewritten to the new core's keys, the MTProto link address moves into a host, `subSortIndex` 0 → 1. **Back up the database before upgrading.**
+- **The SQLite database is owner-only:** the `x-ui.db*` files are `0600` and the `/etc/x-ui` directory is `0700`. A new database (and a settings reset) gets random subscription paths.
 
-### Changes in section 2 — Panel Login and Access Security
+### Changes in section 2 — Panel login and access security
 
-- **An API token now carries a scope and an optional expiry.** There are three scopes: `admin` — full access, as before; `monitor` — read-only, and only over a list of status endpoints (`/server/status`, the metric histories, `/server/getXrayVersion`, `/server/getPanelUpdateInfo`, a node's metric history); `node-sync` — exactly what a central panel needs to synchronize (list/add/update/delete inbounds, client operations, restart Xray). A request outside its scope gets **HTTP 403**. Tokens created earlier stay `admin`, so nothing changes for them.
-- The expiry is set at creation; past it, the token stops authenticating.
-- **Replacing the stored TOTP secret now requires a 2FA code** — a stolen session can no longer quietly re-point two-factor authentication at its own secret.
-- The CLI `x-ui setting -getApiToken` **no longer accumulates admin tokens**: it rotates a single `cli-fallback` token. CLI tokens printed earlier stop working once it rotates.
+- An invalid, disabled or expired **Bearer token gets HTTP 401** instead of 404 — the authentication failure is now visible. A request without the header and a request to a wrong base path still get 404.
+- Login and logout lines in the log now follow a single format and contain the real username; a successful login is no longer logged twice.
 
 ### Changes in section 3 — Overview / Dashboard
 
-- **The sidebar can be pinned** ("Pin sidebar" / "Unpin sidebar") — the icon rail no longer collapses after every hover.
-- The panel is now an **installable PWA** (network-only: it works only while the network is reachable).
-- A new **"Uptime"** tile, and **log levels and access events are localized**: Debug/Info/Notice/Warning/Error and DIRECT/BLOCKED/PROXY render in the interface language.
-- **AmneziaWG logs** are viewable (`Tools → AmneziaWG Logs`): last handshake, interface, inbound, endpoint, idle time and events.
+- **"Command Palette" — Ctrl+K or ⌘K** ([3.17](#317-command-palette-ctrlk)): search for clients, inbounds, pages and settings tabs, copy a subscription, restart Xray (without confirmation) and switch the theme.
+- **After a database import the panel restarts itself** — the subscription paths from the backup start working immediately.
+- Updating geo files from the dashboard verifies SHA-256 and does not restart Xray if nothing has changed.
 
-### Changes in section 4 — Inbounds: Creation and Common Parameters
+### Changes in section 4 — Inbounds: creation and common parameters
 
-- A new **"Disable XTLS flow"** switch (`disableFlow`, VLESS only): opts this inbound out of automatic `xtls-rprx-vision` injection even when its transport allows it. Vision keeps working on your other inbounds in the same subscription.
-- The **"Subscription order"** field (`subSortIndex`, present since 3.6.0) gained a narrow endpoint, `POST /panel/api/inbounds/:id/subSortIndex`. Changing the position used to go through `/update/:id`, which takes the whole inbound together with its entire client list — two people editing one inbound at once overwrote each other's work.
-- A check-and-claim race on the port was closed, and **form validation errors are now shown** instead of a silent refusal to save.
-- **Multi-node "online" attribution is more accurate**: a client connected to a node is no longer lost in the count.
+- **The inbound list shows the remarks of attached host groups** — multiple entry points (IPv4, IPv6, CDN) are visible without opening the inbound. Only enabled groups are taken into account, and search finds an inbound by them too.
+- **"Subscription sort order"** accepts **negative values**: `-1` is enough to put an inbound first. `0` and an empty value are normalized to `1`, including in data saved earlier.
 
 ### Changes in section 5 — Protocols
 
-- **A new protocol: AmneziaWG.** This is WireGuard with DPI-resistant obfuscation. The panel runs it **inside its own process** (`amneziawg-go` over a gVisor netstack), so no kernel module (DKMS), no `awg-quick`, no Docker and no separate panel are needed. One enabled client = one peer. The details and every field are in the new [5.10](#510-amneziawg) subsection.
-- **Hysteria:** updating an inbound whose client has an empty `auth` is now rejected (it used to silently break that client's access), and a Hysteria2 client over its limit is **force-disconnected** instead of downloading on until a restart.
+- **A new protocol: TUIC v5** ([5.13](#513-tuic-v5)). The inbound is served by a separate `tuic-server` process behind the panel's UDP relay; the certificate is set right in the form, clients get a UUID and a password, and there are `tuic://` links and a Clash config. Limitations: traffic and limits are inbound-level only, it works on the local panel only, and any client change restarts the process and drops connections.
+- **MTProto:** all links are built from managed hosts, so behind a reverse proxy clients get the correct external address and port. The former custom link address is moved into a host on upgrade.
+- **AmneziaWG:** the default MTU is 1420 minus `S4`; the UDP socket binds to the listen IP; "Regenerate" sets single values for H1–H4; obfuscation parameters are validated against the bounds of `amneziawg-go`; clearing the header protection key applies to the running interface.
+- **Hysteria2:** the link carries the standard obfs parameters (salamander/gecko) and `mport`; in xray-core 26.9.9 port hopping is performed by the client-side `udphop` mask.
 
-### Changes in section 7 — Connection Security: TLS, XTLS and REALITY
+### Changes in section 6 — Transport (Stream Settings)
 
-- **A REALITY target on a local network can be checked too.** The panel's SSRF guard used to simply refuse; now the panel warns ("Target is reachable but sits on a private/local network"), asks for confirmation, and bypasses the guard **for that one probe only**. The result gained the certificate expiry and the SNI used.
+- Hysteria's `proxy` masquerade mode gained an **"X-Forwarded headers"** field: `X-Forwarded-For`, `X-Forwarded-Host` and `X-Forwarded-Proto` are added to the proxied request.
+
+### Changes in section 7 — Connection Security: TLS, XTLS, and REALITY
+
+- **An empty "Min Client Ver" no longer means the built-in minimum.** In Xray-core v26.9.8 and newer (3.8.0 ships with v26.9.9) an empty field means "no lower bound": third-party cores such as Mihomo and sing-box connect without the `1.0.0` workaround. Explicitly set values work as before.
+- **A TLS inbound cannot be saved without a certificate or key.** Every entry needs a certificate (a path or the content) and a private key, and at least one entry must be a server certificate. The check runs both in the form and on the server; incomplete entries saved earlier can still be edited.
+- **The REALITY target scanner** shows the certificate chain size and warns when, with ML-DSA-65 enabled, the chain is shorter than 3500 bytes. "Find Targets" with an empty field checks the list from the new **"Reality scan candidates"** setting.
+- A selected uTLS fingerprint of **None** is now kept — on save it used to silently revert to `chrome`. The Clash/Mihomo subscription enables ML-KEM support for REALITY (`support-x25519mlkem768`).
 
 ### Changes in section 8 — Clients
 
-- **Renewal on a calendar day.** The **"Renew on day"** field (`resetDay`, 1–31): the client renews on that day of every month at midnight in the panel's time zone, instead of every N days. A month too short for the chosen day renews on its last day. `0` keeps the interval mode.
-- **A cap on auto-renewals** — the **"Max renewals"** field (`resetMax`): how many times auto-renew may fire before the client is left to expire. `0` means no limit. Catching up several missed periods spends one renewal per period. A **"Renewals used"** counter sits next to it.
-- **A per-client traffic reset cycle** (`trafficReset` + `trafficResetDay`) — the periodic reset used to be an inbound-level setting only.
-- **A device limit: "HWID Limit"** (`limitHwid`) — the maximum number of registered devices whose subscription requests are accepted; `0` means unlimited. Next to it is the **"HWID Devices"** list: device, OS and version, model, first and last seen. A device can be removed **one at a time** or the list cleared entirely — a removed device simply re-registers on its next subscription fetch.
-- **A client's external links** (the "Links" tab, present since 3.6.0) gained controls: a row can be **disabled without deleting it** (`enable`), given an **expiry** and a **name prefix**, and the panel shows the **last fetch time and the error text** when an external source did not answer.
-- The client table gained a **"Last Subscription Fetch"** column — when the subscription was last pulled.
-- AmneziaWG clients gained key fields (**Private/Public/Pre-Shared Key**), **Allowed IPs** (empty auto-assigns) and **Forwarded Ports** — ports and ranges DNAT'd to this client, e.g. `80, 443, 8000-8100`.
-- Fixes: a stale IP-log row no longer blocks saving a client; the summary badges are computed from live data rather than the `client_stats` snapshot; bulk client changes are pushed to nodes **after** the commit lands; stored IPs of offline clients expire on schedule.
+- **Keepalive for WireGuard/AmneziaWG clients** — the "Keepalive (seconds)" field: `25` in a new client's form, `0` disables it. A button that generates a **pre-shared key** (PresharedKey) now sits next to it.
+- **Happ Encrypted Link** in the QR code window: the `happ://crypt5/…` link is generated locally on the panel server, with no external services. The option becomes available once **"Encrypted subscription links"** is enabled in the subscription settings (Happ → Subscription Links).
+- **Bulk adjust** now also sets the **HWID Limit** (lowering it removes the excess devices) and the **MTProto ad-tag**.
+- The HWID device list shows a **short fingerprint** — the first 12 characters of the identifier's hash.
+- **TUIC** clients: a UUID and a password, and the QR code window offers **"TUIC config (Clash)"**; a per-client traffic quota is not supported for TUIC.
+- A client on several tunnel inbounds keeps its keys and peer address on each of them, and its config is shown separately for each inbound.
+- Fixes: auto-renew applies to all of a client's inbounds; an expiry at 23:59:59 on the day before the renewal day is moved to midnight without spending a renewal; an explicit `enable: false` is preserved on creation and import; a partially applied client operation marks Xray for a restart; a client's external links respect its expiry.
 
-### Changes in section 9 — Client Groups
+### Changes in section 9 — Client groups
 
-- A bulk move between groups now **reports the clients that actually changed and no longer restarts Xray** when there is nothing in the config to change.
+- **"Adjust ({count})"** on the groups page applies every bulk-adjust field — Flow, the HWID limit and the MTProto ad-tag. Previously only days and traffic were applied, and the selected Flow was silently discarded.
 
-### Changes in section 10 — Subscriptions
+### Changes in section 10 — Subscriptions (Subscription)
 
-- **The subscription page in a browser is unchanged.** During 3.7.0's development it was replaced with a neutral "this is a subscription link, copy it" page, but that was **reverted before release**: on mobile it showed a bare screen instead of traffic, expiry and links. In 3.7.0 a browser still gets the normal themed info page, and `?html=1` / `?view=html` and `?format=info` behave as before.
-- **Subscription balancers** — a new "Sub Balancers" settings section. Each enabled balancer is added to the JSON subscription as **one extra profile** that automatically picks the best of the selected inbounds' endpoints (`routing.balancers` + `burstObservatory` in the client config). You configure the remark, the strategy (**Least load / Least ping / Random / Round robin**), the inbounds, and the position in the subscription list; on equal numbers the balancer comes after the inbound.
-- **Client tokens now work in the subscription metadata too.** `{{EMAIL}}`, `{{ID}}`, `{{SHORT_ID}}`, `{{SUB_ID}}`, `{{TELEGRAM_ID}}` used to be substituted only in the remark template; the subscription title, support link, profile link and announcement now take them as well, so each client can get a personal title or a support link carrying their own identifier.
-- **Remote routing rules by URL.** The rule fields for Happ, Incy and Clash accept not only a ready deeplink or inline rules but also **one permanent HTTPS URL**: the panel refreshes the rules in the background and keeps the last valid value, so a subscription request never waits on the external source.
-- The panel **warns when salamander settings (Hysteria2) cannot reach the client**.
-- Output fixes: `tlsSettings.cipherSuites` is forwarded into the JSON subscription; `mport` survives on external-proxy links; the full remark is rendered **once per subscription** rather than once per credential; `USAGE_PERCENTAGE` uses a fullwidth percent sign.
+- **Happ client integration** ([10.7](#107-happ-client-integration)): with auto-detection enabled, the panel recognizes Happ by its User-Agent and sends it app-management headers — banners, migration to a new or fallback URL, TUN mode and engine, auto-connect, per-app proxy on Android, enforced HWID. Routing presets and a visual rule generator are included too.
+- **A separate info config:** traffic and expiry are shown as a separate "dummy" config at the top of the list, and an expired or depleted subscription serves only the status config, built from configurable templates.
+- **JSON subscription:** an embedded routing profile (JSON, a `happ://`/`incy://` deeplink or an HTTPS URL), custom **DNS servers**, a **"Block Connection"** tab; the client's local inbounds listen on `127.0.0.1`, and mux is off for Vision.
+- **Clash/Mihomo:** AmneziaWG and TUIC proxies, ML-KEM for REALITY, extra `/mihomo/` and `/clash-legacy/` endpoints.
+- **New installations get random subscription paths** (`subPath`, `subJsonPath`, `subClashPath`); an upgrade keeps the paths, and a settings reset creates new ones.
+- The **`…/hwid-status`** endpoint reports how many device slots are taken and how many are left, without using up a slot; the device limit also applies to `?view=raw`.
+- **Member weights** in leastLoad balancers: a member with a lower weight is picked more often.
+- **Hosts:** MTProto links are built from hosts; REALITY parameters are dropped when a host forces TLS; a host's "Description" is passed to Happ as the server caption.
+- The **"Month-end subscription expiry display"** option shows the end of a monthly subscription as the last second of the previous month; links of disabled and expired clients are left out of the output.
 
-### Changes in section 11 — Xray: Routing, Outbounds, DNS and Extensions
+### Changes in section 11 — Xray: routing, outbounds, DNS, and extensions
 
-- **PIA outbounds by login.** A new "PIA" section: enter your Private Internet Access username and password, pick a country and a server, and the panel fetches the key and adds a ready WireGuard outbound. Adding the same server again offers to renew its key instead of creating a duplicate.
-- **A remote routing URL** — a rule set can live at an external address and be updated centrally.
-- **A client picker inside user rules**: the `user` field is filled from the client list instead of by hand.
-- **Browsing geosite/geoip categories from a routing rule** — without leaving the form you can see what is inside `geosite:category-ads-all` or `geoip:ru` and check values for typos. The panel distinguishes "no such category", "no such attribute", "wrong database kind" and "the database file is missing — add it under Geodata".
-- Fixes: one poisoned DNS answer no longer blocks outbound tests; a WARP IP change **keeps the Plus license key**; allocation query failures are no longer swallowed; salamander settings import correctly from standard obfs parameters; an "unrestricted" freedom outbound stored in the database is hardened.
+- **A new outbound protocol: AmneziaWG** ([details](#amneziawg-outbound)): the tunnel is brought up by the panel's embedded engine, and Xray sees such an outbound as a local SOCKS gateway at `127.0.0.1:64900` (the port is reserved). The obfuscation parameters must exactly match the server's.
+- **One-time template conversions for xray-core 26.9.9** ([details](#one-time-template-conversions-on-upgrade-to-380)): `proxySettings` → `sockopt.dialerProxy`, the freedom strategy → `sockopt.domainStrategy`, a DNS outbound's `nonIPQuery`/`blockTypes` → `rules`.
+- **Hysteria2 port hopping** is now set by the `udphop` UDP mask. Hysteria2 outbounds imported before 3.8.0 no longer hop ports — import the link again (ones from subscriptions update on their own).
+- **NordVPN:** multiple NordLynx servers — one `nord-<hostname>` outbound per server; the load is shown in the list, **"Reset"** refreshes the key, and **"Log Out"** no longer deletes the added outbounds.
+- Routing rules gained a **"Comment"** field — for the panel only; it is not passed to the core.
+- **Subscription outbounds:** a custom **User-Agent** for providers that serve links only to "their own" clients; a server inserted in the middle of a subscription no longer takes over its neighbor's tag.
+- Blackhole gained a `custom` response type with a **"Custom response (base64)"** field, and WireGuard a **"Remote DNS"** field; the useless port field is hidden for DoH servers; protocols in the template are read case-insensitively; VLESS with `vnext` can be tested; blackhole is no longer offered in MTProto's outbound picker.
 
 ### Changes in section 12 — Nodes (multi-panel, master/slave)
 
-- **Cloning inbounds to nodes** (first implementation): selected inbounds are deployed to several nodes at once, with a "{ok} cloned, {failed} failed" report.
-- **A node's API token can be encrypted at rest** (opt-in) — no readable token is left in the database.
-- Synchronization became more careful: a matching **already-deployed inbound is adopted rather than recreated**; disabled inbounds a node snapshot cannot report on are **kept**; a stale expiry sync **no longer undoes client extensions**; deleting clients the sync never meant to delete is fixed; the adoption timestamp is not stamped when nothing was adopted.
-- **mTLS:** **every** certificate in the node trust bundle is validated; a rotated master certificate is applied **without restarting the panel** (the "Reload master mTLS credential" button, `POST /panel/api/nodes/mtls/reloadClient`); the master credential is persisted atomically and silent reissue is gone.
-- Heartbeat persistence failures and the inbound a node snapshot removes are now **logged** instead of being lost.
+- **Client changes go out to all nodes in parallel** — both single edits and bulk operations. A slow or unreachable node no longer holds up the request: anything that did not make it in time is applied by the background sync.
+- **A node snapshot does not resurrect deleted clients** and cannot claim a client of another inbound.
+- **Widening a node's inbound selection imports those inbounds instead of deleting them:** removal from a node waits one sync cycle.
 
 ### Changes in section 13 — Panel Settings
 
-- **An allowlist for the IP limit** ("IP limit allowlist"): addresses and networks (comma-separated, IP or CIDR) that the IP limit **never counts and never bans**. A shared office or campus address can no longer use up a client's limit.
-- **Importing a database keeps this machine's settings** — a new "Keep this machine's settings" checkbox (on by default): listen addresses and ports, the base path, certificate paths and node identity come from the current panel rather than the uploaded file. Clear it to restore the old behaviour — a whole-file clone.
-- Calendar: labels are localized and a **Gregorian / Jalalian** choice was added; the clear button in the Jalali date picker actually clears the field now.
-- Fixes: an inconclusive fail2ban probe **keeps the IP limits** instead of dropping them; LDAP auto-delete **no longer wipes every client** when the directory returns an empty answer; an empty database setting falls back to the default secret.
+- A new **"Discord Bot"** tab ([13.11](#1311-discord-bot-discord-bot-tab--discord-bot)): token, channel, admin IDs, language, report schedule, events and CPU/RAM thresholds, a test notification button.
+- **"Reality scan candidates"** on the "General" tab sets the list of targets that "Find Targets" checks when the search is empty.
+- A settings reset generates new random subscription paths. The "Notification Time" field (Telegram and Discord) offers preset intervals or a custom cron expression.
 
 ### Changes in section 14 — Telegram Bot
 
-- Long messages are split **at line boundaries** rather than mid-character, so tables and lists no longer tear apart.
+- **A new Discord bot** ([14.8](#148-discord-bot)): notifications about panel events, a scheduled report with a database backup, and the `!status`, `!report`, `!backup`, `!usage`, `!inbounds`, `!restart` commands for the admins on the list.
+- **Telegram bot:** a regular user's link buttons work only for that user's own clients; traffic reports arrive as a single message; each chat has its own new-client draft; the bot answers every button press.
+- The bot shows an "after first use" expiry in days.
 
-### Changes in section 15 — Geo Databases (geoip / geosite and custom)
+### Changes in section 15 — Geo databases (geoip / geosite and custom)
 
-- **The contents of a geo database can now be browsed**: the files in the Xray folder with their category count, size and update date; the list of categories; paged browsing of entries and subnets; and a check of a set of values against the database. The endpoints are `GET /panel/api/xray/geodata/files`, `/categories`, `/entries` and `POST /panel/api/xray/geodata/validate`.
+- **Standard geo files are checked against the published SHA-256** and installed all-or-nothing within a source. If the files have not changed, Xray is not restarted and connections are not dropped.
+- The geodata auto-update editor has a **"Use standard sources"** button: it adds the missing standard files without touching your own rows.
 
-### Changes in section 16 — Operations: Backups, Logs, Updates, CLI
+### Changes in section 16 — Operations: backups, logs, updating, CLI
 
-- **Back up the database before upgrading to 3.7.0** — the first start runs schema migrations (see section 1).
-- Importing a database no longer overwrites this machine's network settings by default (see section 13).
-- `x-ui setting -getApiToken` rotates a single `cli-fallback` token (see section 2).
-- Your own files in `bin/` survive an upgrade, and `update.sh` goes through the panel's proxy.
-- A half-applied startup migration **can no longer commit silently** — the panel refuses to come up on a half-broken schema instead of pretending everything is fine.
+- **Back up the database before upgrading to 3.8.0** — the first start runs one-time migrations (see sections 1 and 11).
+- `update.sh` verifies the archive checksum and takes the scripts from the release tag; **"Update Menu"** updates `x-ui.sh` from the installed version's tag.
+- `/usr/local/x-ui/x-ui setting -getApiToken` accepts **`-tokenName <name>`** (default `cli-fallback`): the command reissues the token with exactly that name and leaves the others untouched.
+- **Backups via the Discord bot:** the `!backup` command and scheduled reports with the database attached (`discordBotBackup`).
+- The fail2ban backend setting is written to `jail.d`, and the `migrateDB` dump is created with `0600` permissions.
+
 ## 1. Introduction, Requirements, and Installation
 
 ### 1.1. What Is 3X-UI
@@ -293,7 +307,7 @@ Version 3.7.0 adds **native AmneziaWG** — the DPI-resistant protocol now runs 
 
 Key features:
 
-- **Inbound for various protocols** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, Hysteria2, HTTP, SOCKS (Mixed), Dokodemo-door / Tunnel, TUN, and **MTProto** (Telegram proxy, added in 3.3.0).
+- **Inbound for various protocols** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, AmneziaWG, Hysteria2, HTTP, SOCKS (Mixed), Dokodemo-door / Tunnel, TUN, **MTProto** (Telegram proxy, added in 3.3.0), and **TUIC v5** (a separate `tuic-server` process running alongside Xray, see [5.13](#513-tuic-v5)).
 - **Modern transports and encryption** — TCP (Raw), mKCP, WebSocket, gRPC, HTTPUpgrade, and XHTTP, secured with TLS, XTLS, and REALITY.
 - **Fallback** — serving multiple protocols on a single port (e.g., VLESS and Trojan on 443) using Xray's fallback mechanism.
 - **Per-client management** — traffic quotas, expiration dates, IP limits, online status display, one-click invite links, QR codes, and subscriptions.
@@ -301,7 +315,7 @@ Key features:
 - **Multi-node support** — managing and scaling across multiple servers from a single panel.
 - **Outbound and routing** — WARP, NordVPN, custom routing rules, load balancers, proxy chains.
 - **Built-in subscription server** with multiple output formats.
-- **Telegram bot** for remote monitoring and management.
+- **Telegram bot** for remote monitoring and management; **Discord bot** — notifications, reports, backups, and commands (see [14.8](#148-discord-bot)).
 - **REST API** with built-in Swagger documentation.
 - **Flexible storage** — SQLite (default) or PostgreSQL.
 - **13 interface languages**, dark and light themes.
@@ -335,6 +349,8 @@ The architecture is determined from the output of `uname -m` and mapped to one o
 
 If the architecture is not in this list, the script prints "Unsupported CPU architecture!" and aborts installation.
 
+**TUIC and architecture.** TUIC v5 inbounds are served by the `tuic-server` 1.0.0 sidecar (the [EAimTY/tuic](https://github.com/EAimTY/tuic) project), whose prebuilt binaries are available only for `amd64`, `386`, `arm64`, `armv7`, and Windows x64. On `armv6`, `armv5`, and `s390x` the installer prints "tuic-server does not provide prebuilt binaries for …; TUIC inbounds will be unavailable on this machine" and carries on with the installation: the panel and the other protocols work, only TUIC inbounds do not start. The panel will find a self-built `tuic-server` in its own `bin/` directory, in `/usr/local/bin` or `/usr/bin`, or on `PATH`.
+
 #### Base Dependencies
 
 Before installing the panel, the script automatically installs a base set of packages (names vary by distribution): `cron`/`cronie`/`dcron`, `curl`, `tar`, `tzdata`/`timezone`, `socat`, `ca-certificates`, `openssl`.
@@ -355,11 +371,14 @@ What the installer does, step by step:
 
 1. Detects the OS and architecture.
 2. Installs base dependencies.
-3. Downloads the release archive `x-ui-linux-<arch>.tar.gz` and extracts it to `/usr/local/x-ui`.
-4. Downloads the management script `x-ui.sh` and installs it as the `/usr/bin/x-ui` command.
-5. Creates the log directory `/var/log/x-ui`.
-6. Runs initial setup: database selection, credential generation, port selection, optional SSL configuration.
-7. Installs and starts the autostart service (systemd unit `x-ui.service` or an OpenRC init script for Alpine).
+3. Downloads the release archive `x-ui-linux-<arch>.tar.gz`, verifies its SHA-256 against the published checksum (see below), and extracts it to `/usr/local/x-ui`.
+4. If the archive does not contain the TUIC sidecar (`bin/tuic-server`), downloads `tuic-server` 1.0.0 for the machine's architecture (see [1.2](#12-supported-operating-systems-and-architectures)); a failed download does not abort the installation — "Failed to download tuic-server (optional), skipping".
+5. Downloads the management script `x-ui.sh` of **the same version** as the panel (from the release tag; for a dev build, from the `main` branch) and installs it as the `/usr/bin/x-ui` command. The Alpine init script `x-ui.rc` and the systemd units are taken from the same tag if the archive does not include them.
+6. Creates the log directory `/var/log/x-ui`.
+7. Runs initial setup: database selection, credential generation, port selection, optional SSL configuration.
+8. Installs and starts the autostart service (systemd unit `x-ui.service` or an OpenRC init script for Alpine).
+
+**Checksum verification.** Each release archive (`x-ui-linux-<arch>.tar.gz`, `x-ui-windows-amd64.zip`) is published together with a `<archive>.sha256` file. Like `update.sh`, the installer downloads that file and, before extracting, compares it with the SHA-256 of the downloaded archive; on a match it prints "Checksum verified: <hash>". A mismatch ("Checksum mismatch for …") or a failure to download the checksum file ("Failed to download the checksum for … (HTTP <code>)") aborts the installation, and the downloaded archive is deleted. The exception is an HTTP 404 response: releases published before checksum files were introduced do not have them, so the warning "No checksum published for this release, skipping verification" is printed and the installation continues.
 
 **Database selection during installation.** The installer offers:
 
@@ -381,7 +400,7 @@ Here `xui` is the username and database name, `127.0.0.1:5432` is the server add
 bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/v2.4.0/install.sh) v2.4.0
 ```
 
-The minimum supported version for this type of installation is `v2.3.5`; specifying an older version prints "Please use a newer version (at least v2.3.5)".
+The minimum supported version for this type of installation is `v2.3.5`; specifying an older version prints "Please use a newer version (at least v2.3.5)". The management script `x-ui.sh` (and, on Alpine, `x-ui.rc`) is taken from the same tag. Before the current panel is even stopped, the installer checks that these files are published for the tag and, if they are not, aborts with the message "<file> is not available for <tag> (HTTP <code>)" without touching the current installation. This is why versions earlier than `v2.8.4`, which did not have `x-ui.rc` yet, cannot be installed on Alpine. Old releases have no checksum files either, so their verification comes down to a warning (see above).
 
 **Installing a dev build.** In addition to a version tag, the installer accepts the argument `dev-latest` (alias `dev`) — this installs the rolling dev build from the latest commit on the `main` branch:
 
@@ -422,17 +441,29 @@ docker run -d \
 
 The `/etc/x-ui` volume preserves the `x-ui.db` file across container restarts; without it, settings and accounts will be lost.
 
+The image also includes the `tuic-server` sidecar (for amd64, arm64, armv7, and 386). A TUIC v5 inbound listens on **UDP**, so when publishing the container's ports, publish its port as UDP, for example `-p 8443:8443/udp` (see [5.13](#513-tuic-v5)).
+
 ```bash
 docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 ```
 
 In Docker, the panel is the container's main process: autostart is controlled by the container's restart policy (e.g., `restart: unless-stopped`), not by a service inside the container.
 
-#### Upgrading to 3.7.0: what to know
+#### Upgrading to 3.8.0: what to know
 
-- **Back up the database before upgrading.** The first start of 3.7.0 runs schema migrations: the client's traffic-reset cycle and last subscription fetch columns, the node-sync bookkeeping columns, an index on `LOWER(email)`, the API token scope and expiry, and external-link normalization.
-- **Building from source requires Go 1.27** (3.6.0 needed 1.26.5). Installing from packages or the script is unaffected. The Xray core version did not change in 3.7.0.
-- Your own files in `bin/` (a hand-added `geoip.dat`, for instance) survive an upgrade, and `update.sh` downloads through the proxy the panel is configured with.
+- **Back up the database before upgrading.** The first start of 3.8.0 runs one-time automatic migrations of the Xray configuration template (`xrayTemplateConfig`) and of the data:
+  - on outbounds, `proxySettings.tag` is moved to `sockopt.dialerProxy`, and `sockopt.addressPortStrategy` is removed from freedom outbounds — core 26.9.8 and newer will not start with these keys;
+  - the deprecated `targetStrategy` and `settings.domainStrategy` of freedom outbounds are moved to `sockopt.domainStrategy`, and `nonIPQuery` and `blockTypes` of DNS outbounds are converted into an equivalent `rules` list;
+  - the `finalRules` fixes are re-applied to freedom outbounds whose protocol is written in a different case (for example, `Freedom`);
+  - on MTProto inbounds with their own address for links (the `custom` strategy), that address is moved to an entry on the "Hosts" page, and the inbound is switched to the `listen` strategy;
+  - a `user_agent` column is added to the outbound subscriptions table.
+- **"Subscription sort order"** (`subSortIndex`) equal to `0` is coerced to `1` on every start; negative values are kept.
+- **Database files are accessible to the owner only:** `x-ui.db` and its `-wal`/`-shm` files get permissions `0600` on every start, and a newly created `/etc/x-ui` directory gets `0700` (see [1.5](#15-file-locations)). PostgreSQL is not affected.
+- **Bundled: the Xray 26.9.9 core** and the new `tuic-server` 1.0.0 sidecar for TUIC v5 inbounds (in the release archives, the Docker image, and the Windows build).
+- **Building from source requires Go 1.27.1.** Installing from packages or the script is unaffected.
+- `install.sh` and `update.sh` verify the archive's SHA-256 and take `x-ui.sh` and the service units from the tag of the release being installed rather than from `main`.
+- Your own files in `bin/` still survive an upgrade, and `update.sh` downloads through the proxy the panel is configured with.
+- When upgrading from a version older than 3.7.0, the 3.7.0 migrations run as well (see ["What's new in 3.7.0"](https://github.com/yukh975/3X-UI-Manual/blob/3.7.0/3X-UI-MANUAL.en.md#whats-new-in-370) in the manual for version 3.7.0).
 
 ### 1.4. First Launch and Default Credentials
 
@@ -445,13 +476,15 @@ On the first installation (when default credentials are still in use), the insta
 | Panel web path (WebBasePath) | random 18-character string | protects the panel from discovery at the root URL |
 | Panel port (Port) | random port in the range 1024–62000 by default; can be set manually if desired | the factory `webPort` value is `2053`, but the installer overwrites it |
 
+The subscription server paths are set by the panel itself when a new database is created: `subPath`, `subJsonPath`, and `subClashPath` get random values of 16 digits and lowercase Latin letters (like `/k3v9x0q2m7b1c8zd/`), so every installation has its own subscription addresses; upgrading an existing panel does not change the paths. You can view and change them in the subscription server settings (see [10.2](#102-subscription-server-settings)).
+
 At the end of installation the script prints a summary: username, password, port, web path, API token, and the ready-to-use Access URL of the form:
 
 ```
 https://<domain-or-IP>:<port>/<web-path>
 ```
 
-If an SSL certificate has not been configured, the URL will use `http://`, and the script will print a warning about the need to configure SSL (menu item 19).
+If an SSL certificate has not been configured, the URL will use `http://`, and the script will print a warning about the need to configure SSL (menu item 20).
 
 > Mandatory credential change. Since the login and password are randomly generated, you should **save them immediately after installation**. They can be changed at any time using the "Reset Username & Password" menu item (see below) or from the web interface in the panel settings. After the reset, the script reminds you: "Please use the new login username and password to access the X-UI panel. Also remember them!".
 
@@ -462,9 +495,12 @@ After installation, use the `x-ui` command to open the management menu (see sect
 | Path | Purpose |
 | --- | --- |
 | `/usr/local/x-ui/` | panel installation directory (binary `x-ui`, script `x-ui.sh`) |
-| `/usr/local/x-ui/bin/xray-linux-<arch>` | Xray-core binary (on armv5/armv6/armv7 renamed to `xray-linux-arm`) |
+| `/usr/local/x-ui/bin/xray-linux-<arch>` | Xray-core binary (on armv5/armv6/armv7 renamed to `xray-linux-arm32`) |
+| `/usr/local/x-ui/bin/tuic-server` | `tuic-server` sidecar for TUIC v5 inbounds (not available on every architecture, see 1.2; in the Windows build — `tuic-server-windows-amd64.exe`) |
+| `/usr/local/x-ui/bin/tuic/` | TUIC configurations, one `tuic_<id>.json` file per inbound (permissions `0600`); the panel generates them itself |
 | `/usr/bin/x-ui` | management script (the `x-ui` command) |
-| `/etc/x-ui/x-ui.db` | SQLite database file (default) |
+| `/etc/x-ui/` | panel data directory; created with permissions `0700` |
+| `/etc/x-ui/x-ui.db` | SQLite database file (default); on every panel start it and the `x-ui.db-wal`/`x-ui.db-shm` files get permissions `0600`, since the database holds client UUIDs, REALITY private keys, and the administrator password hash |
 | `/var/log/x-ui/` | panel log directory |
 | `/etc/systemd/system/x-ui.service` | systemd service unit (not for Alpine) |
 | `/etc/init.d/x-ui` | OpenRC init script (Alpine only) |
@@ -510,7 +546,7 @@ After diagnostics, restore the value to `info` to prevent the log from growing e
 
 ### 1.6. The `x-ui` Management Command (Script Menu)
 
-After installation, the `x-ui` command (run as root) opens the "3X-UI Panel Management Script" interactive menu. A menu item is selected by entering its number (range 0–27). Many items are also available as subcommands for use in scripts (see section 1.7).
+After installation, the `x-ui` command (run as root) opens the "3X-UI Panel Management Script" interactive menu. A menu item is selected by entering its number (range 0–28). Many items are also available as subcommands for use in scripts (see section 1.7).
 
 The menu is divided into thematic sections.
 
@@ -518,48 +554,49 @@ The menu is divided into thematic sections.
 
 - **1. Install** — install the panel (runs `install.sh`). Checks that the panel is not already installed before proceeding.
 - **2. Update** — update all x-ui components to the latest version. Data is preserved; the panel restarts automatically after the update. Requires confirmation.
-- **3. Update Menu** — update only the management script (`x-ui.sh` / the `x-ui` command) to the current version without reinstalling the panel.
-- **4. Legacy Version** — install a specified (older) version of the panel. The script prompts for a version number (e.g., `2.4.0`) and downloads the corresponding release.
-- **5. Uninstall** — completely remove the panel **along with Xray**. The service is stopped and disabled, the directories `/etc/x-ui/` and `/usr/local/x-ui/`, the service environment file, and the management script itself are all deleted. Requires confirmation (default is "no").
+- **3. Update to Dev Channel (latest commit)** — update to the `dev-latest` rolling build from the latest commit on the `main` branch; requires confirmation (see [16.5](#165-restarting-and-updating-the-panel)).
+- **4. Update Menu** — update only the management script (`x-ui.sh` / the `x-ui` command) without reinstalling the panel. The script is taken from the tag of the **installed** panel version (`v<version>`) so that the menu matches the binary; if it is not published for that version (on a dev build, for example), `main` is used with the warning "No x-ui.sh published for the installed version (…), using main".
+- **5. Legacy Version** — install a specified (older) version of the panel. The script prompts for a version number (e.g., `2.4.0`) and downloads the corresponding release.
+- **6. Uninstall** — completely remove the panel **along with Xray**. The service is stopped and disabled, the directories `/etc/x-ui/` and `/usr/local/x-ui/`, the service environment file, and the management script itself are all deleted. Requires confirmation (default is "no").
 
 #### Credentials and Settings
 
-- **6. Reset Username & Password** — reset the panel username and password. You can enter your own values or leave them empty for random generation (random username — 10 characters, random password — 18 characters). Additionally offers to disable two-factor authentication (2FA) if it is configured. The panel restarts after the reset.
-- **7. Reset Web Base Path** — reset the panel web path: a new random path (18 characters) is generated and the panel restarts. Use this if the previous path was compromised or forgotten.
-- **8. Reset Settings** — reset all panel settings to their default values. **Credentials (username and password) and account data are preserved.** Requires confirmation; the panel restarts after the reset.
-- **9. Change Port** — change the web panel port. Prompts for a port number (1–65535); a restart is required after setting it for the change to take effect.
-- **10. View Current Settings** — view current settings (`x-ui setting -show`). Shows, among other things, the database backend in use (SQLite or PostgreSQL with the password masked in the DSN) and the ready-to-use Access URL. If SSL is not configured, offers to issue a Let's Encrypt certificate for an IP address.
+- **7. Reset Username & Password** — reset the panel username and password. You can enter your own values or leave them empty for random generation (random username — 10 characters, random password — 18 characters). Additionally offers to disable two-factor authentication (2FA) if it is configured. The panel restarts after the reset.
+- **8. Reset Web Base Path** — reset the panel web path: a new random path (18 characters) is generated and the panel restarts. Use this if the previous path was compromised or forgotten.
+- **9. Reset Settings** — reset all panel settings to their default values. **Credentials (username and password) and account data are preserved.** The subscription server paths (`subPath`, `subJsonPath`, `subClashPath`) get new random values, so previously issued subscription links stop opening. Requires confirmation; the panel restarts after the reset.
+- **10. Change Port** — change the web panel port. Prompts for a port number (1–65535); a restart is required after setting it for the change to take effect.
+- **11. View Current Settings** — view current settings (`/usr/local/x-ui/x-ui setting -show`). Shows, among other things, the database backend in use (SQLite or PostgreSQL with the password masked in the DSN) and the ready-to-use Access URL. If SSL is not configured, offers to issue a Let's Encrypt certificate for an IP address.
 
 #### Service Management
 
-- **11. Start** — start the panel service. If the panel is already running, a message is displayed indicating that a restart is not needed.
-- **12. Stop** — stop the panel service.
-- **13. Restart** — restart the panel service.
-- **14. Restart Xray** — restart only the Xray-core engine without restarting the panel itself (via `systemctl reload x-ui`; in Docker — by sending the `USR1` signal to the panel process).
-- **15. Check Status** — check the service status (`systemctl status x-ui` or `rc-service x-ui status`).
-- **16. Logs Management** — log management: view the debug log (Debug Log, via `journalctl`) and, except on Alpine, clear all logs (Clear All logs).
+- **12. Start** — start the panel service. If the panel is already running, a message is displayed indicating that a restart is not needed.
+- **13. Stop** — stop the panel service.
+- **14. Restart** — restart the panel service.
+- **15. Restart Xray** — restart only the Xray-core engine without restarting the panel itself (via `systemctl reload x-ui`; in Docker — by sending the `USR1` signal to the panel process).
+- **16. Check Status** — check the service status (`systemctl status x-ui` or `rc-service x-ui status`).
+- **17. Logs Management** — log management: view the debug log (Debug Log, via `journalctl`) and, except on Alpine, clear all logs (Clear All logs).
 
 #### Autostart
 
-- **17. Enable Autostart** — enable panel autostart on OS boot (`systemctl enable x-ui` or `rc-update add`).
-- **18. Disable Autostart** — disable autostart on OS boot.
+- **18. Enable Autostart** — enable panel autostart on OS boot (`systemctl enable x-ui` or `rc-update add`).
+- **19. Disable Autostart** — disable autostart on OS boot.
 
 In Docker, autostart is controlled by the container's restart policy, so these items only display a corresponding hint.
 
 #### Security and Networking
 
-- **19. SSL Certificate Management** — manage SSL certificates via acme.sh: issue a certificate for a domain, revoke, force-renew, view existing domains, specify certificate paths for the panel, and issue a short-lived (~6 days, with auto-renewal) certificate for an IP address.
-- **20. Cloudflare SSL Certificate** — issue an SSL certificate via Cloudflare DNS validation.
-- **21. IP Limit Management** — manage per-client IP limits (based on Fail2ban): view and remove blocks, etc.
-- **22. Firewall Management** — manage the firewall (open/close ports and view rules).
-- **23. SSH Port Forwarding Management** — configure SSH port forwarding to access the panel from a local machine via an SSH tunnel.
+- **20. SSL Certificate Management** — manage SSL certificates via acme.sh: issue a certificate for a domain, revoke, force-renew, view existing domains, specify certificate paths for the panel, and issue a short-lived (~6 days, with auto-renewal) certificate for an IP address.
+- **21. Cloudflare SSL Certificate** — issue an SSL certificate via Cloudflare DNS validation.
+- **22. IP Limit Management** — manage per-client IP limits (based on Fail2ban): view and remove blocks, etc.
+- **23. Firewall Management** — manage the firewall (open/close ports and view rules).
+- **24. SSH Port Forwarding Management** — configure SSH port forwarding to access the panel from a local machine via an SSH tunnel.
+- **25. PostgreSQL Management** — manage the built-in/linked PostgreSQL instance (enabling and related operations).
 
 #### Performance and Maintenance
 
-- **24. Enable BBR** — enable/disable the BBR TCP congestion control algorithm (submenu with Enable BBR / Disable BBR items).
-- **25. Update Geo Files** — update geo databases (`.dat` files) with a choice of source: Loyalsoldier (`geoip.dat`, `geosite.dat`), chocolate4u (`geoip_IR.dat`, `geosite_IR.dat`), runetfreedom (`geoip_RU.dat`, `geosite_RU.dat`), or All (all at once). The panel restarts after the update.
-- **26. Speedtest by Ookla** — run a network speed test via Speedtest by Ookla.
-- **27. PostgreSQL Management** — manage the built-in/linked PostgreSQL instance (enabling and related operations).
+- **26. Enable BBR** — enable/disable the BBR TCP congestion control algorithm (submenu with Enable BBR / Disable BBR items).
+- **27. Update Geo Files** — update geo databases (`.dat` files) with a choice of source: Loyalsoldier (`geoip.dat`, `geosite.dat`), chocolate4u (`geoip_IR.dat`, `geosite_IR.dat`), runetfreedom (`geoip_RU.dat`, `geosite_RU.dat`), or All (all at once). The panel restarts only if at least one file was actually updated; if everything is already current, "… are already up to date, restart is not needed." is printed.
+- **28. Speedtest by Ookla** — run a network speed test via Speedtest by Ookla.
 - **0. Exit Script** — exit the menu.
 
 ### 1.7. `x-ui` Subcommands (Without the Interactive Menu)
@@ -651,6 +688,8 @@ curl -i -X POST https://panel.example.com:2053/my-secret/login \
 
 On success the server returns a `Set-Cookie` header with the session cookie — pass it in subsequent requests to `/panel/api/…`.
 
+**API response without authorization.** The `/panel/api/…` endpoints accept either a session cookie or an API token in the `Authorization: Bearer <token>` header (see [13.9](#139-administrator-account-and-api-tokens)). A request with neither a valid session nor a token gets **404**, as if there were no API at that path — this way the panel does not give itself away to scanners. If an `Authorization: Bearer …` header is sent but the token is wrong, disabled, or expired, the response is **401 Unauthorized** (before 3.8.0 it was 404 as well): a script can tell a token error from a path error, since a wrong base path (`webBasePath`) still returns 404. Requests from the web interface itself (`X-Requested-With: XMLHttpRequest`) without a session also get 401.
+
 ### 2.2. Two-factor authentication (2FA / TOTP)
 
 2FA in 3X-UI is implemented according to the **TOTP** standard and is compatible with any authenticator app (Google Authenticator, Aegis, FreeOTP, etc.). The parameters are hard-coded: algorithm **SHA1**, **6** digits, period **30** seconds, issuer `3x-ui`, label `Administrator`.
@@ -726,6 +765,15 @@ How it works:
 - The client's IP address is determined taking trusted proxies into account (see `trustedProxyCIDRs`): the `X-Real-IP` and `X-Forwarded-For` headers are accepted only if the request came from a trusted address. Otherwise the real connection address is used, and if it cannot be extracted — the string `unknown`.
 
 All attempts are logged. For failed ones, a warning is written to the server log with the username, IP, reason and, on lockout, the `blocked_until` time. If login notifications via the Telegram bot are enabled (`tgNotifyLogin` — "Login notification"), the administrator additionally receives the username, IP, and time of both successful and failed and blocked attempts.
+
+Login and logout lines are written to the panel log in a uniform `key=value` format, with the actual username in quotes (special characters are escaped). A successful login is logged once, at INFO level; failures are logged at WARNING level. The failure reason is `invalid credentials`, `invalid 2FA code` or, for an already blocked pair, `too many failed attempts`; when the "IP + login" pair is blocked, a `blocked_until` field is added:
+
+```
+logged in successfully: username="admin", IP="203.0.113.45"
+failed login: username="admin", IP="203.0.113.45", reason="invalid 2FA code"
+failed login: username="admin", IP="203.0.113.45", reason="too many failed attempts", blocked_until=2026-06-10T14:47:07+03:00
+logged out successfully: username="admin"
+```
 
 **Example: login notification in Telegram.** With `tgNotifyLogin` enabled, after each attempt the administrator receives a message roughly like this:
 
@@ -1003,7 +1051,7 @@ The Xray card has a *Logs* button for viewing Xray logs. It appears only when an
 The *Version* section lets you switch Xray-core to a different release. The version list is loaded via `GET /getXrayVersion`:
 
 - The source is the GitHub API of the `XTLS/Xray-core` repository (`/releases`). Requests are cached for **15 minutes**; on a GitHub failure the last successfully fetched list is returned so that the picker is not empty.
-- Only releases of the form `X.Y.Z` and **no older than 26.4.25** are included in the list.
+- Only releases of the form `X.Y.Z` with version **26.6.27 or newer** are included in the list.
 
 Tooltips: "Choose the version you want to switch to." and the warning "Choose carefully, as older versions may not be compatible with current configurations."
 
@@ -1012,11 +1060,11 @@ Switching: `POST /installXray/:version`. Scenario:
 **Example.** Switch to a specific Xray-core version (the session cookie must already be obtained via authentication):
 
 ```bash
-curl -X POST 'https://panel.example.com:2053/xpanel/installXray/v25.6.8' \
+curl -X POST 'https://panel.example.com:2053/xpanel/installXray/v26.9.9' \
   -b cookie.txt
 ```
 
-Here `v25.6.8` is a tag from the list returned by `GET /getXrayVersion`. The version must be present in that list; otherwise the panel will reject the request. As of version 3.4.2 the minimum Xray version allowed for installation has been raised to **26.6.27**, and 3.5.0 bundles the **Xray 26.7.11** core. Accompanying core changes: the Shadowsocks `none`/`plain` and VMess `none`/`zero` ciphers have been removed (saved configs are rewritten automatically: SS — to a supported cipher, VMess — to `auto`), and an unencrypted VLESS/Trojan outbound to a public address is rejected on save — the core would not start with such a config.
+Here `v26.9.9` is a tag from the list returned by `GET /getXrayVersion`. The version must be present in that list; otherwise the panel will reject the request. As of version 3.4.2 the minimum Xray version allowed for installation has been raised to **26.6.27**, and 3.5.0 bundles the **Xray 26.7.11** core. Accompanying core changes: the Shadowsocks `none`/`plain` and VMess `none`/`zero` ciphers have been removed (saved configs are rewritten automatically: SS — to a supported cipher, VMess — to `auto`), and an unencrypted VLESS/Trojan outbound to a public address is rejected on save — the core would not start with such a config. Version 3.8.0 bundles the **Xray 26.9.9** core; outbound keys that it rejects or treats as deprecated are rewritten by the panel on first start (see [1.3](#13-installation-methods)).
 1. The selected version is verified against the current release list (otherwise — rejected).
 2. Xray is stopped.
 3. The archive `Xray-<os>-<arch>.zip` for the current OS and architecture is downloaded from GitHub (supported: amd64/64, arm64-v8a, arm32-v7a/v6/v5, 386/32, s390x; for Windows — `xray.exe`). The archive and binary size limit is 200 MB.
@@ -1039,7 +1087,7 @@ The **Update Panel** button (*Update Panel*) triggers `POST /updatePanel`. Toolt
 
 Specifics and limitations:
 - Self-update is supported **on Linux only** (other OSes return an error).
-- The updater script is downloaded from the official repository (`raw.githubusercontent.com/MHSanaei/3x-ui/main/update.sh`, 2 MB limit) and executed via `bash`, where possible in isolation via `systemd-run`.
+- The updater script is downloaded from the official repository (`raw.githubusercontent.com/MHSanaei/3x-ui/main/update.sh`, 2 MB limit) and executed via `bash`, where possible in isolation via `systemd-run`. The `update.sh` script itself verifies the SHA-256 of the release archive and takes `x-ui.sh` and the service units from that release's tag (see [16.5](#165-restarting-and-updating-the-panel)).
 - On successful launch, "Panel update started" is shown; if the update check failed — "Panel update check failed". During installation a warning "Installation in progress. Do not refresh the page" is displayed.
 
 ### 3.13. Geo-file Update (GeoIP / GeoSite)
@@ -1055,7 +1103,8 @@ The geo-database update button/dialog calls `POST /updateGeofile` (all files) or
 Behavior:
 - The file name is validated: `..`, slashes, and absolute paths are forbidden; only `[a-zA-Z0-9._-]+.dat` is allowed. Files not on the allowlist are not downloaded.
 - Conditional requests use `If-Modified-Since`: if the file has not changed on the source server (HTTP 304), it is not re-downloaded — only its timestamp is updated.
-- After download, Xray is **restarted** to pick up the new databases.
+- Each downloaded file is checked against the SHA-256 from the `<file>.sha256sum` file that the source publishes in the same release. Files from one source are first put into a temporary directory and moved into place only if all of them pass the check; otherwise the previous files stay, and the error reads "Error downloading Geofile '…': does not match the published SHA-256 checksum…". A failure of one source does not prevent the other sources' files from being updated.
+- Xray is **restarted** (to pick up the new databases) only if at least one file was actually replaced; if all sources answered 304, there is no restart and no connection drop.
 
 **Example.** Update only the Russian geo-databases without touching the other files:
 
@@ -1090,6 +1139,8 @@ The **SQLite** scenario is safe, with rollback:
 4. Xray is started again.
 
 For **PostgreSQL**, as of 3.5.0 "Restore" accepts **three kinds of files** (the type is detected from the content, not the extension): a `pg_dump` archive (`PGDMP`) — applied via `pg_restore --clean --if-exists --single-transaction …`; an **SQLite `.db` database** (a regular backup) and an **SQLite migration `.dump`** — these are validated, rebuilt if necessary, and imported into PostgreSQL **in a single transaction** by the same engine as `x-ui migrate-db --dsn` (on error, PostgreSQL is left untouched). The file picker accepts `.dump,.db` on both engines; uploading a `pg_dump` archive to an SQLite panel produces a clear error. The tooltip explicitly warns: "This will replace all current data".
+
+After a successful import (on both engines), the server restarts **the whole panel** 3 seconds later — just as the "Restart Panel" button does — so that settings read only at startup take effect, such as the subscription paths (`subPath`, `subJsonPath`, `subClashPath`) from the uploaded file. The page shows "Restart Panel…", waits 5 seconds, and reloads; if the login page opens after that, use the credentials from the uploaded database.
 
 Messages: "Database imported successfully", "An error occurred while importing the database", "…while reading the database", "…while getting the database".
 
@@ -1147,6 +1198,26 @@ The *Download Migration* button calls `GET /getMigration`. As of 3.5.0 it is sho
 
 > On table virtualization: 3.7.0 added it (`#6187`), but it is **disabled in the release** — list scrolling stayed as it was.
 
+### 3.17. Command Palette (Ctrl+K)
+
+The **Command Palette** is a quick search and command window available on every panel page. It opens with **Ctrl+K** or **⌘K** (the panel accepts either modifier on any OS) or with the **"Search..."** button in the sidebar and in the mobile drawer; the button shows a `Ctrl K` hint (`⌘ K` on Apple devices), and in the collapsed sidebar it has the tooltip "Command Palette". It closes with the same shortcut, the **Esc** key, or a click outside the window. **↑**/**↓** select a row, and **Enter** runs it.
+
+The input field shows the placeholder "Type a command or search clients, inbounds, pages...". Results are grouped:
+
+| Group | What is shown | What happens when selected |
+|---|---|---|
+| **Clients** | up to 8 clients found on the server by the typed string (`GET /panel/api/clients/list/paged?search=…`; the request is sent after a 300 ms pause in typing): email, used / total traffic (`∞` — unlimited), comment, and an enabled/disabled icon | opens the "Clients" page with a search by email. The **"Copy subscription"** button in the row copies the client's subscription link; it is shown if the client has a `subId` and the subscription server is enabled |
+| **Inbounds** | up to 8 inbounds whose remark, tag, protocol, or port contains the typed string, with protocol, transport, and security tags | opens the "Inbounds" page with a search by remark (or port) |
+| **Navigation** | the sections "Overview", "Inbounds", "Clients", "Groups", "Nodes", "Hosts", "Outbounds", "Routing", "Panel Settings", "Xray Configs", "API Docs"; matched by name and by English keywords (`cpu`, `vless`, `warp`, `swagger`, etc.) | opens the section |
+| **Settings** | the panel settings tabs ("General", "Authentication", "Telegram Bot", "Email", "Discord Bot", "Subscription", "Sub Formats", "Sub Balancers") and the Xray configuration sections ("Basics", "Metrics Endpoint", "Connection Limits", "Log", "Balancers", DNS, "Outbounds", "Basic Routing", "Advanced") | goes straight to the corresponding tab |
+| **Actions** | "Restart Xray Service", "Theme", "Add Inbound", "Add Client" | see below |
+
+While the field is empty, the list contains only navigation, settings, and actions; clients and inbounds appear as you type.
+
+- **"Restart Xray Service"** runs immediately (`POST /panel/api/server/restartXrayService`), **without a confirmation dialog**, unlike the button on the Xray card (see [3.11](#311-xray-status-and-process-controls)); on success — "Xray has been successfully relaunched". Like any Xray restart, it drops the clients' current connections.
+- **"Theme"** cycles through the appearance modes: Light → Dark → Ultra Dark.
+- **"Add Inbound"** and **"Add Client"** only open the "Inbounds" or "Clients" page; the creation form has to be opened there.
+
 ---
 
 ## 4. Inbounds: creation and common parameters
@@ -1169,13 +1240,15 @@ Below are all form fields that are **not** related to the settings of a specific
 
 A human-readable name for the inbound, shown in the list and in dialog titles ("Delete inbound \"{remark}\"?", etc.). The field label is **"Remark"**. It does not affect Xray operation and is only for administrative convenience; it is recommended to set unique, meaningful names, since they are inserted into the names of exported files and into confirmations of bulk operations.
 
+In the inbound list, the remarks of the [managed host](#managed-hosts) groups bound to an inbound appear in parentheses next to its remark (a group without a remark is shown by its first address), so that several entry points — IPv4, IPv6, CDN — are visible without opening the inbound. Only enabled groups are counted; if there are more than two, the first two are shown followed by "+N", with the full list in a tooltip. The search field above the list also finds inbounds by these remarks.
+
 #### Protocol
 
 | Parameter | Value |
 |---|---|
 | Field | `protocol` |
 | Label | **"Protocol"** |
-| Validation | `required,oneof=vmess vless trojan shadowsocks wireguard hysteria http mixed tunnel tun` |
+| Validation | `required,oneof=vmess vless trojan shadowsocks wireguard hysteria http mixed tunnel tun mtproto amneziawg tuic` |
 
 A drop-down list of the inbound's protocol. The allowed values are:
 
@@ -1191,10 +1264,13 @@ A drop-down list of the inbound's protocol. The allowed values are:
 | `mixed` | socks/http on a single port |
 | `tunnel` | |
 | `tun` | accepted by the validator, no separate protocol constant |
+| `mtproto` | Telegram proxy; handled by the `mtg` process, see [5.12](#512-mtproto-telegram-proxy) |
+| `amneziawg` | WireGuard with obfuscation; run by the panel's embedded engine, see [5.10](#510-amneziawg) |
+| `tuic` | TUIC v5; handled by the `tuic-server` process, see [5.13](#513-tuic-v5) |
 
 The field is required (`required`). The choice of protocol determines which client settings fields and which transport will be available (see the protocol-specific sections).
 
-> Important: when saving, the service normalizes `streamSettings`. Transport settings are kept only for the protocols `vmess`, `vless`, `trojan`, `shadowsocks`, `hysteria`; for the others (`http`, `mixed`, `tunnel`, `wireguard`, `tun`) the `streamSettings` field is **forcibly cleared**.
+> Important: when saving, the service normalizes `streamSettings`. Transport settings are kept only for the protocols `vmess`, `vless`, `trojan`, `shadowsocks`, `hysteria`, as well as `wireguard` and `tunnel` (they need the block for `sockopt`, and WireGuard also for its Finalmask masks); for the others (`http`, `mixed`, `tun`, `mtproto`, `amneziawg`, `tuic`) the `streamSettings` field is **forcibly cleared**.
 
 For a `tunnel`/TProxy inbound whose `streamSettings` block carries no `security` key (the transportless variant), the form now opens and saves without the `streamSettings.security Invalid input` validation error.
 
@@ -1236,7 +1312,7 @@ listen = /run/xray/in.sock   port = 0
 
 The TCP/UDP listening port. Values from `0` to `65535` are allowed. The value `0` is used only in combination with listening on a Unix socket (see above).
 
-When saving, the service checks for a port conflict: two inbounds cannot simultaneously occupy overlapping `listen:port` for the same transport (TCP/UDP). The transport is derived from the protocol and `streamSettings`/`settings`: for example, `hysteria` and `wireguard` always occupy UDP, `kcp`/`quic` — UDP, and most others — TCP. On a conflict, saving is rejected with an error.
+When saving, the service checks for a port conflict: two inbounds cannot simultaneously occupy overlapping `listen:port` for the same transport (TCP/UDP). The transport is derived from the protocol and `streamSettings`/`settings`: for example, `hysteria`, `wireguard`, `amneziawg` and `tuic` always occupy UDP, `mtproto` — TCP, `kcp`/`quic` — UDP, and most others — TCP. On a conflict, saving is rejected with an error.
 
 Separately, the panel does not allow occupying the **reserved internal Xray API port** (tag `api`, default `62789` on `127.0.0.1`): a local TCP inbound whose listen address overlaps that port on loopback is rejected with the same port-conflict error. The actual API port is read from the Xray config template (with a fallback of `62789`). On nodes this restriction does not apply — they run their own Xray.
 
@@ -1308,7 +1384,21 @@ A drop-down list that controls which address is inserted into this inbound's **e
 
 When **"Custom"** is selected, the **"Custom share address"** field appears; enter a host or IP **without a scheme or port** (the value is validated). The **"Node address"** option is shown in the list only if there is an enabled node on which this inbound can run; otherwise it is hidden and the value is coerced to **"Inbound listen"**.
 
-This strategy affects **only** the direct share links and QR codes. It does **not** affect subscription output — there the address is still resolved by the usual panel logic.
+The same strategy also sets the server address in subscription output (see [10.4](#server-address-and-nodes-in-the-output)); [managed hosts](#managed-hosts) bound to the inbound take precedence — the strategy's address is used only for hosts without an address of their own. For MTProto the field is not shown: the address in its links is set by hosts (see [5.12](#512-mtproto-telegram-proxy)).
+
+#### Subscription sort order
+
+| Parameter | Value |
+|---|---|
+| Field | `subSortIndex` |
+| Label | **"Subscription sort order"** |
+| Default | `1` |
+
+The position of this inbound's links in subscription output. The field hint:
+
+> "Position of this inbound's links in subscription output (sub page and client apps). Lower values come first; equal values keep creation order. Does not affect the panel inbound list."
+
+As of 3.8.0 the value can be **negative**: to put one inbound first, it is enough to give it, say, `-1`, without renumbering the others. `0` and an empty value are coerced to `1` — on save, and for values already stored in the database, at panel startup. If at least one inbound has a value other than `1`, a sortable **"Sub order"** column appears in the list. How the order is applied to the subscription formats is covered in [10.1](#inbound-link-order-in-the-subscription).
 
 #### Disabling XTLS flow, and a narrow edit of the order (3.7.0)
 
@@ -1532,10 +1622,10 @@ The protocol field is set once when the inbound is created and **cannot be chang
 The server accepts the following set of values for the `Protocol` field:
 
 ```
-oneof=vmess vless trojan shadowsocks wireguard hysteria http mixed tunnel tun mtproto amneziawg
+oneof=vmess vless trojan shadowsocks wireguard hysteria http mixed tunnel tun mtproto amneziawg tuic
 ```
 
-> Starting with version **3.3.0**, the value `mtproto` (Telegram proxy) was added to the list, and with **3.7.0** — `amneziawg` (WireGuard with DPI-resistant obfuscation).
+> Starting with version **3.3.0**, the value `mtproto` (Telegram proxy) was added to the list, with **3.7.0** — `amneziawg` (WireGuard with DPI-resistant obfuscation), and with **3.8.0** — `tuic` (TUIC v5 over QUIC).
 
 | Config value | Purpose | Client model |
 |---|---|---|
@@ -1551,12 +1641,13 @@ oneof=vmess vless trojan shadowsocks wireguard hysteria http mixed tunnel tun mt
 | `tun` | TUN interface (rendering of existing ones only) | No clients |
 | `mtproto` | Telegram proxy (MTProto), added in 3.3.0; handled by a separate `mtg` process, not Xray | No clients (access via secret) |
 | `amneziawg` | WireGuard with DPI-resistant obfuscation, added in 3.7.0; run by an embedded engine inside the panel process, not Xray | Clients (one enabled client = one peer) |
+| `tuic` | TUIC v5 proxy over QUIC, added in 3.8.0; handled by a separate `tuic-server` process, not Xray | Clients with a UUID and a password |
 
 > Note on `tun`: the value is kept in the list for compatibility and **display** of previously saved inbounds, but in the current backend version creating new ones is not recommended — support is considered deprecated. There is no point in creating new inbounds of this type.
 
 > Note on Hysteria 2: there is no separate "hysteria2" protocol. It is the `hysteria` protocol with `streamSettings.version = 2`. The `hysteria2://` share-link scheme is selected automatically when the stream version equals 2.
 
-Not all protocols support deployment to nodes. Only the following can be deployed to nodes: `vless`, `vmess`, `trojan`, `shadowsocks`, `hysteria`, `wireguard`. The protocols `http`, `mixed`, `tunnel`, `tun`, `mtproto` work on the local panel only.
+Not all protocols support deployment to nodes. Only the following can be deployed to nodes: `vless`, `vmess`, `trojan`, `shadowsocks`, `hysteria`, `wireguard`. The protocols `http`, `mixed`, `tunnel`, `tun`, `mtproto`, `amneziawg`, `tuic` work on the local panel only.
 
 ### 5.2. Which Protocols Support TLS / REALITY / Transport
 
@@ -1569,7 +1660,7 @@ The ability to enable a particular security layer and transport depends on the p
 | **flow (`xtls-rprx-vision`)** | `vless` only | `tcp` only, with `security = tls` or `reality` |
 | **Stream / transport** (Transport tab) | `vmess`, `vless`, `trojan`, `shadowsocks`, `hysteria` | — |
 
-For the protocols `http`, `mixed`, `tunnel`, `tun`, `wireguard`, `amneziawg` the transport tab is unavailable — they have no Xray stream settings. `amneziawg`, like `mtproto`, also has no sniffing block: its connections are not served by Xray.
+For the protocols `http`, `mixed`, `tun`, `mtproto`, `amneziawg` and `tuic` the transport tab is unavailable — they have no Xray stream settings; for `wireguard` and `tunnel` it is reduced (only `sockopt`, plus Finalmask for WireGuard — see [5.9](#59-wireguard-inbound) and [5.7](#57-dokodemo-door--tunnel-transparent-forwarder)). `amneziawg`, `mtproto` and `tuic` also have no sniffing block: their connections are not served by Xray. `tuic` has no Xray TLS/REALITY either — its own mandatory TLS is configured on the **"Protocol"** tab (see [5.13](#513-tuic-v5)).
 
 ---
 
@@ -1858,8 +1949,9 @@ Inbound fields (`settings` block):
 |---|---|
 | "WireGuard private key" | Client private key (editable, with a "Regenerate" button); when entered, the public key is derived from it automatically |
 | "WireGuard public key" | Read-only; computed from the private key |
-| "WireGuard pre-shared key" (PSK) | Optional additional pre-shared key |
+| "WireGuard pre-shared key" (PSK) | Optional additional pre-shared key; a button next to the field generates a random key |
 | "WireGuard allowed IPs" | As of 3.5.0 — **editable** (placeholder `10.0.0.2/32`, hint "Leave empty to auto-assign; separate entries with commas"). Empty — the address is assigned automatically; the server validates each entry (IP or CIDR), normalizes single addresses to `/32`, and rejects an address already taken by another client of this inbound |
+| "Keepalive (seconds)" | The `PersistentKeepalive` interval in the client config: `25` for new clients; `0` means no keepalive is sent and the line is not written to the `.conf` (details in [8.1](#81-client-fields)) |
 
 The in-tunnel address is assigned by the server automatically from the inbound's subnet (default `10.0.0.0/24`: the server takes `.1`, clients start from `.2`); if existing clients use a different `/24`, new addresses are assigned in the same subnet.
 
@@ -1879,6 +1971,8 @@ The WireGuard inbound row menu now contains the full "multi-client" set of actio
 
 In a WireGuard client's "Info"/QR windows there is a **collapsible configuration card**: the full `.conf` (`[Interface]` with `PrivateKey`/`Address`/`DNS`/`MTU` and `[Peer]` with `PublicKey`/`PresharedKey`/`AllowedIPs = 0.0.0.0/0, ::/0`/`Endpoint`/`PersistentKeepalive`) with **Copy**, **Download** and **QR** buttons. A `wireguard://`/`wg://` link is also supported, which the client application parses into a ready `.conf`.
 
+A client attached to several WireGuard/AmneziaWG inbounds at once is several independent peers: each inbound has its own keys, pre-shared key and client in-tunnel address, and those are what go into that inbound's configuration. The "Info" and QR windows show the configs of all such inbounds (labels and file names differ per inbound), and saving such a client's form does not overwrite the keys and addresses of all its peers with a single set of values.
+
 When to choose WireGuard: when you need a WireGuard VPN tunnel specifically, not a disguised proxy.
 
 ---
@@ -1893,12 +1987,14 @@ Inbound fields (the `settings.server` block):
 
 | Field | Default | Description |
 |---|---|---|
-| `privateKey` / `publicKey` | generated | The server keypair; the public key is derived from the private one |
+| `privateKey` / `publicKey` | generated | The server keypair; the public key is derived from the private one. If the keys are not passed when the inbound is updated (via the API, for example), the existing pair is kept — a new one is generated only for an inbound without stored keys |
 | `subnetIp` + `subnetCidr` | `10.8.1.0` / `24` | Tunnel subnet: the server takes `.1`, clients are assigned addresses automatically |
-| `mtu` | `1420` | Interface MTU |
+| `mtu` | empty → `1420` minus `S4` | Interface MTU. While the field is empty, the panel subtracts `S4` from the standard 1420 (but never goes below 1280): the `S4` junk is added to every transport packet, and with `S4` above 20, full-size packets at an MTU of 1420 would not fit into a 1500-byte link. An explicitly set value is used as is; the resulting MTU is always written into the client config as well |
 | `primaryDns` / `secondaryDns` | `8.8.8.8` / `8.8.4.4` | Written into the client config's `DNS =` line |
 | `externalInterface` | empty (auto-detect) | Host NIC used for NAT (`PostUp`/`PostDown`) |
 | `ipv6Enabled`, `ipv6Subnet`, `ipv6ExternalInterface` | off | IPv6 inside the tunnel; the subnet is required when it is enabled (e.g. `fd86:ea04:1115::/64`). A separate interface is needed when peers' IPv6 addresses are aliased onto a different NIC |
+
+The **Listen IP** field (see [4.1](#41-common-form-fields)) is honored: the AmneziaWG UDP socket is bound to that address, so on a server with several IPs replies leave from the same address the client connected to. An empty value, `0.0.0.0` or `::` means all addresses; an address that cannot be used on this host is replaced by listening on all addresses, with a warning in the log.
 
 **Obfuscation parameters** live in their own block with a **"Regenerate"** button. The defaults are **randomized per inbound**: a static set would give every installation the same DPI fingerprint.
 
@@ -1908,15 +2004,17 @@ Inbound fields (the `settings.server` block):
 | `Jmin` / `Jmax` | Minimum and maximum junk packet size |
 | `S1` / `S2` | Junk size added to the init and response packets |
 | `S3` / `S4` | Cookie-reply and transport packet padding |
-| `H1`–`H4` | The "magic headers" — an integer or a `low-high` range; empty = the classic 1/2/3/4 |
+| `H1`–`H4` | The "magic headers" — an integer or a `low-high` range; empty = the classic 1/2/3/4. **"Regenerate"** sets a single number per header: with `RandomTrailers` enabled, a wide range makes some ordinary packets get recognized as handshakes and dropped, which sharply cuts throughput. Ranges saved earlier are not changed automatically |
 | `I1`–`I5` | Optional signature packets; empty means they are not sent |
-| `HeaderProtectionKey` | A base64 32-byte key for header protection; it must match on every client. Empty disables it. **When it is set, every one of `S1`–`S4` must be ≥ 12** — the panel enforces this at save time, not just the core at startup |
+| `HeaderProtectionKey` | A base64 32-byte key for header protection; it must match on every client. Empty disables it; clearing the field also turns it off on an interface that is already running. **When it is set, every one of `S1`–`S4` must be ≥ 12** — the panel enforces this at save time, not just the core at startup |
 | `ContentPaddingAddition` | Content padding: an integer or a byte range; empty disables it |
 | `RekeyAfterTime`, `RekeyTimeout`, `RejectAfterTime`, `KeepaliveTimeout`, `MaxHandshakeAttempts` | Protocol timings: an integer or a range; empty keeps the WireGuard default |
 | `RandomTrailers` | Appends random bytes to every packet. **Requires AmneziaWG 3.1+ on both ends** |
 | `DisableCookies` | Never send cookie replies: removes one DPI fingerprint, but weakens flood mitigation |
 
-**Client parameters** sit on the client's credentials tab (shown when the bound inbound is AmneziaWG): **AmneziaWG Private Key**, **Public Key**, **Pre-Shared Key**, **Allowed IPs** (empty auto-assigns an address; separate entries with commas) and **Forwarded Ports** — ports and ranges DNAT'd to this client, e.g. `80, 443, 8000-8100`; empty means no forwarding.
+On save, the values are checked against the same bounds that `amneziawg-go` itself accepts: `Jc`, `Jmin`, `Jmax` — from 0 to 4294967295 (`Jmin` no greater than `Jmax`); `S1`, `S2` — from 0 to 65535, `S3` — up to 64, `S4` — up to 32, and `S1` + 56 must not equal `S2`; `I1`–`I5` are checked for the `<tag value>` structure (tags `b`, `t`, `r`, `rc`, `rd`, `d`, `ds`, `dz`). An invalid value is rejected right in the form instead of silently leaving the interface down.
+
+**Client parameters** sit on the client's credentials tab (shown when the bound inbound is AmneziaWG): **AmneziaWG Private Key**, **Public Key**, **Pre-Shared Key** (with a generate button), **Allowed IPs** (empty auto-assigns an address; separate entries with commas), **Keepalive (seconds)** (`25` for new clients, `0` — do not send) and **Forwarded Ports** — ports and ranges DNAT'd to this client, e.g. `80, 443, 8000-8100`; empty means no forwarding. More on client fields in [8.1](#81-client-fields).
 
 The ready client config is on the client's card under **"AmneziaWG config"** (the same `.conf` the Amnezia apps read). Tunnel state is visible under **`Tools → AmneziaWG Logs`**: last handshake, interface, inbound, endpoint, idle time and events.
 
@@ -1947,9 +2045,11 @@ Additional parameters are set in `streamSettings.hysteriaSettings`:
 
 When `masquerade` is enabled, a type (`type`) can be selected:
 - `` — default (404 page);
-- `proxy` — reverse proxy (fields «Upstream URL», «Rewrite Host», «Skip TLS verify»);
+- `proxy` — reverse proxy (fields «Upstream URL», «Rewrite Host», «X-Forwarded headers», «Skip TLS verify»);
 - `file` — serve a directory (field «Directory», e.g. `/var/www/html`);
 - `string` — fixed response (fields «Status code», «Body», «Headers»).
+
+**The `hysteria2://` link.** Only the standard parameters of the Finalmask **Salamander** mask make it into the link: `obfs=salamander` and `obfs-password`, and in **Gecko** mode — `obfs=gecko` together with `minPacketSize`/`maxPacketSize` (sizes 1–2048). Other mask settings cannot be expressed in the URI: a client built from such a link will fail the handshake, and the panel writes a warning about it to the log. The **Hop Ports** range from the **UDP Hop** block (Finalmask QUIC parameters) is announced to clients as the `mport` parameter; on the server this block has no effect — starting with xray-core 26.9.9, port hopping is done by the client-side `udphop` UDP mask, and the inbound listens only on its own port.
 
 When to choose Hysteria: when you need QUIC transport and resilience on unstable/mobile connections; masquerading increases the stealth of the entry point.
 
@@ -2017,9 +2117,65 @@ tg://proxy?server=<address>&port=<port>&secret=<secret>
 
 (equivalent — `https://t.me/proxy?server=…&port=…&secret=…`). As of 3.5.0 the link is **personal** — it is built from the specific client's secret, and the `#remark` fragment has been removed from it (lenient Telegram parsers glued it onto the secret and broke the import); the remark is shown as a separate label in the info window. Send this link and QR code to the Telegram user — when opened, the proxy is added to the app immediately. The link is also served via the subscription server.
 
+**Link addresses come from managed hosts.** Starting with 3.8.0, all MTProto links — in the subscription, in the client windows, when copying, in the QR code and on export — are built from the [managed hosts](#managed-hosts) bound to the inbound: one link per address of the enabled groups that are not excluded from the RAW subscription. This way clients get the correct public address and port when the proxy sits behind a reverse proxy or port forwarding and the external port differs from the inbound port; if a host has no port, the inbound's port is used. Without hosts, the address is filled in as before. The **"Share address strategy"** field is no longer shown in the form for MTProto, and on a panel update the former custom share address is automatically moved into a new host of this inbound — if none of its enabled hosts has that address yet.
+
 **When to use.** The standard way to bypass Telegram blocks; FakeTLS masquerading (cover domain) makes traffic look like a regular visit to the specified site.
 
-### 5.13. Quick Protocol-Selection Reference
+### 5.13. TUIC v5
+
+> Added in version **3.8.0**. Protocol value — `tuic`.
+
+**TUIC v5** is a proxy protocol over QUIC (UDP) with mandatory TLS, stream multiplexing and a selectable congestion control algorithm; it works well on links with packet loss. As with MTProto, such an inbound **is handled not by Xray but by a separate `tuic-server` process** (TUIC 1.0.0) managed by the panel. For each enabled TUIC inbound the panel writes the config `bin/tuic/tuic_<id>.json` and starts a dedicated process instance; every 10 seconds it reconciles the running processes with the database (starting missing ones and stopping extra ones), on startup on Linux it terminates processes left over from a previous run, and when the panel stops it stops all of them.
+
+**Traffic path.** The inbound's public UDP port is held by the panel itself — by a small relay — while `tuic-server` listens on a random port on `127.0.0.1` behind it. The relay forwards datagrams and counts bytes in both directions, so the inbound's traffic is accounted accurately on any OS, and the inbound's **"Total Flow"** and **"Duration"** (expiry) limits take effect just as they do for other protocols. A side effect: in the `tuic-server` logs every client's address shows up as `127.0.0.1`. The relay holds up to 4096 concurrent UDP flows (keyed by client address and port); when the table is full, the flow that has been idle the longest is evicted, so a flood of junk datagrams from many ports cannot block new clients from connecting. An inactive flow is forgotten after 2 minutes. TUIC traffic never enters Xray: `tuic-server` sends it out to the network itself, so Xray routing, sniffing and outbounds do not apply to it.
+
+**Installation and limitations.** The `tuic-server` binary is installed by the install script into the panel's `bin` directory (static builds for x86_64, aarch64, armv7 and i686) and is included in the Docker image; there are no prebuilt builds for armv5/armv6 and s390x, so TUIC is unavailable there. The panel looks for the binary in `bin` (`tuic-server-<os>-<arch>`, then `tuic-server`), then in `/usr/local/bin`, `/usr/bin` and `PATH`. The inbound runs **on the local panel only**: TUIC has no **"Deploy to"** field. The form has the **"Basics"**, **"Protocol"** and **"Advanced"** tabs, while **"Stream"**, **"Security"** and **"Sniffing"** are absent. The port is taken on UDP only, so in the port-conflict check TUIC may use the same port number as a TCP inbound (for example, VLESS on 443/TCP).
+
+**"Protocol" tab fields** (stored in `settings.server`):
+
+| UI field | Key | Default | Description |
+|---|---|---|---|
+| **SNI** | `sni` | empty | Server name for clients: it goes into the link and the Clash config and is not passed to `tuic-server` itself. While the certificate paths are empty or point into `/root/cert/`, typing an SNI fills them in as `/root/cert/<SNI>/fullchain.pem` and `/root/cert/<SNI>/privkey.pem`; the **"Auto Fill"** button sets these paths unconditionally |
+| **"Public Key"** | `certificate` | empty | Path to the certificate file (full chain). Input suggestions: `/root/cert/<SNI>/fullchain.pem`, `/etc/letsencrypt/live/<SNI>/fullchain.pem`, `/root/cert.pem` |
+| **"Private Key"** | `private_key` | empty | Path to the private key file; the suggestions are the same directories with `privkey.pem` |
+| **"Congestion Control"** | `congestion_control` | `bbr` | QUIC congestion control algorithm: BBR, CUBIC or New Reno |
+| **ALPN** | `alpn` | `h3`, `spdy/3.1` | ALPN list, entered as tags |
+| **"UDP Relay Mode"** | `udp_relay_mode` | `native` | How the client carries UDP traffic: **Native (Recommended)** — as QUIC datagrams, **QUIC** — over QUIC streams. A client-side parameter: it goes into the link and the Clash config and is not written to the `tuic-server` config |
+
+The **"Set Cert from Panel"** button fills in the certificate and key paths configured for the panel's web interface (if there are none, the warning "No certificate is configured for the panel. Set one under Settings first." is shown); **"Clear"** erases both paths.
+
+The collapsible **"Advanced Settings"** group:
+
+| UI field | Key | Default | Description |
+|---|---|---|---|
+| **"Zero-RTT Handshake"** | `zero_rtt_handshake` | on | 0-RTT handshake when a client reconnects; in the Clash config it is passed as `reduce-rtt` |
+| **"Log Level"** | `log_level` | `info` | Info, Warn, Error or Debug; `tuic-server` output is written to the panel log with the `tuic:` prefix. The field hint notes that online status, "last online" and "start after first use" are read from Info lines, and Warn or Error turns them off for this inbound |
+| **"Max Idle Time (s)"** | `max_idle_time` | `15` | After how many seconds of inactivity a QUIC connection is closed |
+| **"Auth Timeout (s)"** | `authentication_timeout` | `3` | How many seconds the server waits for the client to authenticate |
+| **"Max UDP Packet Size"** | `max_udp_relay_packet_size` | `1500` | Maximum size of a relayed UDP packet in bytes (`max_external_packet_size` in the `tuic-server` config) |
+
+**A certificate is required.** QUIC works only with TLS, so the certificate and key paths must be specified. They are not validated on save (the save-time certificate check covers only TLS on the "Security" tab): with an empty or wrong path `tuic-server` will not start, the panel will retry at every reconciliation, and the reason ends up in the panel log.
+
+**Clients.** TUIC is a multi-client protocol: clients are created and attached just like for the other protocols (see [section 8](#8-clients)). A client must have an **Email**, a **UUID** and a **password** — otherwise saving is rejected; when a client is attached to a TUIC inbound, a missing UUID and password are generated automatically. Only enabled clients with a UUID and password are passed to `tuic-server`; while there are none, the process is not started and nothing listens on the inbound's UDP port.
+
+- A client's **expiry** and **enable/disable** work: an expired or disabled client is removed from the `tuic-server` user list.
+- A **per-client traffic quota** (`totalGB`) **is not supported**: `tuic-server` does not report per-user statistics, and the clients' traffic counters do not grow. The field hint in the client form: "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead."
+- **"IP Limit"** has no effect on TUIC clients: it is built on Xray's online-IP statistics, and TUIC connections bypass Xray.
+- **Online status**, "last online" and the "after first use" expiry countdown are determined from Info-level lines in the `tuic-server` log that contain the client's UUID, so the Info or Debug log level is required.
+
+**Any change restarts the process.** `tuic-server` cannot change users on the fly, so adding, deleting or disabling a client (including automatically, on expiry), changing its UUID or password, as well as editing the inbound's fields, restarts the process together with the relay: active connections of all clients of this inbound are dropped, and clients have to reconnect.
+
+**Link and configs.** For a client the panel generates this link:
+
+```
+tuic://<uuid>:<password>@<address>:<port>?congestion_control=<algorithm>&alpn=<ALPN>&sni=<SNI>&udp_relay_mode=<mode>&allow_insecure=0#<name>
+```
+
+`sni` is added only if an SNI is set. The address is filled in according to the [share address strategy](#share-address-strategy); if [managed hosts](#managed-hosts) are bound to the inbound, a link is built for each host with its SNI and ALPN, and with `allow_insecure=1` if Allow insecure is enabled on the host. The link is shown in the **"Inbound Information"** window and served in the raw subscription; in the Clash/Mihomo subscription a TUIC inbound is delivered as a `type: tuic` proxy, and it is not included in the JSON subscription. The client's QR code window has a **"TUIC config (Clash)"** tab with ready-made YAML for Clash / Mihomo (see [8.3](#83-per-client-operations)).
+
+When to choose TUIC: when you need a QUIC proxy with fast connection setup and congestion control (for example, BBR) for lossy links, and your client apps (for example, Mihomo or sing-box) support TUIC v5. Keep in mind that traffic is counted and limited only at the inbound level.
+
+### 5.14. Quick Protocol-Selection Reference
 
 - **VLESS** — the default choice; best with REALITY or TLS + XTLS-Vision, supports post-quantum authentication.
 - **Trojan** — HTTPS masquerading with fallbacks to a web server.
@@ -2030,6 +2186,7 @@ tg://proxy?server=<address>&port=<port>&secret=<secret>
 - **WireGuard** — full VPN tunnel.
 - **tunnel** — transparent port forwarding.
 - **MTProto** — proxy for bypassing Telegram blocks (FakeTLS); separate `mtg` process.
+- **TUIC v5** — QUIC proxy with congestion control for lossy links; separate `tuic-server` process, traffic and limits at the inbound level only.
 
 ---
 
@@ -2363,6 +2520,7 @@ When **Masquerade** is enabled, a type selector (`type`) and fields depending on
 - **`proxy` (reverse proxy)**: reverse proxying to an external site.
   - `url` (**Upstream URL**, placeholder `https://www.example.com`) — the target address;
   - `rewriteHost` (**Rewrite Host**, default `false`) — substitute the `Host` header;
+  - `xForwarded` (**X-Forwarded headers**, default off) — add `X-Forwarded-For` with the client IP, as well as `X-Forwarded-Host` and `X-Forwarded-Proto`, to the proxied request so the upstream sees the original request;
   - `insecure` (**Skip TLS verify**, default `false`) — do not verify the upstream's TLS certificate.
 - **`file` (serve directory)**: serving files from a directory.
   - `dir` (**Directory**, placeholder `/var/www/html`).
@@ -2426,9 +2584,9 @@ Every inbound that supports transport-stream delivery (VMess, VLESS, Trojan, Sha
 | `tls` | **TLS** | For VMess/VLESS/Trojan/Shadowsocks on `tcp`, `ws`, `http`, `grpc`, `httpupgrade`, `xhttp` networks; for Hysteria — always |
 | `reality` | **Reality** | Only for VLESS/Trojan on `tcp`, `http`, `grpc`, `xhttp` networks |
 
-The **None** button is hidden when the protocol is Hysteria (TLS is required there). The **Reality** button appears only for a valid combination of protocol and network (see the table above).
+The **None** button is hidden when the protocol is Hysteria (TLS is required there). The **Reality** button appears only for a valid combination of protocol and network (see the table above). TUIC v5 has no **Stream** and **Security** tabs: the server certificate and key are specified directly on the **Protocol** tab (see [5.13](#513-tuic-v5)).
 
-When the mode is switched, the panel fully rebuilds the `streamSettings` block: it removes any `tlsSettings` and `realitySettings` left by the previous mode and fills in the defaults for the selected one. In particular, when **Reality** is selected, the panel immediately and automatically: fills in a random `target` + `serverNames` (SNI) pair from a built-in list of popular domains, generates random `shortIds`, and fetches a fresh X25519 key pair (privateKey/publicKey) from the server.
+When the mode is switched, the panel fully rebuilds the `streamSettings` block: it removes any `tlsSettings` and `realitySettings` left by the previous mode and fills in the defaults for the selected one. When **TLS** is selected, one empty certificate entry is created and the uTLS fingerprint is set to `chrome`. When **Reality** is selected, the panel generates random `shortIds` and a SpiderX path and requests a fresh X25519 key pair (privateKey/publicKey) from the server; the **Target** (`target`) and **SNI** (`serverNames`) fields stay empty — they are filled in by the target scanner (see [7.4](#74-reality-mode)).
 
 ### 7.1. The Difference: TLS vs XTLS vs REALITY
 
@@ -2488,7 +2646,7 @@ Fields of the `tlsSettings` block. Default values are taken from the panel schem
 | **SNI** (`serverName`) | `""` (empty) | Server Name Indication — the domain name presented in the TLS handshake. Must match the domain of the certificate. Placeholder hint: "Server Name Indication". |
 | **Cipher Suites** (`cipherSuites`) | `""` → **Auto** | List of allowed cipher suites. Empty by default — the choice is left to Xray/Go (the **Auto** option). Change only when you need to explicitly restrict ciphers. |
 | **Min/Max Version** (`minMaxVersion`) | min = `1.2`, max = `1.3` | Minimum and maximum TLS versions. Available values: `1.0`, `1.1`, `1.2`, `1.3`. It is recommended to leave `1.2`–`1.3`; lowering the minimum to 1.0/1.1 is undesirable (outdated, insecure versions). |
-| **uTLS** (`settings.fingerprint`) | `chrome` (in the form — the **None** option = `""` is available) | Simulated TLS fingerprint for the client hello (uTLS fingerprint), so the handshake looks like that of a popular browser. See the list below. In TLS mode the first item in the list is **None** (`""`), which disables fingerprint simulation. |
+| **uTLS** (`settings.fingerprint`) | `chrome` when TLS is enabled; **None** (`""`) for a new Hysteria inbound | Simulated TLS fingerprint for the client hello (uTLS fingerprint), so the handshake looks like that of a popular browser. See the list below. In TLS mode the first item in the list is **None** (`""`), which disables fingerprint simulation; Hysteria does not accept uTLS fingerprints, so None is selected for it by default. As of 3.8.0 a selected **None** is preserved — previously it silently reverted to `chrome` on every save; if the field is missing from a saved inbound (for example, one created through the API), it is also read as **None**. |
 | **ALPN** (`alpn`) | `["h2", "http/1.1"]` | List of application-layer protocols negotiated in TLS (multi-select). Allowed values: `h3`, `h2`, `http/1.1`. By default `h2` and `http/1.1` are offered. |
 
 Possible **uTLS fingerprint** values (identical for TLS and REALITY): `chrome`, `firefox`, `safari`, `ios`, `android`, `edge`, `360`, `qq`, `random`, `randomized`, `randomizednoalpn`, `unsafe`. In TLS mode an additional empty **None** option is also available (fingerprint simulation is not applied).
@@ -2544,6 +2702,14 @@ Additional fields for each certificate entry:
 
 > There is no separate button in the inbound editor for generating a self-signed certificate: the panel does not generate a self-signed certificate on the fly for an inbound. A certificate is either specified by path/content or pulled from the panel settings with the "Set Panel Certificate" button. Issuing/obtaining the panel's own SSL certificate (including file upload and domain binding) is done in **Settings → Security**; there are no ACME/Let's Encrypt endpoints for individual inbounds here.
 
+**Certificate checks on save.** As of 3.8.0 the panel does not save a TLS inbound with an incomplete certificate entry. Previously such an entry made it into Xray-core, the config build failed on it, and all the other inbounds failed to start along with it. The rules:
+
+- every entry must have a certificate — a file path or the content, depending on the selected input mode: "*Import a TLS certificate or enter its file path before saving*";
+- every entry except `usage = verify` also needs a private key: "*Import the TLS private key or enter its file path before saving*";
+- at least one entry must be a server entry (`encipherment` or `issue`) with a key — `verify` entries alone are not enough: "*TLS requires at least one server certificate with its private key (encipherment or issue)*".
+
+The error is shown as a "TLS certificate {index}: {reason}" notification, and the editor switches to the **Security** tab by itself. Only the presence of values is checked: the panel does not verify that files exist at the given paths. The inbound stores only the pair of fields for the selected mode — the paths for **Certificate Path** or the PEM content for **Certificate Content**; the values of the other mode are discarded. The same check runs on the server, including for API requests (errors like `TLS certificate N is missing…`). An inbound already saved with an incomplete entry can still be edited: only a save that makes a previously valid TLS block invalid is rejected.
+
 #### ECH and Certificate Pinning (Advanced TLS Fields)
 
 | Field | Default | Description |
@@ -2575,21 +2741,25 @@ Fields of the `realitySettings` block. REALITY does not use an SSL certificate: 
 | **Target** (`target`) | `""` (as of 3.4.2 it stays empty when REALITY is enabled) | **Required field.** The real domain whose TLS handshake REALITY borrows. Verbatim hint: "*Required. Must include a port (e.g. example.com:443). Without a port Xray-core will not start.*" Panel validation checks that a port is present and valid; otherwise errors are shown: "REALITY Target is required" / "REALITY Target must include a port…" / "REALITY Target has an invalid port". Next to the field are the **"Scan"** button (check the current target "live") and the **"Find targets"** button (open the REALITY target scanner); see below. |
 | **SNI** (`serverNames`) | `[]` (filled together with the target) | List of allowed SNIs (multi-input with tags). Must correspond to the domain in **Target**. On a successful target scan, the SNI is filled from its certificate. |
 | **Max Time Difference (ms)** (`maxTimediff`) | `0` | Maximum allowed clock skew between client and server in milliseconds (`0` — no limit). Minimum `0`. |
-| **Min Client Version** (`minClientVer`) | `""` | Minimum Xray client version; format and range are validated on save (placeholder `x.y.z`). As of 3.6.0, empty does **not** mean "no restriction": the core enforces a built-in minimum client version (`26.3.27`). |
-| **Max Client Version** (`maxClientVer`) | `""` | Maximum Xray client version; format/range validated on save. Empty — no upper bound. |
+| **Min Client Version** (`minClientVer`) | `""` | Minimum Xray client version: up to three dot-separated numbers, each 0–255 (placeholder `x.y.z`); the format is validated on save. Empty — no lower bound: the core accepts clients of any version, including third-party cores such as Mihomo and sing-box (see the note below). A set version rejects clients that report an older one. |
+| **Max Client Version** (`maxClientVer`) | `""` | Maximum Xray client version, in the same format. Empty — no upper bound. A value lower than **Min Client Version** is not saved ("Max Client Ver must not be lower than Min Client Ver"): such a range would reject every client. |
 | **Short IDs** (`shortIds`) | `[]` (generated when enabled) | List of short identifiers (hex) that distinguish clients. Multi-input with tags; the refresh button generates a random set. |
 | **SpiderX** (`settings.spiderX`) | `/` | Spider path (the client-side REALITY component) used when simulating access to the external site. Included in the invite link. |
 
 As of version 3.4.2, **Target** (`target`) and **SNI** (`serverNames`) are **no longer** filled automatically when REALITY is enabled — both fields stay empty, and the target is picked by the live scanner (see below). Choose a heavyweight, stable third-party HTTPS site that supports TLS 1.3 and HTTP/2 and is not behind your own server.
 
+> **An empty "Min Client Version" field and the core version.** Before 3.8.0 an empty field did not mean "no restriction": Xray-core substituted its built-in minimum of `26.3.27`, and third-party cores (Mihomo, sing-box) failed the REALITY check even with the right keys. Xray-core v26.9.8 and newer (3.8.0 ships with v26.9.9) has no built-in minimum; explicitly saved values still apply. If the server runs an older core build, an empty field may still mean the built-in minimum. When lowering or removing the restriction, keep in mind that outdated TLS fingerprints get through along with third-party clients.
+
+> **Mihomo and ML-KEM.** Xray-core v26.9.8+ accepts a REALITY handshake only with an ML-KEM key (`X25519MLKEM768`). That is why the Clash/Mihomo subscription for REALITY nodes (including a client's external links) adds the `support-x25519mlkem768: true` flag to `reality-opts` and sets `client-fingerprint: chrome` when no fingerprint is set; an explicitly chosen fingerprint is kept and must support ML-KEM. A `vless://` link has no such parameter — when importing the link into Mihomo directly, enable the flag in the client itself. More on the Clash subscription — [10.4](#104-output-formats).
+
 #### Finding a REALITY target (live scanner)
 
 As of version 3.4.2 the former "random target" button (with its static built-in list) has been replaced by two actions next to the **Target** field:
 
-- **"Scan"** — checks the current target "live": it establishes a TLS connection and, if the target is suitable, fills the SNI from its certificate. Toasts: "Target is suitable — target and SNI filled." / "Target is reachable but not suitable for REALITY." / "Failed to scan the REALITY target.".
-- **"Find targets"** — opens the **"REALITY target scanner"** window: you can specify a domain, an **IP or CIDR range** (the panel then finds targets by the certificates of live hosts), or leave the field empty (the built-in candidates are checked). The results are ranked; the columns are "Status"/"Suitable", "Key exchange", "Certificate", `TLS`, `ALPN`, "Latency". The **"Use"** button substitutes the selected row into the inbound fields.
+- **"Scan"** — checks the current target "live": it establishes a TLS connection and, if the target is suitable, fills the SNI from its certificate. Toasts: "Target is feasible — filled target and SNI." / "Target is reachable but not feasible for REALITY." / "Failed to scan REALITY target.". A result card appears below the field — including a **"Cert chain"** row with the chain size in bytes (important for ML-DSA-65, see below).
+- **"Find targets"** — opens the **"REALITY target scanner"** window: you can specify a domain, an **IP or CIDR range** (the panel then finds targets by the certificates of live hosts), or leave the field empty — then the list from the **"Reality scan candidates"** setting is checked (`realityScanCandidates`: comma-separated `host:port` addresses or CIDRs; by default, the former built-in set of popular domains; it is set in the panel's general settings, see [section 13](#13-panel-settings)). The results are ranked; the columns are "Target", "Status" ("Feasible"/"Not feasible"), `TLS`, `ALPN`, "Key Exchange", "Certificate", "Cert chain", "Latency". The **"Use"** button substitutes the selected row into the inbound fields.
 
-A target is considered **suitable** if the server negotiates **TLS 1.3**, **HTTP/2 (ALPN h2)**, **X25519/X25519MLKEM768** key exchange and presents a **trusted** (non-wildcard) certificate. Scanning is performed on the panel's server side (`POST /panel/api/server/scanRealityTarget` and `…/scanRealityTargets`).
+A target is considered **suitable** if the server negotiates **TLS 1.3**, **HTTP/2 (ALPN h2)**, **X25519/X25519MLKEM768** key exchange and presents a **trusted** (non-wildcard) certificate. Scanning is performed on the panel's server side (`POST /panel/api/server/scanRealityTarget` and `…/scanRealityTargets`). An empty `targets` parameter of `scanRealityTargets` means the `realityScanCandidates` list; for each target the response carries a `certChainBytes` field — the total DER size of the presented certificate chain.
 
 **Example: `streamSettings` block for REALITY on the `tcp` network** (VLESS). No certificate is needed — instead, a borrowed domain and an X25519 key pair are used:
 
@@ -2649,6 +2819,8 @@ Buttons:
 - **Get New Seed** — requests a new pair (`GET /panel/api/server/getNewmldsa65`; the server runs `xray mldsa65`), fills in **mldsa65 Seed** and **mldsa65 Verify**.
 - **Clear** — empties both fields.
 
+**Target certificate chain size.** ML-DSA-65 in xray-core requires the target's certificate chain to be at least 3500 bytes; with a shorter chain, client connections silently fall back and do not work. If **mldsa65 Seed** or **mldsa65 Verify** is filled in on the inbound and the scanner shows a chain shorter than 3500 bytes, the **"Scan"** result is shown as a warning, and in the **"REALITY target scanner"** window the size is marked with a warning tag advising you to choose a different target or disable ML-DSA-65.
+
 #### Fallback Speed Limit and REALITY Key Log
 
 REALITY settings include a fallback traffic speed limit — it prevents active probes from using the server as a free channel to the borrowed domain. The setting is configured separately for two directions — **Limit Fallback Upload** and **Limit Fallback Download** (`limitFallbackUpload` / `limitFallbackDownload`), each with the same set of fields:
@@ -2667,12 +2839,12 @@ Checking a REALITY target used to hit the panel's SSRF guard: an address on a pr
 
 ### 7.5. Practical Configuration Recommendations
 
-1. **VLESS + Reality (recommended):** create a VLESS inbound on the `tcp` network, select **Reality** on the Security tab — the panel will automatically fill in random `target`/SNI, `shortIds`, and generate X25519 keys. If you need your own key pair, click "Get New Certificate". For VLESS clients, enable **Flow** = `xtls-rprx-vision` (XTLS Vision) — this gives maximum performance and stealth.
+1. **VLESS + Reality (recommended):** create a VLESS inbound on the `tcp` network and select **Reality** on the Security tab — the panel generates `shortIds` and X25519 keys by itself; pick the target and SNI with the **"Find targets"** button (or enter a target and click **"Scan"**). If you need your own key pair, click "Get New Certificate". For VLESS clients, enable **Flow** = `xtls-rprx-vision` (XTLS Vision) — this gives maximum performance and stealth.
 
 **Example: resulting VLESS + Reality + Vision client link.** This is what the invite link looks like when the panel generates it for such an inbound (key/ID values are illustrative):
 
 ```text
-vless://uuid-клиента@1.2.3.4:443?type=tcp&security=reality&pbk=ПУБЛИЧНЫЙ_КЛЮЧ&fp=chrome&sni=www.nvidia.com&sid=6ba85179e30d4fc2&spx=%2F&flow=xtls-rprx-vision#my-reality
+vless://client-uuid@1.2.3.4:443?type=tcp&security=reality&pbk=PUBLIC_KEY&fp=chrome&sni=www.nvidia.com&sid=6ba85179e30d4fc2&spx=%2F&flow=xtls-rprx-vision#my-reality
 ```
 
 Here `pbk` is the X25519 public key, `sni` is the borrowed domain from **Target**, `sid` is one of the **Short IDs**, and `flow=xtls-rprx-vision` is XTLS Vision enabled.
@@ -2695,8 +2867,8 @@ The client form is split into two tabs: **General** (email, inbound binding, lim
 | Field | JSON key | Default | Description |
 |-------|----------|---------|-------------|
 | Email | `email` | — (required) | Unique client identifier |
-| UUID | `id` | generated | Identifier for VMess/VLESS |
-| Password | `password` | generated | Password for Trojan/Shadowsocks |
+| UUID | `id` | generated | Identifier for VMess/VLESS/TUIC |
+| Password | `password` | generated | Password for Trojan/Shadowsocks/TUIC |
 | Authorization | `auth` | generated | Password for Hysteria |
 | Flow | `flow` | empty | Flow control (XTLS), VLESS only |
 | VMess Security | `security` | `auto` | VMess encryption method |
@@ -2715,20 +2887,21 @@ The client form is split into two tabs: **General** (email, inbound binding, lim
 | Traffic reset day | `trafficResetDay` | `1` | Day of the month for the monthly cycle (3.7.0) |
 | HWID limit | `limitHwid` | `0` (no limit) | Maximum registered subscription devices (3.7.0) |
 | Forwarded ports | `forwardedPorts` | empty | Ports/ranges DNAT'd to an AmneziaWG client (3.7.0) |
+| Keepalive (seconds) | `keepAlive` | `25` in the new-client form | PersistentKeepalive period of a WireGuard/AmneziaWG client, `0` — off |
 
 #### Renewals, reset cycles and the device limit (3.7.0)
 
-**Renewal on a calendar day.** The **"Renew on day"** field (`resetDay`, 1–31) switches the client from "every N days" to the calendar: the renewal fires on that day of every month, at midnight in the panel's time zone. A month too short for the chosen day (the 31st in April) renews on its last day. `0` keeps the interval mode (`reset`).
+**Renewal on a calendar day.** The **"Renew on day"** field (`resetDay`, 1–31) switches the client from "every N days" to the calendar: the renewal fires on that day of every month, at midnight in the panel's time zone. A month too short for the chosen day (the 31st in April) renews on its last day. `0` keeps the interval mode (`reset`). An expiry set to exactly 23:59:59 on the eve of the renewal day (an "up to and including the end of the month" entry) is moved by the panel to midnight of that day without spending a renewal — so the first counted renewal is a full month, and the **"Max renewals"** limit is not spent on the alignment.
 
 **A cap on auto-renewals.** The **"Max renewals"** field (`resetMax`) limits how many times auto-renew may fire before the client is left to expire; `0` means no limit. When the panel catches up several missed periods at once, each period spends one renewal. A **"Renewals used"** counter is shown next to it.
 
 **A per-client traffic reset cycle.** Before 3.7.0 the periodic counter reset was an inbound-level setting only; the client now has its own `trafficReset` (`never` / `hourly` / `daily` / `weekly` / `monthly`) and `trafficResetDay` — the day of the month for the monthly cycle.
 
-**The device limit (HWID).** The **"HWID Limit"** field (`limitHwid`) is the maximum number of devices whose subscription requests are accepted; `0` means unlimited. Next to it is the **"HWID Devices"** list: device, OS and its version, model, first and last seen. A device is removed one at a time (`DELETE /panel/api/clients/hwids/:email/:id`) or as a whole list (`DELETE /panel/api/clients/hwids/:email`) — a removed device simply re-registers on its next subscription fetch, so this is a way to "unlink a phone", not a punishment.
+**The device limit (HWID).** The **"HWID Limit"** field (`limitHwid`) is the maximum number of devices whose subscription requests are accepted; `0` means unlimited. Next to it is the **"HWID Devices"** list: device, OS and its version, model, first and last seen, and the **"HWID fingerprint"** — the first 12 characters of the SHA-256 hash of the device identifier (the `fingerprint` field in the API), which make devices easy to tell apart; the panel shows neither the HWID itself nor the full hash. A device is removed one at a time (`DELETE /panel/api/clients/hwids/:email/:id`) or as a whole list (`DELETE /panel/api/clients/hwids/:email`) — a removed device simply re-registers on its next subscription fetch, so this is a way to "unlink a phone", not a punishment.
 
 #### A client's external links: what 3.7.0 added
 
-The **"Links"** tab itself — third-party share links and external subscriptions merged into a client's output — came earlier and is covered in section [10.1](#101-what-subid-is-and-how-the-link-is-formed). What 3.7.0 added is control over each row: an **`enable` toggle** to switch a row off without deleting it; an **expiry**, after which the row drops out of the output; a **name prefix**; the **last fetch time** and the **last error text** when the external source did not answer. The value is still validated on save: a share link must parse, an external subscription must be `http(s)`.
+The **"Links"** tab itself — third-party share links and external subscriptions merged into a client's output — came earlier and is covered in section [10.1](#101-what-subid-is-and-how-the-link-is-formed). What 3.7.0 added is control over each row: an **`enable` toggle** to switch a row off without deleting it; an **expiry**, after which the row drops out of the output; a **name prefix**; the **last fetch time** and the **last error text** when the external source did not answer. The value is still validated on save: a share link must parse, an external subscription must be `http(s)`. If a row has no expiry of its own, the client's own expiry applies to it — that is what the date field shows — and a row's own expiry cannot be set later than the client's. Rows of a disabled or expired client do not make it into the subscription output.
 
 #### Email (identifier)
 
@@ -2743,6 +2916,7 @@ The specific credential field depends on the protocol of the inbound the client 
 - **UUID** (field `id`) — for **VMess** and **VLESS** protocols. If not set, a random UUID v4 is generated.
 - **Password** (field `password`) — for **Trojan** and **Shadowsocks**. For Trojan a UUID without hyphens is generated by default. For Shadowsocks a Base64 key of the required length is generated depending on the inbound encryption method: 16 bytes for `2022-blake3-aes-128-gcm`, 32 bytes for `2022-blake3-aes-256-gcm` and `2022-blake3-chacha20-poly1305`; for other methods — a UUID without hyphens. If a manually entered key does not match a 2022-blake3 method, it will be replaced by a generated one.
 - **Authorization** (field `auth`) — password for **Hysteria**. A UUID without hyphens by default.
+- **UUID** and **Password** together — for **TUIC** v5: the client authenticates with a UUID + password pair. Empty fields are filled in automatically (a UUID v4 and a UUID without hyphens). More about the protocol — [5.13](#513-tuic-v5).
 
 Since one client can be bound to inbounds of different protocols, a client record may simultaneously have a UUID, a password, and auth — each protocol uses its own field.
 
@@ -2769,6 +2943,15 @@ If the inbound does not support XTLS flow, the configured flow **is silently cle
 
 **VMess Security** (field `security`) — payload encryption method for VMess. The default value is `auto` (Xray selects the cipher automatically). Allowed values are the standard VMess ones: `auto`, `aes-128-gcm`, `chacha20-poly1305`, `none`, `zero`. The field is not used for other protocols.
 
+#### WireGuard / AmneziaWG tunnel parameters
+
+When a client is bound to a WireGuard or AmneziaWG inbound, the **Credentials** tab shows the peer fields: the private and public keys, **"WireGuard Pre-Shared Key"** / **"AmneziaWG Pre-Shared Key"** (PresharedKey), the tunnel address, and **"Keepalive (seconds)"**.
+
+- **Pre-Shared Key** — an optional PresharedKey. The refresh button next to the field generates 32 random bytes in Base64, like `wg genpsk`.
+- **Keepalive (seconds)** (`keepAlive`, 0–65535) — how often the client sends a keepalive packet (`PersistentKeepalive` in the client config). The new-client form sets it to `25`: that keeps the NAT mapping open, and an idle peer recovers on its own after any drop, including a panel restart. `0` disables keepalive — a silent client then stays disconnected until it sends traffic itself. Existing clients keep their value (clients created before 3.8.0 usually have `0`), and an API request without the `keepAlive` field leaves the stored value unchanged.
+
+A client bound to several inbounds of the same tunnel protocol (for example, WireGuard on different nodes) is several independent peers, each with its own keys and address, while the form shows a single set. So when such a client is saved, the keys, pre-shared key and address on each inbound stay as they were and are not overwritten with the form values; the peer of an individual inbound is edited with a `POST /panel/api/clients/update/:email?inboundIds=<id>` request. The **Client info** and **QR code** windows show a config for each such inbound — labeled with the inbound and with its own file name, `<email>-<inbound>.conf`.
+
 #### IP limit (concurrent connections)
 
 **IP limit** (field `limitIp`) — the maximum number of **different IP addresses** from which the client can be connected simultaneously. The default value is `0`, meaning **no limit**. With a positive value the panel tracks the client's active IPs and, when the limit is exceeded, disables the account via a background job. (Starting with **3.3.1** IP counting uses the Xray core online-stats API and **does not require** the access log; on older core versions the panel falls back to reading the access log, which must then be enabled.) Use this to prevent sharing one subscription across many devices: for example, `2` allows two devices.
@@ -2783,7 +2966,7 @@ Related operations: **IP log** shows the list of recorded IPs for the client; ea
 
 #### Total sent/received (GB) — traffic quota
 
-**Total sent/received (GB)** (field `totalGB`) — the combined traffic quota (upload + download). The default value `0` means **unlimited**. Once the quota is reached (`up + down >= total`), the client is considered **depleted** and is disabled. In the UI values are usually entered in gigabytes; the database stores them in bytes.
+**Total sent/received (GB)** (field `totalGB`) — the combined traffic quota (upload + download). The default value `0` means **unlimited**. Once the quota is reached (`up + down >= total`), the client is considered **depleted** and is disabled. In the UI values are usually entered in gigabytes; the database stores them in bytes. Per-client quotas are not supported for TUIC clients — the field tooltip points this out: "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.".
 
 In the client list the **Traffic** column shows a colored usage bar: the amount of traffic consumed, the limit label (or ∞ for unlimited), and a hover tooltip breaking down upload/download and the remaining amount. The same compact indicator appears in client cards on mobile.
 
@@ -2802,7 +2985,7 @@ In the client list the **Traffic** column shows a colored usage bar: the amount 
 The **Auto-renewal** field (field `reset`) is the automatic renewal/reset period in days. Tooltip: "Auto-renewal after expiry. (0 = disabled) (unit: day)".
 
 - `0` — auto-renewal **disabled** (default). When the expiry is reached the client simply becomes depleted.
-- `> 0` — the background job, upon expiry, **resets the traffic counters to zero** (`up = down = 0`), **advances the expiry** by `reset` days (by as many periods as needed until the new expiry is in the future), and if necessary **re-enables** the client. This implements a recurring subscription (e.g., monthly). Auto-renewal **is not applied to inbounds on node servers** (`node_id IS NOT NULL`).
+- `> 0` — the background job, upon expiry, **resets the traffic counters to zero** (`up = down = 0`), **advances the expiry** by `reset` days (by as many periods as needed until the new expiry is in the future), and if necessary **re-enables** the client. If the client belongs to several inbounds, the new expiry and re-enabling are applied to all of those inbounds at once, and the renewal is counted only once. This implements a recurring subscription (e.g., monthly). Auto-renewal **is not applied to inbounds on node servers** (`node_id IS NOT NULL`).
 
 Important consequence: clients with `reset > 0` are **excluded** from the "depleted" category in bulk-delete operations — their traffic/expiry are expected to be reset by auto-renewal rather than making the account a deletion candidate.
 
@@ -2834,7 +3017,7 @@ You can also remove the group directly in the single-client editor: clear the **
 
 #### Enabled
 
-**Enabled** (field `enable`) — the account activity flag. Enabled by default (`true`); at creation, even if the flag is not passed, the panel forces it to `true`. A disabled client (`enable = false`) cannot connect and is classified as **inactive** (deactive) in the summary. The panel automatically disables clients that have exhausted their quota, expired, or exceeded the IP limit.
+**Enabled** (field `enable`) — the account activity flag. Enabled by default (`true`): if the flag is not passed at creation (for example, in an API request), the panel sets `true`. As of 3.8.0 an explicitly passed `false` is kept — the client is created disabled (previously the panel force-enabled it). A disabled client (`enable = false`) cannot connect and is classified as **inactive** (deactive) in the summary. The panel automatically disables clients that have exhausted their quota, expired, or exceeded the IP limit.
 
 #### Read-only fields
 
@@ -2849,6 +3032,8 @@ Each client must be bound to at least one inbound — at creation a minimum of o
 
 When saving a client bound to multiple inbounds, fields that are incompatible with a specific protocol/transport (e.g., Flow outside VLESS-Vision) are automatically set to allowed values for each inbound.
 
+Operations on a client with several bindings — create, bind, update, unbind, and delete — are applied to the inbounds in parallel and independently: a failure on one inbound does not stop the others, and all errors are collected into a single message, one line per inbound, prefixed with `inbound N:`. So an error response (`success: false`) may mean a partial application: on the inbounds that succeeded the change is already written, and the panel marks Xray for restart. When a client is created, the device limit (`limitHwid`) is applied only if every inbound succeeded.
+
 Above the inbound selection list (in the client form, in the bulk-add form, and in the bulk attach/detach windows) there are **Select all** and **Clear** buttons. In these lists each inbound is labeled with its remark if one is set, otherwise with the inbound tag.
 
 ### 8.3. Per-client operations
@@ -2862,6 +3047,11 @@ For an individual client (via the **Client info** card or the **Actions** contex
 Fetching a client via the API (`GET /panel/api/clients/get/:email`) returns, alongside the `client` and `inboundIds` fields, the additional `usedTraffic` — the actual consumed traffic (upload + download, including node data), which makes it easy to compare consumption against the `totalGB` quota.
 - **QR code** and **Link** — the client configuration link for importing into a client application. Generated from all bound inbounds with a supported protocol (`GET /links/:email`). If there are no suitable links: "No share links available — bind the client to an inbound with a supported protocol first.".
 - **Subscription link** — the subscription URL by `subId` (`GET /subLinks/:subId`). Available only if the client has a `subId` and the subscription service is enabled in **Panel settings → Subscription** (otherwise "Subscription service is disabled."). A **JSON subscription URL** is also provided.
+
+The **QR code** window is made up of collapsible panels: **"Subscription info"** (the subscription link) and its JSON variant, if the JSON subscription is enabled; share links per inbound; **"WireGuard config"** / **"AmneziaWG config"** — one panel per tunnel inbound of the client; **"TUIC config (Clash)"**. Each panel has a **"Copy"** button.
+
+- **"TUIC config (Clash)"** — a ready-made `proxies:` YAML snippet for Clash / Mihomo / Clash Verge (server, port, `uuid`, `password`, ALPN, SNI, congestion control, UDP relay mode, `reduce-rtt`) with a QR code and a download of the `<email>.yaml` file. It is built from the client's first TUIC inbound, provided the client has both a UUID and a password (see [5.13](#513-tuic-v5)).
+- **Happ encrypted link.** The subscription panel has a **"Standard"** / **"Happ Encrypted Link"** switch. The second option turns the client's subscription link into a `happ://crypt5/…` link that only the Happ app opens. The link is generated locally on the panel server: the subscription URL is encrypted with Happ's built-in public key (RSA-4096 + ChaCha20-Poly1305), without contacting external services and without storing the result — every time the option is selected, and on the **"Regenerate"** button, a new link is produced. This disguises the URL; it does not protect it: the window warns that "*anyone with this link may be able to recover or share the subscription URL*". The option is locked by default: until the **"Encrypted subscription links"** toggle (`happLinkEnable`) is turned on in **Panel settings → Subscription → Happ → Subscription Links**, the QR code is replaced by "Happ encrypted link generation is not enabled" with a **"Go to Settings"** button (see [10.2](#102-subscription-server-settings)). The subscription URL must be an absolute `http(s)` URL of no more than 8192 UTF-8 bytes; a finished link longer than 2953 bytes does not fit into a QR code — the QR code is hidden, but **"Copy"** still gives the full link. On failure the window offers **"Retry"** or a look at **Overview → Logs** (lines with `component=happ_link`). API: `POST /panel/api/clients/happLink/:id` (numeric client id) returns `{"encryptedLink": "happ://crypt5/…"}`.
 
 #### Reset traffic
 
@@ -2882,12 +3072,14 @@ Clears the accumulated IP log for the client (`POST /clearIps/:email`), lifting 
 In the client list you can select multiple records (**Select all**, **Clear all**); the counter shows "{count} selected". Available actions for the selection:
 
 - **Delete ({count})** (`POST /bulkDel`) — bulk delete. Confirmation: "Delete {count} clients?", "Each selected client is removed from all bound inbounds and its traffic record is destroyed. This action cannot be undone.". Toast: "Deleted clients: {count}", and on partial failure — "Deleted: {ok}, failed: {failed}".
-- **Edit ({count})** / **Adjust** (`POST /bulkAdjust`) — bulk change of expiry and/or quota. Dialog "Edit {count} clients" with the tooltip "Positive values add, negative values subtract. Clients with unlimited expiry or traffic are skipped for the corresponding field.". Fields: **Add days**, **Add traffic (GB)**, and **Set flow**. Logic:
+- **Edit ({count})** / **Adjust** (`POST /bulkAdjust`) — bulk change of expiry, quota, flow, device limit, and MTProto ad-tag. Dialog "Edit {count} clients" with the tooltip "Positive values add, negative values subtract. Clients with unlimited expiry or traffic are skipped for the corresponding field.". Fields: **Add days**, **Add traffic (GB)**, **Set flow**, **HWID Limit**, and **Ad-tag (sponsored channel)**. Logic:
   - **Expiry:** clients with unlimited expiry (`expiryTime == 0`) are skipped ("unlimited expiry"); for clients with a date the expiry is shifted by the specified number of days; for clients in "after first use" mode (negative expiry) the waiting duration is adjusted. A reduction that exceeds the remaining time is skipped ("reduction exceeds remaining time/delay window").
   - **Traffic:** clients with unlimited traffic (`totalGB == 0`) are skipped ("unlimited traffic"); otherwise the quota is changed by the specified amount, not going below zero.
   - **Flow:** the **Set flow** dropdown lets you set or clear the XTLS flow for all selected clients at once. **No change** is selected by default. **Disable (clear flow)** clears the flow, while `xtls-rprx-vision` and `xtls-rprx-vision-udp443` set the corresponding vision flow. Setting a vision flow is applied only to inbounds that support flow; incompatible inbounds are left unchanged and marked as skipped, while clearing flow is always allowed.
   - **Auto-enable (as of 3.4.2):** a client disabled **solely because of exhaustion** (expired term or exceeded quota) is automatically re-enabled on extension — both locally and on its node — if the adjustment brings it back within the limits. Clients disabled manually or still exhausted remain disabled (the `enable` field is now written explicitly, so the state is preserved even for clients without an inbound).
-  - If no days, traffic, or flow are specified: "Specify days, traffic, or flow before applying.". Toast: "Updated: {count}" / "Updated: {ok}, skipped: {skipped}".
+  - **HWID Limit:** the specified `limitHwid` value is set on all selected clients (`0` — no limit; an empty field — **No change**). When the limit is lowered, surplus registered devices are removed — the most recently seen ones are kept.
+  - **Ad-tag (sponsored channel):** a 32-character hex tag sets the sponsored channel, `none` clears it. It applies only to clients on MTProto inbounds; the rest end up among the skipped (`adTag not supported on inbound`); a tag in any other format is rejected ("Ad-tag must be exactly 32 hexadecimal characters.").
+  - If no field is set: "Set at least one field before applying.". Toast: "Updated: {count}" / "Updated: {ok}, skipped: {skipped}".
 
 **Example: extend selected clients by 30 days and add 50 GB.** In the **Edit** dialog set **Add days** = `30`, **Add traffic (GB)** = `50`. To instead subtract a week and reduce the quota by 10 GB, enter negative values: **Add days** = `-7`, **Add traffic (GB)** = `-10` (clients with unlimited expiry or unlimited traffic for the corresponding field will be skipped).
 - **Bind ({count})** / **Unbind ({count})** (`POST /bulkAttach` / `bulkDetach`) — bulk bind/unbind of selected clients to selected inbounds. Targets are multi-user inbounds only. Unbind result: "Detached {detached}, skipped {skipped}.". As of 3.5.0 the inbound selector in the client form **hides disabled inbounds** (except those the client is already bound to), and the "Unbind" window no longer accumulates duplicate entries of the same client (the data is repaired automatically at panel startup).
@@ -2905,7 +3097,7 @@ In the client list you can select multiple records (**Select all**, **Clear all*
 
 When nothing is selected, the **More** menu on the **Clients** page offers three operations.
 
-**Export clients** (`GET /clients/export`) opens a viewer with a JSON list of all clients in the `{client, inboundIds}` format with copy and download buttons (file `clients-export.json`). **Import clients** (`POST /clients/import`) opens an editor where you paste such a JSON and click **Import**: clients with `inboundIds` are created and bound to inbounds, clients without bindings are restored as standalone "bare" records, and already-existing emails are **never overwritten** — they end up in the skipped list. Toasts: "{count} clients imported", "{ok} imported, {failed} skipped".
+**Export clients** (`GET /clients/export`) opens a viewer with a JSON list of all clients in the `{client, inboundIds}` format with copy and download buttons (file `clients-export.json`). **Import clients** (`POST /clients/import`) opens an editor where you paste such a JSON and click **Import**: clients with `inboundIds` are created and bound to inbounds, clients without bindings are restored as standalone "bare" records, and already-existing emails are **never overwritten** — they end up in the skipped list. Toasts: "{count} clients imported", "{ok} imported, {failed} skipped". The `enable` flag is carried over as is: a client that was disabled at export is imported disabled.
 
 **Delete clients without inbound** (`POST /clients/delOrphans`) — a destructive operation: deletes all clients not bound to any inbound, along with their traffic record, IP log, and external links. Confirmation: "Delete clients without an inbound?", "Removes every client that is not attached to any inbound, along with its traffic record. This cannot be undone.". Toast: "{count} unattached clients deleted". The action is irreversible.
 
@@ -3167,6 +3359,8 @@ GET /panel/api/clients/list/paged?group=vip,trial
 
 To get clients **without** a group, pass an empty element in the list — for example, the filter value `group=` (empty string) or `group=vip,` (the `vip` label plus clients with no group).
 
+The group's actions menu also has **"Adjust ({count})"** — the same bulk adjustment dialog as on the **Clients** page (see [8.4](#84-bulk-operations)), applied to all members of the group; the toast is "Adjusted {count} client(s) in {name}.". As of 3.8.0 every field of the dialog is applied from here: Flow, the HWID limit, and the MTProto ad-tag. Previously the **Groups** page took only days and traffic into account, and the selected Flow was silently dropped.
+
 ### 9.12. API endpoints summary
 
 All group routes are mounted under `/panel/api/clients`:
@@ -3246,7 +3440,7 @@ From the groups table, actions over the whole group are still available, includi
 
 ## 10. Subscriptions (Subscription)
 
-A subscription is a mechanism that gives a client a single permanent URL through which the VPN client downloads and periodically refreshes a complete set of configurations. Instead of manually sending the user a separate link for each inbound, a single address of the form `https://domain:port/sub/<subId>` is provided. At that address the panel assembles on the fly all configurations tied to the given client and returns them in the format the client expects. When server settings change (new address, Reality key rotation, new inbound added) the client receives an up-to-date configuration on the next automatic refresh, with no action required from the user.
+A subscription is a mechanism that gives a client a single permanent URL through which the VPN client downloads and periodically refreshes a complete set of configurations. Instead of manually sending the user a separate link for each inbound, a single address of the form `https://domain:port/<path>/<subId>` is provided, where `<path>` is this panel's subscription path (random on a new installation, see [10.2](#102-subscription-server-settings)). At that address the panel assembles on the fly all configurations tied to the given client and returns them in the format the client expects. When server settings change (new address, Reality key rotation, new inbound added) the client receives an up-to-date configuration on the next automatic refresh, with no action required from the user.
 
 Subscriptions are served by a separate HTTP/HTTPS server inside the panel that starts independently of the web panel and listens on its own port. This is a security measure: the subscription port can be exposed to the outside world without exposing the panel port itself.
 
@@ -3263,7 +3457,7 @@ Inbound 1 (VLESS):  email = ivan@vpn,  subId = ivan2025
 Inbound 2 (Trojan): email = ivan@vpn,  subId = ivan2025
 ```
 
-Then at `https://sub.example.com:2096/sub/ivan2025` the panel will return both configurations at once. If you later add a third inbound with the same `subId`, it will appear for the user on the next automatic subscription update, without sending them a new link.
+Then at `https://sub.example.com:2096/sub/ivan2025` (the examples in this section use `/sub/` as the subscription path; your panel has its own) the panel will return both configurations at once. If you later add a third inbound with the same `subId`, it will appear for the user on the next automatic subscription update, without sending them a new link.
 - If a client's `subId` field is empty, the link cannot be shared publicly. The interface indicates this with a tooltip: "This client has no subId, the share link is unavailable."
 
 #### External links and client subscriptions (the "Links" tab)
@@ -3273,14 +3467,16 @@ The client form has a **"Links"** tab where you can attach additional configurat
 - **Add External Link** — a third-party share link (`vless://`, `trojan://`, `ss://`, etc.). It is added to the output as-is; for JSON/Clash it is additionally parsed into a configuration object.
 - **Add External Subscription** — the URL of an external subscription. The panel fetches it itself (with caching and a short timeout) and merges the resulting configurations into the client's combined list.
 
-This is convenient for delivering additional servers on top of your inbounds to the client through the same single link. If the remote subscription response is too large it is no longer silently truncated: the panel returns an error and continues using the last successfully cached value.
+This is convenient for delivering additional servers on top of your inbounds to the client through the same single link. If the remote subscription response is too large it is no longer silently truncated: the panel returns an error and continues using the last successfully cached value. The links and subscriptions of a **disabled or expired** client are not included in any output format, but the client itself is still counted in the `Subscription-Userinfo` header. In Clash/Mihomo an external `ss://` link goes through the same transport and TLS checks as a Shadowsocks inbound: a node that Clash cannot describe correctly is skipped rather than delivered in a form known not to work.
 - The value of `subId` cannot be set arbitrarily: on save, the panel checks that it contains no spaces, `/`, `\`, or control characters. The corresponding validation hint reads: "Subscription ID cannot contain spaces, '/', '\' or control characters."
 
 The final link is constructed as `<base>/<subPath>/<subId>` (see the section on subscription server settings and the "Reverse Proxy URI" field). If no client is found for the given `subId` (the client was deleted, the `subId` does not exist), the server returns HTTP 404 with an empty body. On an internal error — HTTP 500. VPN clients rely solely on the response code, so the error body is intentionally empty.
 
+**Device limit and `hwid-status`.** If a client has a device limit (HWID, see [8.1](#81-client-fields)), it is checked at every address that serves configurations — as of 3.8.0 this includes `?view=raw` on JSON and Clash links (see [10.5](#105-subscription-info-page-and-qr-codes)); the HTML info page is not subject to the limit. To find out how many slots are left, request `GET <subPath><subId>/hwid-status` (for example, `/sub/ivan2025/hwid-status`). The response is JSON of the form `{"active":true,"limit":2,"registered":1,"remaining":1,"full":false}`: whether the limit is in effect, its value, the number of registered devices, the remaining slots, and whether the limit is full; without a limit the response is `{"active":false,"limit":0,"registered":0,"remaining":0,"full":false}`. The request only reads the counters: no device is registered, no slot is used up, and the response contains no device details (HWID, model, IP). A non-existent and a disabled `subId` both return 404 with an empty body, so probing cannot reveal which subscriptions exist. Like every address of the subscription server, this one also responds to `HEAD`.
+
 #### Inbound link order in the subscription
 
-Each inbound has a **"Subscription sort order"** field (`subSortIndex`) — a number starting from 1, which defines the position of that inbound's links in the subscription output. Lower values come first; when values are equal the original creation order (by id) is preserved. The order applies to all output formats — plain text, subscription page, JSON, and Clash. This field does not affect the order of inbounds in the panel itself.
+Each inbound has a **"Subscription sort order"** field (`subSortIndex`) — an integer that defines the position of that inbound's links in the subscription output. Lower values come first; when values are equal the original creation order (by id) is preserved. The default is `1`; `0` or an empty value also counts as `1`, and as of 3.8.0 **negative** numbers are allowed — so the main inbound can be placed ahead of the others without renumbering them. The order applies to all output formats — plain text, subscription page, JSON, and Clash. This field does not affect the order of inbounds in the panel itself.
 
 The field is edited in the inbound form alongside the share address settings and is synced to nodes by the usual rules. If at least one inbound has an order value other than 1, a compact **"Order"** column appears in the Inbounds list.
 
@@ -3288,7 +3484,7 @@ The field is edited in the inbound form alongside the share address settings and
 
 All subscription parameters are located in the panel settings under the **"Subscription"** tab. Each parameter is described below; the internal settings key and default value are shown in parentheses.
 
-The section is divided into tabs: **"Panel settings"**, **"Info"**, **"Profile"**, **"Certificates"**, **"Happ"**, and **"Clash / Mihomo"**. Subscription title, support URL, profile page URL, announcement, and theme directory fields are on the "Profile" tab; Happ and Clash/Mihomo routing rules are on their respective tabs; the subscription update interval is on the "Info" tab.
+The section is divided into tabs: **"General"**, **"Information"**, **"Profile"**, **"Certificates"**, **"Happ"**, **"Clash / Mihomo"**, and **"Incy"**. Subscription title, support URL, profile page URL, announcement, and theme directory fields are on the "Profile" tab; Clash/Mihomo and Incy routing rules are on their respective tabs; encoding, the remark template, the info config, the status templates, and the subscription update interval are on the "Information" tab. The "Happ" tab holds the "Happ Header Auto-Detection" toggle and its own sub-tabs — they are covered in [10.7](#107-happ-client-integration). Paths, reverse proxy URIs, and the JSON and Clash subscription parameters are set on a separate **"Sub Formats"** settings page (see [10.4](#104-output-formats)), and balancers on the **"Sub Balancers"** page (see [10.3](#103-subscription-balancers-370)).
 
 #### Main parameters
 
@@ -3297,10 +3493,10 @@ The section is divided into tabs: **"Panel settings"**, **"Info"**, **"Profile"*
 | Enable subscription | `subEnable` | `true` (enabled) | Starts a separate subscription server. Tooltip: "Subscription feature with separate configuration". If disabled, the subscription server does not start and none of the links work. |
 | Listen IP | `subListen` | empty | IP address on which the subscription server accepts connections. Tooltip: "Leave empty by default to listen on all IP addresses". |
 | Subscription port | `subPort` | `2096` | TCP port of the subscription server. Tooltip: "The port number for the subscription service should not be in use on the server" — the port must be free and must not conflict with the panel or Xray. |
-| URI path | `subPath` | `/sub/` | Path at which regular subscriptions are served. Tooltip: "Must start with '/' and end with '/'". |
+| URI path | `subPath` | random (on a new installation) | Path at which regular subscriptions are served. Tooltip: "Must start with '/' and end with '/'". A fresh panel database gets a random path of 16 lowercase Latin letters and digits (such as `/k3v9x0q2m7a4t1zp/`); an installation upgraded from an earlier version keeps its path (the default used to be `/sub/`). |
 | Listening domain | `subDomain` | empty | Domain for which subscription access is permitted (Host validation). Tooltip: "Leave empty by default to listen on all domains and IP addresses". If set, requests with a different Host are rejected. |
 
-**Security note:** the default paths `/sub/` (and `/json/` for JSON) are widely known and easy to guess. The panel shows a warning: "Default subscription path '/sub/' is widely known — change it." with a similar warning for JSON. It is recommended to set a custom, non-obvious path.
+**Random paths and security.** As of 3.8.0, when a new database is created, the panel generates three different random paths — `subPath`, `subJsonPath`, and `subClashPath` — and stores them in the database, so the links already handed out do not change after a restart. Upgrading an existing installation leaves the paths untouched (often these are the former `/sub/`, `/json/`, and `/clash/`). Resetting the settings (`/usr/local/x-ui/x-ui setting -reset`) generates random paths again — previously issued subscription links stop working after that. The paths `/sub/` and `/json/` are widely known and easy to guess: while they are in use, the panel shows the warning "Default subscription path "/sub/" is well-known — change it." and a similar one for JSON. It is recommended to set a custom, non-obvious path.
 
 #### TLS / certificate
 
@@ -3324,12 +3520,15 @@ The value is sent to the client in the `Profile-Update-Interval` HTTP header; mo
 | Field (UI) | Key | Default | Description |
 |---|---|---|---|
 | Encode | `subEncrypt` | `true` | Tooltip: "Encrypt the returned configs in the subscription". Technically this is not encryption but **Base64 encoding** of the entire regular subscription body (the format expected by most clients). When disabled, links are returned as plain text, one per line. |
-| Show usage info | `subShowInfo` | `true` | Tooltip: "Show remaining traffic and expiry date after the config name". When enabled, traffic (📊) and expiry (e.g. `5D,3H⏳`) markers are appended to the remark of each configuration; for an expired/unavailable client `⛔️N/A` is shown. |
-| Include email in remark | `subEmailInRemark` | `true` | Tooltip: "Include client email in the subscription profile name." Adds the client's email to the profile remark. |
+| Show identity on every link | `subShowIdentityOnAllLinks` | `false` | "When enabled, {{EMAIL}} and {{USERNAME}} stay on every subscription-body remark. Usage tokens still appear on the first link only." |
+| Separate Info Config / Dummy Node | `subInfoNodeEnable` | `false` | Moves the remark and the remaining traffic and days into a separate SOCKS config at the top of the output; when the subscription has expired or its traffic is exhausted, only the status config is returned. See "Separate info config and status configs" below. |
+| Month-end subscription expiry display | `subCalendarExpireInclusive` | `false` | For renewals on day 1, reports the subscription expiry as the last second of the previous month — see "Month-end expiry date" below. |
+| Expired Template | `subExpiredTemplate` | see below | "Template for the dummy config when the subscriber account has expired." |
+| Traffic Depleted Template | `subTrafficDepletedTemplate` | see below | "Template for the dummy config when subscriber traffic quota is exhausted." |
 
 #### Remark Template
 
-The display name (remark) of each configuration in the subscription is generated using the **remark template** — the **"Remark template"** field (`remarkTemplate`) on the **"Info"** tab of the subscription settings. The previous remark model builder (separate selection of inbound/email/external proxy parts and a separator character) has been removed from the interface; you now write a free-form name format and insert variables into it. The default value is `{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D` (meaning the profile name includes the client's email by default). If the field is left empty, the previous (non-configurable via the interface) remark model is used as a fallback.
+The display name (remark) of each configuration in the subscription is generated using the **remark template** — the **"Remark template"** field (`remarkTemplate`) on the **"Information"** tab of the subscription settings. The previous remark model builder (separate selection of inbound/email/external proxy parts and a separator character) has been removed from the interface; you now write a free-form name format and insert variables into it. The default value is `{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D` (meaning the profile name includes the client's email by default). If the field is left empty, the previous (non-configurable via the interface) remark model is used as a fallback.
 
 Variables are grouped into **Client**, **Traffic**, and **Time & status** sections and are displayed next to the field as clickable `{{VAR}}` chips with a tooltip on hover; clicking inserts the token into the template, and a live preview is available. Each variable is substituted individually for the specific client at subscription generation time. A simplified single-brace notation is also accepted (`{DATA_LEFT}`, `{EXPIRE_DATE}`, `{PROTOCOL}`, `{TRANSPORT}`, etc.) — the panel automatically normalizes it to the internal `{{...}}` format.
 
@@ -3344,13 +3543,22 @@ The template can be split into segments using a vertical bar `|`. A segment in w
 
 **Example.** The template `{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D` will produce `ivan@vpn 📊42.00GB ⏳7D` for a client with 42 GB remaining and 7 days left, and simply `ivan@vpn` for an unlimited client (segments with `∞` are omitted).
 
-As of version 3.4.2 the `{{EMAIL}}` variable (and the synonym `{{USERNAME}}`) is output only on the client's **first** link in the subscription body — just like the remaining traffic/expiry block; on the client's other links it is omitted.
+As of version 3.4.2 the `{{EMAIL}}` variable (and the synonym `{{USERNAME}}`) is output only on the client's **first** link in the subscription body — just like the remaining traffic/expiry block; on the client's other links it is omitted. The **"Show identity on every link"** toggle (`subShowIdentityOnAllLinks`) keeps `{{EMAIL}}`/`{{USERNAME}}` on all links; the usage and expiry variables are still output on the first link only.
 
 On links displayed in the panel (QR code and "Info" windows on the Clients page) and on the subscription info page, the client's email is present in the profile name in the form "inbound-host-email" when a host is set, or "inbound-email" without a host. Traffic, expiry data, and Connection group variables are not substituted into these displayed names — they only work in the subscription body received by the VPN client.
 
 If a client's traffic statistics row has become "orphaned" after deleting and re-creating an inbound, the `{{TRAFFIC_USED}}` variable (and other usage metrics) no longer shows `0.00B`: the panel additionally looks up statistics by the client's email and substitutes the correct used traffic.
 
-| Remark template | `remarkTemplate` | `{{INBOUND}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D` | Free-form template for the display name (remark) of each configuration, with `{{VAR}}` variable substitution. Substituted individually for each client when the subscription is generated. The previous "remark model" builder (inbound/email/external proxy selection and separator) has been removed from the interface and is used only as a fallback when the field is left empty. See "Remark Template" above for details. |
+#### Separate info config and status configs
+
+The **"Separate Info Config / Dummy Node"** toggle (`subInfoNodeEnable`, off by default) on the "Information" tab moves the subscription details out of the names of the working configurations into a separate "dummy" — a SOCKS config at `127.0.0.1:1080` that is placed **first** in the output. Its name is built from the remark template using the combined traffic and expiry of the whole subscription (if the subscription covers several emails, the alphabetically first one is used). In the real configurations, the usage, expiry, and status variables are removed from the names on every link — along with `{{EMAIL}}`/`{{USERNAME}}`, unless "Show identity on every link" is enabled.
+
+When the subscription has expired or its traffic is exhausted, the output consists **only** of the status config, with no working ones:
+
+- expired — the name follows the **"Expired Template"** (`subExpiredTemplate`), by default `⛔ {{EMAIL}} | Expired: {{EXPIRE_DATE}}`;
+- traffic limit exhausted — it follows the **"Traffic Depleted Template"** (`subTrafficDepletedTemplate`), by default `🚫 {{EMAIL}} | Traffic Depleted | {{TRAFFIC_USED}}/{{TRAFFIC_TOTAL}}`.
+
+These templates support the same variables as the remark template. The mode works in all three formats: in the regular subscription it is the line `socks://127.0.0.1:1080#<name>`, in JSON a separate config with a SOCKS outbound to `127.0.0.1:1080`, and in Clash/Mihomo a `socks5` proxy (it is added to the `PROXY` group only if there are no other proxies). This config leads nowhere: it only shows the user the subscription status in the app's server list. The subscription info page and the links in the panel do not change.
 
 #### Profile metadata (response headers)
 
@@ -3365,14 +3573,17 @@ These strings are sent to the client in HTTP response headers and displayed in t
 
 In addition, every response includes the `Subscription-Userinfo` header with the client's aggregated traffic data: `upload`, `download`, `total`, and `expire` (expiry timestamp in seconds). The client uses this to display the remaining traffic and expiry date.
 
+**Month-end expiry date.** The **"Month-end subscription expiry display"** toggle (`subCalendarExpireInclusive`, "Information" tab, off by default) changes only the `expire` value in this header. If every client in the subscription renews on **day 1** (the "Renew on day" field = `1`, see [8.1](#81-client-fields)) and the expiry falls exactly at midnight on the 1st in the panel's time zone, the last second of the previous month is reported instead of that midnight — for example, October 31 23:59:59 instead of November 1 00:00:00 — and the app shows the expiry on the last day of the month. The actual cutoff, the renewals, and their counter do not change, and neither do the date on the subscription page and the template variables. Apps compute time in their own time zone and may consider the subscription expired one second early.
+
 #### Routing (Happ client only)
 
 | Field (UI) | Key | Default | Description |
 |---|---|---|---|
 | Enable routing | `subEnableRouting` | `false` | "Global setting for enabling routing in the VPN client. (Happ only)". Sent in the `Routing-Enable` header. |
-| Routing rules | `subRoutingRules` | empty | "Global routing rules for the VPN client. (Happ only)". Sent in the `Routing` header. |
+| Routing rules | `subRoutingRules` | empty | "Paste a ready happ:// deeplink or one permanent HTTPS URL returning a deeplink or JSON. The panel refreshes remote rules in the background and keeps the last valid value, so subscription requests never wait for the source. (Happ only)". Sent in the `Routing` header. If the field is empty, the "JSON subscription routing profile" goes into this header (see [10.4](#104-output-formats)). |
+| Hide server settings | `subHideSettings` | `false` | "Hide the ability to view and edit server configurations in the VPN client. (Only for Happ)". Sent as the `Hide-Settings: 1` header. |
 
-| Hide server settings | `subHideSettings` | `false` | "Hide server settings in the subscription (Happ only)". When enabled, the Happ client hides the ability to view and change server parameters. This option only affects the Happ client. |
+As of 3.8.0 these fields are on the "Happ" tab, **"Routing & Rules"** sub-tab, next to the presets and the visual rule generator (see [10.7](#107-happ-client-integration)). The `Routing-Enable`, `Routing`, and `Hide-Settings` headers are sent to any client that requests the subscription. If "Happ Header Auto-Detection" is enabled and the request comes from Happ, toggles that are off are sent explicitly (`Routing-Enable: 0`, `Hide-Settings: 0`) to cancel values sent earlier.
 
 #### Incy routing (Incy client only)
 
@@ -3398,17 +3609,18 @@ The resulting link will then look like `https://cfg.example.com/u/ivan2025`. For
 
 ### 10.3. Subscription balancers (3.7.0)
 
-The **"Sub Balancers"** settings section adds profiles to the **JSON subscription** that pick the best of your servers on their own. Each enabled balancer is one extra profile in the output; in the client config it expands into `routing.balancers` + `burstObservatory`, which means the choice is made by the client app from its own measurements, not by the panel.
+The **"Sub Balancers"** settings page adds profiles to the **JSON subscription** that pick the best of your servers on their own. Each enabled balancer is one extra profile in the output; in the client config it expands into `routing.balancers` + `burstObservatory`, which means the choice is made by the client app from its own measurements, not by the panel.
 
 | Field | Description |
 |---|---|
 | **Remark** | The profile's name in the client's list (placeholder: `Auto · fastest`) |
 | **Strategy** | How a server is chosen: **Least load**, **Least ping**, **Random**, **Round robin** |
 | **Inbounds** | Which inbounds take part — their endpoints become the candidates |
+| **Member weights** | Only for the **Least load** strategy: a number greater than 0 for each selected inbound (the form accepts values from 0.1 in steps of 0.1); "a lower weight is picked more often; members without a value weigh 1" |
 | **Order** | Position in the subscription list; the numbering is shared with the inbounds' own order, and on equal numbers the balancer comes **after** the inbound |
 | **Enabled** | A disabled balancer does not reach the subscription |
 
-Management goes through `GET/POST /panel/api/sub-balancers`, `POST /panel/api/sub-balancers/:id` (update) and `DELETE /panel/api/sub-balancers/:id` (with a POST alias `/del` for clients that cannot send DELETE).
+Management goes through `GET/POST /panel/api/sub-balancers`, `POST /panel/api/sub-balancers/:id` (update) and `DELETE /panel/api/sub-balancers/:id` (with a POST alias `/del` for clients that cannot send DELETE). Weights are passed in the `memberWeights` field as a JSON object such as `{"3": 0.5}` (inbound id → weight). The server rejects weights for any strategy other than `leastLoad`, as well as values ≤ 0 ("Weights must be greater than 0"), and on save it drops the weights of inbounds not selected in the balancer. In the client config they become the `costs` of the balancer strategy; if no weight is set, no `costs` are emitted.
 
 > A balancer exists only in the **JSON** subscription format: there is none in the plain link list or the Clash output — there is nothing for a balancer to describe there.
 
@@ -3434,21 +3646,23 @@ The **Hosts** section (side menu item; overview page showing Total/Enabled/Disab
 
 Each host (group) has:
 
-- **Remark** and Description, binding to **Inbounds** (multi-select with search; at least one), an **Enable** toggle, and assignment to **Nodes**.
+- **Remark** and **"Description"** (up to 64 characters; as of 3.8.0 it is passed to the Happ client as the server caption, see [10.7](#107-happ-client-integration)), binding to **Inbounds** (multi-select with search; at least one), an **Enable** toggle, and assignment to **Nodes**.
 - **Address** — as of 3.5.0 this is a **list of addresses** (tag input; separators — comma, semicolon, space; placeholder `cdn.example.com, cdn2.example.com:443`). Each entry may carry its own inline `:port` (including IPv6 in brackets `[::1]:443`); the drop-down suggests addresses already used by other hosts. An empty list — the inbound's own address is inherited (shown in the list as an orange **Inherits** label). **Port** (`0` — inherits the inbound port) serves as the default port for entries without an inline port; **Tags** (applied only in the RAW subscription).
-- A **Security** tab — `same` / `tls` / `none` / `reality` with SNI, fingerprint, ALPN, pinned-cert, `allowInsecure`, and ECH.
+- A **Security** tab — `same` / `tls` / `none` / `reality` with SNI, fingerprint, ALPN, pinned-cert, `allowInsecure`, and ECH. The SNI and Fingerprint fields, as well as ALPN, the pinned SHA-256, "Verify peer cert by name", "Allow insecure", and ECH, are also shown with `same` — so that previously set overrides can be cleared; the Fingerprint list has a "None" option (no uTLS). If a host switches a REALITY inbound to `tls` or `none`, the REALITY parameters (`pbk`, `sid`, `spx`, `pqv`, plus the `sni` and `fp` of the REALITY target) are removed from the link, and the host's own SNI and fingerprint are applied afresh.
 - An **Advanced** tab — Host header, Path, VLESS flow, Mux, Sockopt, Final Mask, and exclusion of the host from individual subscription formats (raw / json / clash). As of 3.5.0 the **host's Final Mask is also included in raw links** (`fm=`; previously — JSON/Clash only): the host's TCP/UDP masks are added to the inbound's masks, and the host's QUIC parameters are taken only if the inbound has none. The **Allow insecure** toggle now also applies to **Hysteria/Hysteria2** (`insecure=1` in the link, `skip-cert-verify: true` in Clash).
 - A **Clash (mihomo)** tab — IP version, Mihomo X25519, shuffle host.
 
-In the list, the **Endpoint** column shows the addresses as chips (the first one visible, the rest in a "+N" popover), and the **Inbounds** column shows inbound chips colored by protocol. As of 3.5.0 hosts are ordered **globally** (by sort order, then by remark) rather than within their inbound; bulk enable, disable, and delete remain available. Managed Hosts replace the previous External Proxy array.
+In the list, the **Endpoint** column shows the addresses as chips (the first one visible, the rest in a "+N" popover), and the **Inbounds** column shows inbound chips colored by protocol. As of 3.5.0 hosts are ordered **globally** (by sort order, then by remark) rather than within their inbound; bulk enable, disable, and delete remain available. Managed Hosts replace the previous External Proxy array. In the **Inbounds** list, the remarks of the enabled hosts bound to an inbound are shown next to it (a long list is shortened, with the full list in a tooltip; search works on them too).
 
 **VLESS route.** As of version 3.4.2 this is a single number `0-65535` (rather than a port list; hint — "a single VLESS route value (0-65535) baked into the UUID, e.g. 443; empty — none", placeholder `443`). The specified value is actually "baked" into the UUID of every generated subscription (raw / JSON / Clash): Xray reads bytes 6-7 of the UUID and masks them before authentication, so the client still matches. An empty or invalid value leaves the UUID unchanged.
 
+**MTProto via hosts.** As of 3.8.0 the public `tg://proxy` links of an MTProto inbound (in the subscription, when copied, in the QR code, and on export) are built from managed hosts — one link per address — so a proxy behind a reverse proxy or NAT is advertised with its external address and port. On upgrade, a custom link address previously set on an MTProto inbound is automatically moved into a host; a host address without a port gets the inbound's own port.
+
 #### Regular links (SUB) — Base64 / plain text
 
-The base format, endpoint `subPath` (default `/sub/`). Always enabled (when subscriptions are enabled overall). Returns a list of Xray links (`vless://`, `vmess://`, `trojan://`, `ss://`, etc.) — one per line. When the "Encode" option (`subEncrypt`) is enabled, the entire list is Base64-encoded; when disabled it is returned as plain text. This format is understood by virtually all clients (v2rayNG, V2RayTun, Sing-box, NekoBox, Streisand, Shadowrocket, Happ, etc.).
+The base format, endpoint `subPath` (a random path on a new installation, see [10.2](#102-subscription-server-settings)). Always enabled (when subscriptions are enabled overall). Returns a list of share links, one per line: `vless://`, `vmess://`, `trojan://`, `ss://`, `hysteria2://`, `wireguard://`, `vpn://` for AmneziaWG, `tg://proxy` for MTProto, and `tuic://` for TUIC (as of 3.8.0; see [5.13](#513-tuic-v5)). When the "Encode" option (`subEncrypt`) is enabled, the entire list is Base64-encoded; when disabled it is returned as plain text. This format is understood by virtually all clients (v2rayNG, V2RayTun, Sing-box, NekoBox, Streisand, Shadowrocket, Happ, etc.).
 
-**Example: response body with "Encode" disabled.** With `subEncrypt = false` the `/sub/` endpoint returns plain text — one link per line:
+**Example: response body with "Encode" disabled.** With `subEncrypt = false` the `subPath` endpoint returns plain text — one link per line:
 
 ```
 vless://3c8f...@a.example.com:443?security=reality&...#srvA-ivan
@@ -3457,23 +3671,25 @@ trojan://p4ss@b.example.com:443?security=tls&...#srvB-ivan
 
 With `subEncrypt = true` (default) the same list is Base64-encoded in its entirety and returned as a single string — the form expected by most clients.
 
-#### JSON subscription (sing-box and compatible)
+#### JSON subscription (Xray JSON)
 
-Endpoint `subJsonPath` (default `/json/`), enabled by a separate checkbox.
+Endpoint `subJsonPath` (a random path on a new installation; usually `/json/` on an upgraded one), enabled by a separate **"JSON subscription"** checkbox on the "General" tab. The path, the reverse proxy URI, and the format parameters are set on the **"Sub Formats"** page: in the "JSON subscription" card and on the **Final Mask**, **Mux**, **"Direct Connection"**, and **"Block Connection"** tabs.
 
 | Field (UI) | Key | Default | Description |
 |---|---|---|---|
 | JSON subscription | `subJsonEnable` | `false` | "Enable/disable the JSON subscription endpoint independently." |
 
-Returns a complete JSON configuration (in the format understood by sing-box and derivative clients — Podkop, OpenWRT sing-box, Karing, NekoBox). As of 3.5.0 clients of **native WireGuard inbounds** are also included in the JSON subscription (`secretKey`, `address`, `peers[]` with `publicKey`/`endpoint`/`preSharedKey`/`keepAlive`/`allowedIPs`, `mtu`) — previously they were silently skipped. Additional parameters are available for this format (the `subFormats` tab):
+Returns a complete Xray client configuration (Xray JSON) — a separate document for each configuration in the subscription; this format is understood by clients built on the Xray core. The skeleton includes local SOCKS (port `10808`) and HTTP (`10809`) inbounds, the `direct` and `block` outbounds, DNS, and routing. As of 3.8.0 the local inbounds are bound to `127.0.0.1` (previously, a client that ran the profile as-is opened a password-less proxy on all interfaces, and iOS clients received no traffic through it), and for compatibility the SOCKS inbound is declared with the `socks` protocol again (`mixed` in 3.7.0). As of 3.5.0 clients of **native WireGuard inbounds** are also included in the JSON subscription (`secretKey`, `address`, `peers[]` with `publicKey`/`endpoint`/`preSharedKey`/`keepAlive`/`allowedIPs`, `mtu`) — previously they were silently skipped. **AmneziaWG** and **TUIC** configurations are not delivered in JSON — use the regular subscription or Clash/Mihomo for them. Additional format parameters:
 
-- **Mux** (`subJsonMux`, empty by default) — JSON multiplexing (Mux) settings that are injected into each stream outbound in the JSON subscription. "Transmission of multiple independent data streams over a single connection."
+- **Mux** (`subJsonMux`, empty by default) — JSON multiplexing (Mux) settings that are injected into each stream outbound in the JSON subscription. "Transmission of multiple independent data streams over a single connection." TCP multiplexing is incompatible with VLESS clients that use a flow (`xtls-rprx-vision`), so `concurrency` is forced to `-1` in their outbounds: mux.cool is off for TCP, while the XUDP parameters are kept.
 - **Final Mask** (`subJsonFinalMask`, empty by default) — "xray finalmask (TCP/UDP) masks and QUIC settings added to every JSON subscription stream. Requires a recent version of xray on the client." Configured via sub-fields: "Packets" (`packets`), "Length" (`length`), "Interval" (`interval`), "Max split" (`maxSplit`), "Noises" (`noises`: "Type"/`type`, "Packet"/`packet`, "Delay (ms)"/`delayMs`, "Apply to"/`applyTo`, "+ Noise" button), as well as "Concurrency" (`concurrency`), "xudp concurrency" (`xudpConcurrency`), and "xudp UDP 443" (`xudpUdp443`).
-- **Routing rules** (`subJsonRules`, empty by default) — global rules added to the JSON configuration.
+- **Direct Connection** and **Block Connection** (tabs of the same name; both write simple rules to `subJsonRules`, empty by default). "Direct Connection" sends the selected IPs and domains to the `direct` outbound (turning it on pre-fills `geoip:private`, `geoip:ir`, and `geosite:category-ir`). "Block Connection" — "Block connections to selected domains or IP ranges using the blackhole outbound.": the "Block Domains" field (turning it on pre-fills `geosite:category-ads-all`) and the "Block IPs" field; block rules are placed before the direct-connection rules. If a routing profile is set (next item), these rules are not applied.
+- **JSON subscription routing profile** (`subJsonRoutingRules`, empty by default; the "JSON subscription" card). Accepts a routing profile JSON in the Happ/INCY format (`DirectSites`, `DirectIp`, `ProxySites`, `ProxyIp`, `BlockSites`, `BlockIp`, `DomainStrategy`, `RemoteDNSDomain`/`RemoteDNSIP`, `DomesticDNSDomain`/`DomesticDNSIP`, `DnsHosts`, `RouteOrder`), a `happ://routing/onadd/…` or `incy://routing/onadd/…` deeplink, or an `https://` URL (the "HTTPS URL" tag: the panel refreshes the source in the background and keeps the last working value). A profile that is set **replaces** the `dns` and `routing` blocks in every JSON config, balancers included: domains from `DirectSites` are resolved by the "domestic" DNS (`https://77.88.8.8/dns-query` by default), everything else by the remote one (`https://8.8.8.8/dns-query`); rules go in block → direct → proxy order (changed with the `RouteOrder` key, e.g. `block-proxy-direct`), everything else goes to `proxy`, and `domainStrategy` defaults to `IPIfNonMatch`. This way routing also reaches clients that ignore headers (for example, Happ and INCY with client-side balancers). If the "Routing rules" field on the "Happ" tab is empty, the same profile is sent in the `Routing` header (JSON and URLs as a `happ://` deeplink) so that the app downloads the matching geo files. An unparsable profile does not break the subscription: a warning is written to the log, and the configs are delivered with the last good profile or, if there is none, with the skeleton's routing.
+- **DNS servers** (`subJsonDns`, empty by default; the "JSON subscription" card) — the `dns` block for all JSON configs, including balancers and the info config: a full Xray `dns` object (for example, `{"servers": ["https://dns.google/dns-query", "tls://1.1.1.1"]}`) or just a `servers` array. The value is validated against the Xray schema on save: at least one server with a non-empty address is required, and `clientIp` must be an IP address; otherwise saving is rejected with the error "JSON subscription DNS is invalid". The field also replaces the routing profile's DNS, but only inside the configs: clients that apply the `Routing` header use the profile's resolvers. Empty — the skeleton's built-in resolver (`8.8.8.8`).
 
 #### Clash / Mihomo subscription (YAML)
 
-Endpoint `subClashPath` (default `/clash/`), enabled by a separate checkbox.
+Endpoint `subClashPath` (a random path on a new installation; usually `/clash/` on an upgraded one), enabled by a separate checkbox; the path and reverse proxy URI are set in the "Clash / Mihomo subscription" card on the "Sub Formats" page.
 
 | Field (UI) | Key | Default | Description |
 |---|---|---|---|
@@ -3483,13 +3699,22 @@ Endpoint `subClashPath` (default `/clash/`), enabled by a separate checkbox.
 
 The response is returned with content type `application/yaml; charset=utf-8`. If a "Subscription title" (`subTitle`) is set, it is also sent in the `Content-Disposition` header (`attachment; filename*=UTF-8''<title>`) so that the Clash client names the imported profile accordingly.
 
-The format of generated links and YAML is kept up to date for modern clients: Shadowsocks-2022 (SS2022) no longer Base64-encodes userinfo; Shadowsocks links with HTTP obfuscation are output in SIP002 format with the `obfs-local` plugin; Clash/Mihomo subscriptions include a complete set of XHTTP fields. As of 3.5.0 clients of **native WireGuard inbounds** are also included in the Clash/Mihomo subscription (fields `private-key`, `public-key`, `pre-shared-key`, `persistent-keepalive`, `ip`/`ipv6`, `mtu`, `dns`) — previously they were silently skipped. No separate settings are required — links are simply recognized more correctly by clients.
+When the Clash subscription is enabled, the server also answers at two fixed addresses:
 
-> Note: this build supports exactly three formats — regular links (Base64/text), JSON (sing-box compatible), and Clash/Mihomo (YAML). There is no separate Outline format in the subscription server.
+- `/mihomo/<subId>` — the same full Mihomo profile as at `subClashPath`;
+- `/clash-legacy/<subId>` — a simplified profile for the old Clash (Clash for Windows). It keeps only VMess (TCP, WebSocket, or gRPC transport; cipher `auto`, `aes-128-gcm`, `chacha20-poly1305`, or `none`), Trojan with TLS (TCP, WebSocket, or gRPC), and Shadowsocks without a transport or TLS and with a supported cipher (`chacha20-poly1305` is renamed to `chacha20-ietf-poly1305`). REALITY nodes and all other protocols are dropped, fields unknown to the old Clash are removed, and the global Clash routing rules are not mixed in. If no compatible nodes remain, the server responds with `422` and the text "no Clash for Windows-compatible proxies found; use the Mihomo subscription for modern proxy types".
+
+An alias is not registered if its path matches one of the configured subscription paths (a warning is written to the log); if `subClashPath` itself is `/mihomo/`, the full profile is served there.
+
+The format of generated links and YAML is kept up to date for modern clients: Shadowsocks-2022 (SS2022) no longer Base64-encodes userinfo; Shadowsocks links with HTTP obfuscation are output in SIP002 format with the `obfs-local` plugin; Clash/Mihomo subscriptions include a complete set of XHTTP fields. As of 3.5.0 clients of **native WireGuard inbounds** are also included in the Clash/Mihomo subscription (fields `private-key`, `public-key`, `pre-shared-key`, `persistent-keepalive`, `ip`/`ipv6`, `mtu`, `dns`) — previously they were silently skipped. No separate settings are required — links are simply recognized more correctly by clients. As of 3.8.0 the Clash/Mihomo subscription also includes **AmneziaWG** (a `type: wireguard` proxy with an `amnezia-wg-option` block: `jc`/`jmin`/`jmax`, `s1`–`s4`, `h1`–`h4`, `i1`–`i5`, plus `version: 3` when version-3 parameters such as `header-protection-key` are set; `mtu` is always emitted and takes `S4` into account) and **TUIC** (`type: tuic` with `uuid`, `password`, `congestion-controller`, `udp-relay-mode`, `reduce-rtt`, `alpn`, `sni`; see [5.13](#513-tuic-v5)). REALITY nodes get `support-x25519mlkem768: true` in `reality-opts` (Xray 26.9.8+ rejects a REALITY handshake without the ML-KEM key), and `client-fingerprint` is set to `chrome` when the inbound has no fingerprint. The server address in a proxy is emitted as a bare host — IPv6 without the square brackets that Mihomo could not parse.
+
+> Note: this build supports exactly three formats — regular links (Base64/text), JSON (Xray JSON), and Clash/Mihomo (YAML, including the `/mihomo/` and `/clash-legacy/` aliases). There is no separate Outline format in the subscription server.
 
 ### 10.5. Subscription info page and QR codes
 
 If **any of the three subscription links** — raw, JSON or Clash — is opened in a browser (or the `?html=1` or `?view=html` query parameter is explicitly appended, or the `Accept: text/html` header is sent), the server returns a visual **subscription info page** ("Subscription Info") instead of a raw response. Before 3.5.0 only the main `/sub/` link worked this way, while `/json/` and `/clash/` returned raw JSON/YAML to the browser. VPN clients still receive the machine-readable response because they do not request HTML.
+
+To download the JSON or YAML itself from a browser, append `?view=raw` to the JSON or Clash subscription address: the response arrives as a `subscription.json` / `subscription.yaml` attachment. As of 3.8.0 such a request goes through the device limit (HWID) check just like a VPN client's request.
 
 The page (a single-page application built with Vite) shows:
 
@@ -3508,6 +3733,8 @@ The page (a single-page application built with Vite) shows:
 - **Quick-import buttons for apps** (platform dropdowns): for Android — v2box, v2rayNG (deep link `v2rayng://install-config?url=…`), Sing-box, V2RayTun, NPV Tunnel, Happ (`happ://add/…`), Incy (`incy://add/…`); for iOS — Shadowrocket (via `flag=shadowrocket` parameter), v2box (`v2box://install-sub?url=…&name=…`), Streisand (`streisand://import/…`), V2RayTun, NPV Tunnel, Happ, Incy. These buttons either open the target app's deep link with the subscription address pre-filled, or copy the link to the clipboard.
 
 The info page is returned with no-cache headers (`Cache-Control: no-cache`) so that the client always sees up-to-date traffic and expiry information.
+
+The subscription page language is stored in the browser separately from the panel language (in its own cookie): changing the language on the subscription page does not switch the panel, and vice versa. On first open, the page takes the panel language if one has already been chosen in this browser, otherwise the browser language; dates on the page are formatted in the selected language.
 
 ### 10.6. Custom subscription page templates
 
@@ -3621,6 +3848,68 @@ Minimal example template body using some of the variables:
 
 Note that `{{ .lastOnline }}` is already in **milliseconds** — it does not need to be multiplied by 1000.
 
+### 10.7. Happ client integration
+
+The **"Happ"** tab of the subscription settings gathers what the panel passes to the Happ app in the HTTP headers of the subscription response (in all three formats). At the top of the tab is the **"Happ Header Auto-Detection"** toggle (`subHappAutoDetect`, off by default): "Automatically inject Happ routing and headers when client User-Agent indicates Happ." A request counts as coming from Happ if its `User-Agent` contains the word `happ` (case-insensitive). While the toggle is off, the app-management headers (every field on the sub-tabs below except the three routing fields from [10.2](#102-subscription-server-settings)) are **not sent to anyone**; when it is on, they go to Happ clients only. An empty field, a toggle that is off, and a list in which nothing has been selected (even if it displays a default value) produce no header. The headers are taken from the settings when the subscription server starts, so a panel restart is required after saving.
+
+**"Routing & Rules".** Besides the "Enable routing", "Routing rules", and "Hide server settings" fields (see [10.2](#102-subscription-server-settings)), this sub-tab contains:
+
+| Field (UI) | Key | Header | Description |
+|---|---|---|---|
+| Routing Presets | — | — | A preset list and a button of the same name: a ready-made deeplink is written to "Routing rules", replacing the field's previous contents. "Iran Bypass" and "China Direct" send national domains and IPs (`domain:ir`/`geoip:ir`, `geosite:cn`/`geoip:cn`) and private networks direct while blocking ads; "AdBlock" sends private networks direct and blocks `geosite:category-ads-all`; "Full Proxy" sends everything through the proxy; "Disable Routing (happ://routing/off)" writes `happ://routing/off`. |
+| Visual Rule Generator | — | — | The button opens the "Happ Visual Routing Rule Generator" window with six lists (comma- or newline-separated): "Direct Domains (Bypass)", "Proxy Domains (Tunnel)", "Blocked Domains (Ad/Malware)", "Direct IPs / CIDRs", "Proxy IPs / CIDRs", "Blocked IPs / CIDRs". The "Generate Deeplink" button writes `happ://routing/onadd/<base64>` to "Routing rules" (profile `Custom Rules`, `DomainStrategy: IPIfNonMatch`). |
+| No-Limit Mode | `subHappNoLimit` | `No-Limit-Enabled: 1` | "Raise the xray-core RAM limit in Happ for better stability and performance (beta)." |
+
+**"Subscription Links".** The **"Encrypted subscription links"** toggle (`happLinkEnable`, off by default) — "Allow encrypted Happ links to be generated in the client QR code window. Subscription URLs are processed locally." It adds no headers and does not depend on auto-detection; the encrypted link itself is described in [8.3](#83-per-client-operations).
+
+**"Banners & Announcements".**
+
+| Field (UI) | Key | Header | Description |
+|---|---|---|---|
+| Banner Announcement Text | `subHappSubInfoText` | `Sub-Info-Text` | A banner at the top of the app, up to 200 characters. The banner color and button are sent only together with the text. |
+| Banner Accent Color | `subHappSubInfoColor` | `Sub-Info-Color` | `blue` (default), `green`, or `red`. |
+| Banner Button Text | `subHappSubInfoButtonText` | `Sub-Info-Button-Text` | The button label, up to 25 characters. |
+| Banner Button Link | `subHappSubInfoButtonLink` | `Sub-Info-Button-Link` | The URL the button opens. |
+| Expired Subscription Banner | `subHappSubExpire` | `Sub-Expire: 1` | A banner about the expired subscription, shown when the user has run out of traffic or the validity period has ended. |
+| Renewal Link | `subHappSubExpireButtonLink` | `Sub-Expire-Button-Link` | The URL of the renewal button; sent only when the expired subscription banner is enabled. |
+| Expiration Notifications | `subHappNotificationExpire` | `Notification-Subs-Expire: 1` | A reminder to the user 3 days before the subscription expires. |
+
+**"Network & TUN Engine".**
+
+| Field (UI) | Key | Header | Description |
+|---|---|---|---|
+| TUN Mode | `subHappTunMode` | `Tun-Mode` | The TUN network stack on desktop: "Default" (no header is sent), "System (Standard OS Stack)" — `system`, "gVisor (Userspace Stack)" — `gvisor`. |
+| TUN Engine | `subHappTunType` | `Tun-Type` | The core of the TUN connection on desktop: `singbox`, `tun2proxy`, `default` ("Default (Happ TUN)"), or `xray` ("Xray TUN"). |
+| Exclude CIDR Routes | `subHappExcludeRoutes` | `Exclude-Routes` | Comma-separated subnets whose traffic bypasses the tunnel, for example `192.168.0.0/16, 10.0.0.0/8`. |
+| Exclude Apple APNs | `subHappExcludeApns` | `Exclude-Apns-Enable: true` | Apple notification traffic goes direct — for reliable delivery on iOS. |
+| Latency Ping Method | `subHappPingType` | `Ping-Type` | `proxy` (via the proxy, GET latency), `proxy-head` (via the proxy, HEAD), `tcp`, or `icmp`. |
+| Auto-Connect on Launch | `subHappAutoConnect` | `Subscription-Autoconnect: 1` | Connect to the VPN when the app starts. |
+| Auto-Connect Target | `subHappAutoConnectType` | `Subscription-Autoconnect-Type` | `lowestdelay` (default), `lastused`, or `random`; sent only when auto-connect is enabled. |
+
+**"Appearance & Theme".**
+
+| Field (UI) | Key | Header | Description |
+|---|---|---|---|
+| Client Color Theme | `subHappColorProfile` | `Color-Profile` | A custom iOS color theme as a JSON string (for example, `{"serverRowBackgroundColor":"#21003D67"}`), or `resetcolors` to restore the default colors. The "Reset", "Violet", and "Turquoise" buttons fill in ready-made values. |
+
+**"Migration & App Management".**
+
+| Field (UI) | Key | Header | Description |
+|---|---|---|---|
+| Provider ID | `subHappProviderId` | `ProviderID` | A provider identifier for app management, remote configuration, and migration. |
+| New Subscription URL | `subHappNewUrl` | `New-Url` | On receiving it, Happ automatically switches to the new subscription address. |
+| Fallback Subscription URL | `subHappFallbackUrl` | `Fallback-Url` | An address used if the primary one becomes unreachable. |
+| Enforce Hardware ID (HWID) | `subHappAlwaysHwid` | `Subscription-Always-Hwid-Enable: 1` | Prevents the user from turning off HWID sending in the Happ settings — useful together with the device limit (see [8.1](#81-client-fields)). |
+
+**"Android Per-App Proxy".**
+
+| Field (UI) | Key | Header | Description |
+|---|---|---|---|
+| Android Per-App Proxy Mode | `subHappPerAppMode` | `Per-App-Proxy-Mode` | "Off" (`off`, default; no header is sent), "On (Proxy Only Listed Apps)" — `on`, "Bypass (Exclude Listed Apps)" — `bypass`. |
+| Android Package Names | `subHappPerAppList` | `Per-App-Proxy-List` | Comma-separated package names, for example `org.telegram.messenger`; sent only when the mode is not "Off". |
+
+The server caption in the Happ list is set by the **"Description"** field of a managed host (see [10.4](#104-output-formats)): in VLESS, Trojan, and Shadowsocks links it is appended to the name as `#Name?serverDescription=<base64>`, and in VMess it goes into the `serverDescription` field. This caption does not depend on auto-detection.
+
 ---
 
 ## 11. Xray: routing, outbounds, DNS, and extensions
@@ -3660,9 +3949,9 @@ Logical groups of settings within the editor:
 
 | Field | Label | Description | Default |
 |---|---|---|---|
-| `FreedomStrategy` | **Freedom Protocol Strategy Setting** | Network output strategy for a direct (freedom) outbound. Tooltip: *"Set the network output strategy in the Freedom protocol"*. Controls the `domainStrategy` field inside `settings` of an outbound with the `freedom` protocol. | In the reference template, `domainStrategy` for the `direct` freedom outbound is **`AsIs`** (the address is not resolved, passed as-is). |
+| `FreedomStrategy` | **Freedom Protocol Strategy** | Network output strategy for a direct (freedom) outbound. Tooltip: *"Set the output strategy for the network in the Freedom Protocol."*. Controls the `streamSettings.sockopt.domainStrategy` field of the `direct` outbound with the `freedom` protocol — the place where the core reads it; selecting a value removes the legacy `settings.domainStrategy` and `settings.targetStrategy` keys. | **`AsIs`** (the address is not resolved, passed as-is): the reference template has no such key, and selecting `AsIs` removes it from `sockopt`. |
 
-`domainStrategy` for freedom (Xray-core values): `AsIs` (do not resolve domain on the server side), as well as the `UseIP` / `UseIPv4` / `UseIPv6` family and their "forced" variants `ForceIP*`, which force the exit server to resolve the domain and connect to the resulting IP. Switch to `UseIPv4` if the exit server has no IPv6 or you need to force IPv4-only connections.
+`domainStrategy` for freedom (Xray-core values): `AsIs` (do not resolve domain on the server side), as well as the `UseIP` / `UseIPv4` / `UseIPv6` family and their "forced" variants `ForceIP*`, which force the exit server to resolve the domain and connect to the resulting IP. Switch to `UseIPv4` if the exit server has no IPv6 or you need to force IPv4-only connections. The protocol is matched case-insensitively (`"Freedom"` counts as freedom too). If the `direct` tag is taken by an outbound of another protocol, this selector and the **Freedom Happy Eyeballs (IPv4/IPv6)** toggle are disabled: the core would not load a second outbound tagged `direct` (*existing tag found*), so the panel does not create one.
 
 #### Freedom Happy Eyeballs (IPv4/IPv6)
 
@@ -3747,6 +4036,7 @@ The statistics service rule (`inboundTag: ["api"] → outboundTag: "api"`) canno
 
 | Form field | Label | JSON field | Description |
 |---|---|---|---|
+| Comment | **Comment** | `comment` | A panel-only note, up to 200 characters (with a character counter). Shown in the **"Comment"** column of the rules table (the full text in a tooltip) and, on mobile, as a badge on the rule card. It is kept in the template but removed when the configuration is built, like the `enabled` flag, so it never reaches Xray-core. |
 | Source | **Source** | `source` | Source IP addresses/subnets. Comma-separated list. |
 | Source Port | **Source Port** | `sourcePort` | Source port(s). |
 | Destination | **Destination** | `domain` + `ip` + `port` | Target domains, IPs, and ports. Domains support the prefixes `domain:`, `full:`, `regexp:`, `keyword:`, and `geosite:*`; IPs support `geoip:*` and CIDR. |
@@ -3799,7 +4089,7 @@ In "Basic Connections" mode, the panel helps you build typical rules from ready-
 
 #### MTProto inbound: routing Telegram traffic through Xray
 
-The MTProto inbound has a **"Route through Xray"** toggle (disabled by default) and an optional **Outbound** selector. When enabled, the panel adds a loopback SOCKS bridge to the Xray config with the inbound's own tag, and mtg routes Telegram traffic through it. After that, the outgoing Telegram traffic is controlled by the router: it can be matched with normal rules on the Routing tab by the inbound tag, or forced into a selected outbound or balancer via the **Outbound** field. Leave **Outbound** empty to let routing rules decide.
+The MTProto inbound has a **"Route through Xray"** toggle (disabled by default) and an optional **Outbound** selector. When enabled, the panel adds a loopback SOCKS bridge to the Xray config with the inbound's own tag, and mtg routes Telegram traffic through it. After that, the outgoing Telegram traffic is controlled by the router: it can be matched with normal rules on the Routing tab by the inbound tag, or forced into a selected outbound or balancer via the **Outbound** field. Leave **Outbound** empty to let routing rules decide. The **Outbound** list does not include blackhole outbounds (for example, `blocked`; the protocol is matched case-insensitively): such a choice would look like it works, but would silently drop all of the inbound's Telegram traffic.
 
 #### What routing rules gained in 3.7.0
 
@@ -3813,7 +4103,7 @@ The list of `outbounds`. Buttons: **Create Outbound**, **Edit Outbound**. Toolti
 
 The reference template has two mandatory outbounds:
 
-- `protocol: "freedom"`, `tag: "direct"` — direct exit to the internet (with `domainStrategy: "AsIs"` and `finalRules: [{action: "allow"}]`);
+- `protocol: "freedom"`, `tag: "direct"` — direct exit to the internet (without `domainStrategy`, which is equivalent to `AsIs`, and with `finalRules: [{action: "block", ip: ["geoip:private"]}, {action: "allow"}]`);
 - `protocol: "blackhole"`, `tag: "blocked"` — a black hole for blocked traffic.
 
 #### Common outbound form fields
@@ -3824,7 +4114,7 @@ The reference template has two mandatory outbounds:
 | Protocol | — | Outbound type (see below). |
 | Address / Port | **Address** / Port | Connection target. Address and port are required. |
 | Send Through | **Send Through** | Local IP address of the outgoing interface (`sendThrough`). Placeholder: *"local IP"*. |
-| Target Strategy | **Target Strategy** | **New in 3.5.0.** How the destination domain is resolved before connecting. 11 values: `AsIs` (default, do not resolve), `UseIP`, `UseIPv4`, `UseIPv6`, `UseIPv6v4`, `UseIPv4v6` (resolve with fallback), `ForceIP`, `ForceIPv6v4`, `ForceIPv6`, `ForceIPv4v6`, `ForceIPv4` (require a successful resolve). Empty = `AsIs` (not written to the config); for `freedom` the value is read with a fallback to the previous `domainStrategy` (the legacy key is still written for older cores). |
+| Target Strategy | **Target Strategy** | **New in 3.5.0.** How the destination domain is resolved before connecting. 11 values: `AsIs` (default, do not resolve), `UseIP`, `UseIPv4`, `UseIPv6`, `UseIPv6v4`, `UseIPv4v6` (resolve with fallback), `ForceIP`, `ForceIPv6v4`, `ForceIPv6`, `ForceIPv4v6`, `ForceIPv4` (require a successful resolve). Empty = `AsIs` (not written to the config). For `freedom` the field is hidden: the core itself moves a freedom outbound's root-level `targetStrategy` into `sockopt.domainStrategy`, so the freedom strategy is set by the **Strategy** field in the protocol card (see below). |
 | Dialer proxy (chain) | — | Tooltip: *"Connect this outbound through another outbound (by tag) to build a proxy chain. Leave empty for a direct connection."* Placeholder: *"Select outbound to chain"*. Implemented via `streamSettings.sockopt.dialerProxy`. |
 
 The **Dialer Proxy** dropdown shows not only local outbounds but also outbound tags from subscriptions — so a chain can also be built through a subscription-fetched exit. The blackhole outbound and the outbound currently being edited are still excluded from the list. Leave the field empty for a direct connection.
@@ -3833,18 +4123,22 @@ The **Dialer Proxy** dropdown shows not only local outbounds but also outbound t
 
 Protocols supported by the form:
 
-- **`freedom`** — direct exit. Fields `settings.domainStrategy`, `finalRules` (see below), Happy Eyeballs. Cannot be tested (*"Outbound has no testable endpoint"*).
-- **`blackhole`** — drops traffic. Field **Response Type**. Not testable.
+- **`freedom`** — direct exit. Fields **Strategy** (written to `streamSettings.sockopt.domainStrategy`, where the core reads it; the form takes the legacy `settings.domainStrategy` and the root-level `targetStrategy` into account when the outbound is opened, but removes them on save), `finalRules` (see below), Happy Eyeballs. Cannot be tested (*"Outbound has no testable endpoint"*).
+- **`blackhole`** — drops traffic. Field **Response type** (`settings.response.type`): empty or `none` — just close the connection; `http` — send a standard HTTP 403 response before closing; `custom` — send your own data from the **Custom response (base64)** field (`customResponseData`, standard base64; the placeholder `SFRUUC8xLjEgNDAzIEZvcmJpZGRlbg0KDQo=` is `HTTP/1.1 403 Forbidden`). The core rejects invalid base64 when the template is saved (*failed to decode custom response data*). Not testable.
 - **`socks`**, **`http`** — `settings.servers[]` list with `address`/`port`; field **Auth Password**. For the **`http`** protocol, below the **Username**/**Password** fields there is a **Headers** editor — key/value pairs for CONNECT headers sent to the upstream HTTP proxy. These headers are preserved when the outbound is re-opened and saved (previously they were lost). Note: only settings-level headers (`settings.headers`) apply; per-server headers are ignored by xray-core.
 - **`vmess`** — `settings.vnext[]` (`address`/`port`).
-- **`vless`** — `settings.address`/`settings.port`.
+- **`vless`** — `settings.address`/`settings.port`; if the servers are given as a `settings.vnext[]` array, the test checks each of them, and the address column shows the first one.
 - **`trojan`**, **`shadowsocks`** — `settings.servers[]`.
-- **`wireguard`** — `settings.peers[]` with `endpoint`, plus keys (see [11.8](#118-wireguard--warp--nordvpn)).
+- **`wireguard`** — `settings.peers[]` with `endpoint`, plus keys and **Remote DNS** (see [11.8](#118-wireguard--warp--nordvpn)).
+- **`amneziawg`** — an AmneziaWG client: the panel brings up the tunnel itself, and the outbound reaches Xray as a local SOCKS proxy (see [AmneziaWG outbound](#amneziawg-outbound) below).
 - **`hysteria`** — `settings.address`/`settings.port` (UDP transport).
+- **`dns`** — intercepts DNS queries: **Rewrite network**, **Rewrite address**, **Rewrite port**, **User Level** and a **Rules** list (each rule has an **Action** — `direct`/`drop`/`return`/`hijack` — plus **QType**, **Domain Name** and **RCode**). On upgrade to 3.8.0 the legacy `nonIPQuery`/`blockTypes` keys are converted into rules (see [11.11](#1111-saving-restart-and-automatic-transformations)).
+
+The panel reads the protocol identifier (`protocol`) and the transport name (`streamSettings.network`) the same way the core does — case-insensitively, treating `mkcp` as a synonym for `kcp`. An outbound written in the template as `"Freedom"`, `"VMess"` or `"WireGuard"` opens in its own protocol's form (previously `"Freedom"` opened as an empty VLESS form), shows its address in the table and is tested in the right mode, while `"Blackhole"` is not offered in the lists that exclude blackhole outbounds (Dialer proxy, the MTProto inbound's **Outbound**, geodata downloads).
 
 For the **loopback** outbound type, a **Sniffing** block is available with the same parameters as an inbound: enable, **destOverride**, **Metadata Only**, **Route Only**, and the **excluded domains** list.
 
-In the **UDP** mask (FinalMask) for **Hysteria2**, additional modes are available. The **Salamander** mask has a **Mode** selector with **Salamander** and **Gecko** values: Gecko mode adds random packet padding with **Min**/**Max** size fields (`packetSize`, range 1–2048, default 512–1200) — this protects against fingerprinting by packet length. The **Realm** mask (UDP hole-punching) has gained an optional **TLS Config** block with fields **Server Name** (SNI), **ALPN** (`h3`/`h2`/`http/1.1`), **Fingerprint** (uTLS), and an **Allow Insecure** toggle.
+In the **UDP** mask (FinalMask) for **Hysteria2**, additional modes are available. The **Salamander** mask has a **Mode** selector with **Salamander** and **Gecko** values: Gecko mode adds random packet padding with **Min**/**Max** size fields (`packetSize`, range 1–2048, default 512–1200) — this protects against fingerprinting by packet length. The **Realm** mask (UDP hole-punching) has gained an optional **TLS Config** block with fields **Server Name** (SNI), **ALPN** (`h3`/`h2`/`http/1.1`), **Fingerprint** (uTLS), and an **Allow Insecure** toggle. **Realm** also has **IP Mode** (`ipMode`: Dual, IPv4 or IPv6; empty means dual) and a **Port Mapping (UPnP / NAT-PMP)** toggle (`portMapping.enabled`) with **Mapping Timeout (s)** (default 10) and **Mapping Lifetime (s)** (default 600) fields. The QUIC parameters have **Disable Chrome Parrot**, **Disable GSO** and **Disable Stateless Reset** toggles, plus **Brutal Disable Loss Comp** when the congestion control is `brutal`/`force-brutal`. The **UDP Hop** toggle in the QUIC parameters no longer does anything on an outbound: as of xray-core 26.9.9, port hopping is configured with a separate `udphop` UDP mask, and the core skips the `quicParams.udpHop` key (on an inbound it still sets the `mport` range for share links).
 
 As of 3.5.0 a new **TCP mask** type has been added — **XMC (Minecraft)** (`xmc`): the stream is disguised as the Minecraft protocol. Fields: **Hostname** (optional; "the server address simulated in the handshake"), **Usernames** (an optional list; "player names offered to probers; by default the core uses Dream"), and a required **Password** (16 characters, auto-generated with a ↻ button; "obfuscation password"). Important: **combining a TCP Finalmask with REALITY is rejected on save** — it crashed Xray-core on the first connection (error: "Finalmask is not supported with REALITY security…"; see Xray-core#6453). A UDP mask with REALITY is allowed; previously saved invalid combinations are automatically "healed" (the mask is dropped) when the config is built.
 
@@ -3873,7 +4167,7 @@ A routing rule with `outboundTag: "chained"` will then route traffic to the inte
 
 #### Importing an outbound from a share link
 
-An outbound can be imported from a share link (`vless://`, `vmess://`, etc.). On import, **xmux** (XHTTP) multiplexer settings passed in the `extra=` block of the link are also preserved: after import their values are populated into the **XMUX** sub-form of the created outbound.
+An outbound can be imported from a share link (`vless://`, `vmess://`, etc.). On import, **xmux** (XHTTP) multiplexer settings passed in the `extra=` block of the link are also preserved: after import their values are populated into the **XMUX** sub-form of the created outbound. A `hysteria2://` link with an `mport` port range becomes a `udphop` UDP mask (`mode: "intervalremote"`, `interval: "5-10"`, `remotePorts` — the range from the link); a mask passed in `fm=` takes precedence. Outbound subscription links are parsed the same way (see [11.12](#1112-subscription-outbounds-with-auto-update)). `udphop` is not in the mask dropdown — it is a client-only mask — but an imported one is kept when the outbound is edited. Hysteria2 outbounds imported earlier (with `quicParams.udpHop`) are not migrated automatically and no longer hop ports with xray-core 26.9.9 — import the link again (subscription outbounds get the mask on the next subscription refresh).
 
 #### Mux fields (multiplexing)
 
@@ -3881,7 +4175,7 @@ An outbound can be imported from a share link (`vless://`, `vmess://`, etc.). On
 
 #### Sockopts (socket settings)
 
-The **Sockopts** group: **Keep Alive Interval**, **Mark (fwmark)**, **Interface**, **IPv6 Only**, **Accept Proxy Protocol**, **Proxy Protocol**, **TCP User Timeout (ms)**, **TCP Keep-Alive Idle (s)**. The dialer proxy chain is also configured here.
+The **Sockopts** group: **Keep Alive Interval**, **Mark (fwmark)**, **Interface**, **IPv6 Only**, **Accept Proxy Protocol**, **Proxy Protocol**, **TCP User Timeout (ms)**, **TCP Keep-Alive Idle (s)**. The dialer proxy chain is also configured here. For `freedom` this group has no **Domain Strategy** field: the same `sockopt.domainStrategy` key is set by the **Strategy** field in the protocol card.
 
 #### Freedom finalRules (overriding private IP blocking)
 
@@ -3890,7 +4184,7 @@ For a freedom outbound, the **Final Rules** group is available:
 | Field | Label | Description |
 |---|---|---|
 | `overrideXrayPrivateIp` | **Override Xray Default Private IP Block** | Removes Xray's built-in restriction on outgoing connections to private IPs. |
-| `action` | **Action** | `allow` (as in the reference template: `finalRules: [{action: "allow"}]`), `redirect` (**Redirect**), or others. |
+| `action` | **Action** | `allow`, `block`, `redirect` (**Redirect**), or others; the reference template has `finalRules: [{action: "block", ip: ["geoip:private"]}, {action: "allow"}]`. |
 | `blockDelay` | **Block Delay (ms)** | Delay before dropping the connection. |
 | `redirect` / `fragment` | **Redirect** / **Fragment** | Redirect and traffic fragmentation actions. |
 
@@ -3915,7 +4209,7 @@ Two modes (tooltip: *"TCP: fast dial-only probe. HTTP: full request via xray."*)
 
 - **Real delay** (**new in 3.5.0**) — the third mode of the toggle. It uses the same temporary Xray instance but reports the **full time of a "cold" request, including tunnel establishment** — a figure close to what client applications show. Toggle tooltip: "TCP: fast dial-only probe. HTTP: full request via xray. Real delay: full time including connection establishment". As of 3.5.0 the regular **HTTP** mode is measured over a "warm" (keep-alive) connection, so its figures are lower and closer to single-request latency.
 
-> UDP protocols (`wireguard`, `hysteria`) and UDP transports (`kcp`, `quic`, `hysteria`) are **always** tested in HTTP mode, even if TCP was requested — a bare UDP dial cannot distinguish a "live" endpoint from a "dead" one. For wireguard, `noKernelTun: true` is forced in the test configuration.
+> UDP protocols (`wireguard`, `amneziawg`, `hysteria`) and UDP transports (`kcp`/`mkcp`, `quic`, `hysteria`) are **always** tested in HTTP mode, even if TCP was requested — a bare UDP dial cannot distinguish a "live" endpoint from a "dead" one. Case does not matter: `"WireGuard"` or `"network": "KCP"` are sent to HTTP mode too. For wireguard, `noKernelTun: true` is forced in the test configuration.
 
 #### Egress and Country columns (as of 3.5.0)
 
@@ -3932,6 +4226,32 @@ The panel maintains traffic counters by tag (`up`/`down`/`total`). The reset but
 #### PIA outbounds by login (3.7.0)
 
 The **"PIA"** section adds a Private Internet Access WireGuard outbound without making you fetch keys by hand. Enter your **PIA username and password**, and the panel shows the account and the region list; pick a country (or "All regions") and a server, and the panel fetches the key and assembles a ready outbound. If that server is already there, the panel offers to **renew its key** instead of creating a duplicate. A provisioning failure is reported plainly ("Could not build the PIA outbound") rather than leaving a half-built outbound behind.
+
+#### AmneziaWG outbound
+
+The **`amneziawg`** protocol makes the server an **AmneziaWG client**: traffic sent to such an outbound goes through a tunnel to an external AmneziaWG server — for example, to another panel's AmneziaWG inbound (see [5.10](#510-amneziawg)). Xray-core does not have this protocol, so the panel brings up the tunnel itself, with the same embedded `amneziawg-go` engine over gVisor that the inbound uses. Every 10 seconds it reconciles the running tunnels with the **saved** template: it brings up new ones, reconfigures changed ones and stops removed ones. In the final Xray configuration such an outbound appears as a `socks` outbound with the same tag, pointed at the panel's local SOCKS5 gateway `127.0.0.1:64900` (password authentication, with the tag as the username), so routing rules and balancers reference the tag as usual. The tunnel's own UDP packets are sent by the engine directly from the host, not through Xray.
+
+Form fields (the obfuscation parameters are the same as on the inbound; their meaning is described in [5.10](#510-amneziawg)):
+
+| Field | JSON (`settings`) | Default | Description |
+|---|---|---|---|
+| **MTU** | `mtu` | `0` | `0` means calculate automatically: 1420 minus `S4`, but not below 1280. |
+| **Listen Port (optional)** | `listenPort` | `0` | A fixed local UDP source port; `0` picks one automatically. |
+| **Private Key** | `secretKey` | — | Required. The button next to it generates a new key. |
+| **Address** | `address` | — | Required: this client's address inside the tunnel in CIDR notation, e.g. `10.8.0.2/32`. |
+| **DNS** | `dns` | empty | The resolver **inside the tunnel** for domain destination addresses: an IP or `IP:port` (without a port — 53). Empty means `1.1.1.1:53`, or `[2606:4700:4700::1111]:53` if the tunnel has only IPv6 addresses. |
+| **HeaderProtectionKey (header protection)** | `headerProtectionKey` | empty | A base64 32-byte key; empty disables header protection. |
+| **Obfuscation parameters**: Jc, Jmin, Jmax, S1–S4, H1–H4, I1, ContentPaddingAddition | `jc` … `contentPaddingAddition` | form preset | Hint *"Must exactly match the server side parameters."*: the values must match the server's parameters **exactly**, otherwise the handshake fails. Unlike on the inbound, there is no random-generation button here. |
+| **Peers** → **Peer N** | `peers[]` | — | At least one is required: **Endpoint** (`endpoint`, `host:port`; a hostname is allowed), **Public Key** (`publicKey`, required), **PSK** (`presharedKey`, optional), **Allowed IPs** (`allowedIPs`; `0.0.0.0/0` and `::/0` for a new peer), **Keep alive** (`keepAlive`; 25 for a new peer). |
+| **RandomTrailers**, **DisableCookies** | `randomTrailers`, `disableCookies` | off / on | As on the inbound; RandomTrailers requires AmneziaWG 3.1+ on both ends. |
+
+The `i2`–`i5`, `rekeyAfterTime`, `rekeyTimeout`, `rejectAfterTime`, `keepaliveTimeout` and `maxHandshakeAttempts` keys are not shown in the form: they are set on the JSON tab, and saving the form does not drop them. There is no share-link import for this protocol.
+
+When the template is saved, the panel validates AmneziaWG outbounds itself (the core's loader would reject this protocol) and refuses the save with an error of the form `amneziawg outbound "<tag>": …` if the tunnel address is missing or not in CIDR notation; the DNS is neither an IP nor `IP:port`; the private key is empty or invalid; the obfuscation parameters fail the same checks as on the inbound; there is no peer; or a peer has an empty or invalid public key, an invalid PSK, an `endpoint` that is not `host:port`, or no valid `allowedIPs` entry.
+
+- **Port 64900 is reserved.** The SOCKS5 gateway listens on `127.0.0.1:64900` while the template has at least one working AmneziaWG outbound, and frees the port once none are left. Either way, the panel will not save a local inbound with TCP on port 64900 that listens on `127.0.0.1` or on all addresses: `port 64900 (tcp) already used by inbound 'amneziawg-egress' on 127.0.0.1`.
+- **Testing.** Even in TCP mode such an outbound is checked with an HTTP request, like WireGuard (see "Testing outbounds" above). The request goes through the already running tunnel, so it tests the **saved** version of the outbound: after saving, give the panel up to 10 seconds to bring the tunnel up.
+- **Diagnostics.** Tunnel start-ups and their configuration errors are written to the panel log: `amneziawgnet: started embedded outbound <tag>`, `amneziawgnet: reconcile failed for outbound "<tag>": …`.
 
 ### 11.5. Balancers
 
@@ -4102,6 +4422,7 @@ DNS server fields:
 | Field | Label | Description |
 |---|---|---|
 | address | — | DNS address (IP, DoH URL, `localhost`, `fakedns`, etc.). |
+| port | **Port** | The DNS server's port. The field is hidden for `https://`, `https+local://`, `h2c://`, `h2c+local://` and `quic+local://` addresses: Xray takes the port of such servers only from the URL, so a non-standard port goes into the address itself (e.g. `https://dns.example.com:8443/dns-query`). For DoT (`tls://`) and plain addresses the field is available. |
 | `domains` | **Domains** | List of domains for which this server is used. |
 | `expectIPs` | **Expected IPs** | Accept the response only if the IP is in the list. |
 | `unexpectIPs` | **Unexpected IPs** | Discard responses with the specified IPs. |
@@ -4156,6 +4477,7 @@ Additionally, sniffing must be enabled on the inbound with `destOverride: ["fake
 | `allowedIPs` | **Allowed IPs** | Ranges routed into the tunnel. |
 | `endpoint` | **Endpoint** | Peer's `host:port`. |
 | `domainStrategy` | **Domain Strategy** | Resolution strategy for the WireGuard outbound. |
+| `remoteDNS` | **Remote DNS** | DNS servers for resolving domain destination addresses **through the tunnel**, comma-separated (e.g. `1.1.1.1,2606:4700:4700::1111`). Empty means `1.1.1.1`, `1.0.0.1`, `2606:4700:4700::1111`, `2606:4700:4700::1001`; a single `local` value resolves with Xray's own built-in DNS instead of through the tunnel. |
 
 #### Cloudflare WARP (`warp`)
 
@@ -4176,13 +4498,15 @@ The integration uses NordLynx (= WireGuard). Controller actions (`/xray/nord/:ac
 Step by step:
 
 1. **Access token** → `reg`: the panel requests NordLynx credentials from `api.nordvpn.com` and extracts `nordlynx_private_key`. Saves `private_key` and `token` in the `nord` setting. Alternative — `setKey`: enter the **Private Key** directly (cannot be empty).
-2. **Country** → `countries` loads the list of countries; **City** (or **All cities**).
-3. **Server** → `servers` loads servers for the selected country (`countryId` is validated as a number — injection protection). Filter: only servers with **Load** > 7% are shown. If no servers found: *"No servers found for the selected country"*. If a server has no NordLynx public key: *"The selected server does not report a NordLynx public key."*
-4. Creating/updating the outbound: toasts *"NordVPN outbound added"* / *"NordVPN outbound updated"*.
+2. **Country** → `countries` loads the list of countries that have NordLynx servers (flag and name in the interface language, with search); **City** (or **All Cities**).
+3. **Server** → `servers` loads the NordLynx servers of the selected country (`countryId` is validated as a number — injection protection). The list is sorted by load, with the least loaded server preselected; each entry shows the name, city, hostname, the `station:51820` address and the **Server load** as a percentage with a color tag, and search covers the city, name, hostname and address. Servers with a low load are no longer hidden (the former "load > 7%" filter has been removed). If no servers found: *"No servers found for the selected country"*. If a server has no NordLynx public key: *"Selected server does not advertise a NordLynx public key."*
+4. **Add outbound** creates a WireGuard outbound tagged `nord-<hostname>`: address `10.5.0.2/32`, a peer with the server's public key and the `station:51820` endpoint, and the private key from the saved credentials. You can add **several servers** — one outbound per hostname. A server that is already added cannot be added again: the button is disabled, with the note *"This server is already in the outbound list. Use Reset to refresh its key."* next to it. Toast on adding: *"NordVPN outbound added"*.
+
+The **"Added servers"** block lists all outbounds tagged `nord-…` with their endpoints. The **Reset** button in a row keeps the server, tag, peer and routing references as they are, but substitutes the private key from the currently saved NordVPN credentials (toast *"NordVPN outbound updated"*); it is disabled for an outbound without an address or peer. **Log Out** (`del`) clears only the saved credentials: the added outbounds and routing rules stay and keep working with their own keys (before 3.8.0, logging out removed both the outbound and its rules). Delete NordVPN outbounds you no longer need in the general outbound list.
 
 #### IPv4 priority and userspace TUN
 
-WireGuard outbounds generated by the WARP and NordVPN wizards use `domainStrategy: "ForceIPv4v6"` (IPv4 priority with fallback to IPv6 on v6-only hosts) instead of `ForceIP` — this eliminates handshake hangs on hosts with a partially configured IPv6 stack when a Cloudflare AAAA endpoint is selected. Additionally, userspace TUN (`noKernelTun: true`) is enabled for them instead of kernel TUN: the latter requires privileges and fwmark routing and silently fails on many VPS instances, while the panel's built-in connectivity check always tests via userspace TUN — now real traffic and the check follow the same path. This change applies only to newly added or reset outbounds; already saved templates keep their settings.
+The WireGuard outbound generated by the WARP wizard uses `domainStrategy: "ForceIPv4v6"` (IPv4 priority with fallback to IPv6 on v6-only hosts) instead of `ForceIP` — this eliminates handshake hangs on hosts with a partially configured IPv6 stack when a Cloudflare AAAA endpoint is selected. Additionally, WARP and NordVPN outbounds have userspace TUN (`noKernelTun: true`) enabled instead of kernel TUN: the latter requires privileges and fwmark routing and silently fails on many VPS instances, while the panel's built-in connectivity check always tests via userspace TUN — now real traffic and the check follow the same path. This change applies only to newly added or reset outbounds; already saved templates keep their settings.
 
 ### 11.9. Reverse proxy and TUN
 
@@ -4220,6 +4544,8 @@ Tooltip: *"Logs can slow down the server. Enable only the log types you need whe
 | `errorLog` | **Error Logs** | `error` | *"Path to the error log file. The special value 'none' disables error logs."* | **`""`** (default) |
 | `dnsLog` | **DNS Logs** | `dnsLog` | *"Enable DNS query logs"* | **false** |
 | `maskAddress` | **Address Masking** | `maskAddress` | *"When enabled, the real IP address is replaced with a masking address in the logs."* | **`""`** (off) |
+
+> A log file cannot end up outside the panel's log folder: when the configuration is built, only the file name is kept from the `access` and `error` values, and the file itself is created in the log folder (`XUI_LOG_FOLDER`, `/var/log/x-ui` by default on Linux). An empty value and `none` are left as they are. Keys in a different case (`Access`, `ERROR` — the core accepts those too) are normalized to `access`/`error`; if both variants are present, the lowercase key wins.
 
 #### Statistics (`stats` / `policy`)
 
@@ -4269,6 +4595,17 @@ When saving Xray settings, the panel performs (in this order):
 
 > Due to point 3, do not try to remove or move the `api → api` rule — the panel will put it back in place on the next save. This is service infrastructure for statistics, not a user route.
 
+#### One-time template conversions on upgrade to 3.8.0
+
+xray-core 26.9.8–26.9.9 stopped accepting some keys and deprecated others, so on the first start of 3.8.0 the panel rewrites the saved template (`xrayTemplateConfig`) once. Each conversion is recorded in the `history_of_seeders` table and is never repeated; a template with invalid JSON is skipped, with a log entry.
+
+1. **`proxySettings` → `dialerProxy`.** The core no longer loads an outbound with `proxySettings` (the error reports a removed feature and points to `streamSettings.sockopt.dialerProxy`). The tag from `proxySettings.tag` is moved to `streamSettings.sockopt.dialerProxy` (an already set `dialerProxy` is not overwritten), and the key itself is removed. Along the way, `addressPortStrategy` is removed from the `sockopt` of `freedom` outbounds — the core does not start with it (*freedom outbound does not support "sockopt.addressPortStrategy"*).
+2. **Freedom strategy → `sockopt.domainStrategy`.** The value from the root-level `targetStrategy` or from `settings.targetStrategy`/`settings.domainStrategy` (in the order in which the core reads them) is moved to `streamSettings.sockopt.domainStrategy`, and the old keys are removed; `AsIs` and invalid values are simply dropped. Otherwise the core logs a deprecated-key warning on every start.
+3. **DNS outbound: `nonIPQuery`/`blockTypes` → `rules`.** The keys are replaced with the three rules the core used to build from them on its own (the mode is the `nonIPQuery` value, `reject` by default): `drop` for the `qType`s listed in `blockTypes` (`return` with `rCode: 5` in `reject` mode), then `hijack` for `qType` `1,28` (A and AAAA), then a rule for all other queries: `direct` for `skip`, `drop` for `drop`, and `return` with `rCode: 5` for `reject` and any other value. If the outbound already has `rules`, the old keys are simply removed.
+4. **Freedom with a protocol name not in lowercase.** If the protocol is written as, say, `"Freedom"`, the earlier `finalRules` fixes (including the ban on egress to private networks), which used to skip such an outbound, are applied to it again.
+
+A manually added `proxySettings` now fails validation when the template is saved — the message comes from the core. Hysteria2 port hopping (`quicParams.udpHop`) is not migrated — see importing an outbound from a share link in [11.4](#114-outbounds-outgoing-connections).
+
 ### 11.12. Subscription outbounds (with auto-update)
 
 Starting from version 3.3.0, the panel can import `outbound`s directly from a subscription URL — the same format that VPN providers serve to client applications. Subscriptions are re-fetched in the background on a schedule, so the set of `outbound`s on the server stays up to date without manual template editing. As of 3.5.0 the port of `ss://` links (SIP002) with query parameters (`?plugin=`, `?type=`) or a trailing `/` is parsed correctly (previously it silently became `0`); a link with a genuinely invalid port is skipped rather than imported broken.
@@ -4288,12 +4625,14 @@ The "Add Subscription" form has the following fields:
 | Subscription URL | `url` | — (required) | Subscription address. Placeholder: "https://... (base64 link list)". Only HTTP(S) is accepted; the address is validated for safety. |
 | Remark | `remark` | empty | Arbitrary label (placeholder "e.g. HK nodes"). |
 | Tag Prefix | `tagPrefix` | `subN-` | Prefix that imported `outbound` tags start with. If left empty, the panel automatically picks the lowest available number in the form `sub1-`, `sub2-`, etc. |
+| User-Agent | `userAgent` | empty (= `3x-ui-outbound-sub/1.0`) | The `User-Agent` header used to download the subscription — both on updates and in the preview. Needed for providers that serve links only to "their own" clients. Leading and trailing spaces are trimmed; an empty value means the standard `3x-ui-outbound-sub/1.0` (also shown as the placeholder). |
 | Update Interval | `updateInterval` | 600 seconds (10 minutes) | How often the subscription is re-fetched. Set in hours/minutes in the UI. |
 | Enabled | `enabled` | yes (`true`) | Only enabled subscriptions are included in the config and updated automatically. |
 | Allow Private Addresses | `allowPrivate` | no (`false`) | Allows URLs on localhost, LAN, and private IPs. Disabled by default as SSRF protection — enable only for a trusted local source. |
+| Allow insecure | `allowInsecure` | no (`false`) | Do not verify the subscription server's TLS certificate (hint: "Skip TLS certificate verification (allowInsecure / skip-cert-verify)."). |
 | Before Manual Outbounds | `prepend` | no (`false`) | If enabled, `outbound`s from this subscription are placed **before** manual `outbound`s from the template, and one of them can become the default `outbound`. Otherwise they are appended **after**. |
 
-The **"Preview"** button (`POST /outbound-subs/parse`) lets you download and parse the URL before saving to see which `outbound`s and tags will result; nothing is written to the database at this point. If nothing is recognized at the URL, "No outbounds found at this URL." is displayed.
+The **"Preview"** button (`POST /outbound-subs/parse`) lets you download and parse the URL before saving (with the **User-Agent** and **"Allow insecure"** values set in the form) to see which `outbound`s and tags will result; nothing is written to the database at this point. If nothing is recognized at the URL, "No outbounds found at this URL." is displayed.
 
 The order of multiple subscriptions in the overall `outbound`s list is set by priority (`priority`) and changed with up/down arrows (`POST /outbound-subs/:id/move`).
 
@@ -4314,7 +4653,8 @@ Each link is assigned a stable "identity" (URI core without the fragment/remark;
 - An exact tag in a balancer/rule will continue to point to the same server.
 - A prefix/wildcard selector (e.g., `hk-*`) will automatically pick up new servers that the subscription returns later — this is the recommended way to "subscribe to a pool".
 - If a server disappears from the subscription, its tag simply drops out of the final `outbound`s array; if the balancer has a `fallbackTag`, Xray uses it.
-- If the provider changed a server's UUID/host/credentials, the identity changes — this is treated as a new `outbound` with a new tag.
+- If the provider changed a server's UUID/host/credentials, the identity changes — this is treated as a new `outbound`. The panel tries to give it the tag that held the same position in the previous fetch, but only if that tag does not belong to a server still present in the subscription; otherwise a new tag is assigned.
+- A server inserted into the subscription between already known ones gets its own tag and does not take over its neighbor's tag by position (previously it could, and the rightful owner got a `-N` suffix, with the swap becoming permanent on later updates).
 
 Within a single fetch, tags are deduplicated with a `-N` suffix. Subscription tags preserve non-ASCII characters (e.g., Cyrillic) and remain readable: Unicode letters and digits are kept in the slug, while punctuation is replaced with a hyphen — tags from Cyrillic names no longer collapse to just digits.
 
@@ -4322,7 +4662,7 @@ Within a single fetch, tags are deduplicated with a `-N` suffix. Subscription ta
 
 - The subscription update background task runs on a schedule **every 5 minutes**.
 - On each run it iterates through all enabled subscriptions and updates only those whose own interval has expired: a subscription is updated if it has never been updated yet, or if at least its `updateInterval` has passed since the last update. This way the task checks subscriptions frequently, but each individual subscription is re-fetched no more often than its `updateInterval` (default 10 minutes). The UI reflects this with a corresponding tooltip.
-- Update: the URL is re-validated for safety as a public URL (private addresses are blocked unless the subscription has `allowPrivate` set), the request goes through the panel's proxy client with the header `User-Agent: 3x-ui-outbound-sub/1.0`. The redirect chain is limited to 10 hops, and each hop is also checked for privacy (SSRF protection). HTTP 200 is expected; otherwise an error is recorded.
+- Update: the URL is re-validated for safety as a public URL (private addresses are blocked unless the subscription has `allowPrivate` set), the request goes through the panel's proxy client with the `User-Agent` header from the subscription settings (`3x-ui-outbound-sub/1.0` by default). The redirect chain is limited to 10 hops, and each hop is also checked for privacy (SSRF protection). HTTP 200 is expected; otherwise an error is recorded.
 - After successful parsing, the result is saved, the last-update time is set, and the error is cleared. On error, its text is visible in the UI as "Last Error", and the previously fetched `outbound`s remain in effect.
 - If at least one subscription actually updated, the task marks Xray for restart and sends a UI invalidation so the interface pulls the new `outbound`s. The actual Xray reload happens on the nearest 30-second manager cycle.
 
@@ -4446,6 +4786,8 @@ The selector works like a panel outbound selector: tags are grouped into **Outbo
 The node form has an **Import inbound** setting (`inboundSyncMode`) with two modes: **All inbounds** (`all`, default) and **Selected** (`selected`). By default, the master synchronizes all inbounds that have this node selected; existing nodes continue working in "All inbounds" mode.
 
 In **Selected** mode, a multi-select of inbound tags appears below the field. Click **Load inbounds** — the master will use the entered (not yet saved) connection parameters to request the node's list of inbounds (endpoint `POST /panel/api/nodes/inbounds`) and display their tags; check the ones you need. The panel will synchronize and deploy only the checked tags to the node, while other inbounds existing directly on the node will remain untouched — the master does not delete or manage them.
+
+If saving the form widens the selection — a new tag is checked, or the node is switched from **Selected** to **All inbounds** — the node's new inbounds are first imported into the master on the next successful synchronization, and only after that does the master resume deleting from the node the inbounds that do not exist on the master. So an inbound you have just checked is not deleted from the node as "deleted on the master". Cleanup is not turned off, though: an inbound deleted on the master while the node was unreachable is also deleted from the node once connectivity is restored — in **Selected** mode this includes an inbound created from the panel (on the master its tag is stored with the `n<id>-` prefix, on the node without it). But if you widen the selection during such an outage, the inbound deleted on the master is not deleted from the node — it is imported back.
 
 **Example: request the node's inbound list for selective import.** The body contains the not-yet-saved connection parameters; the response contains the tags of inbounds available on the node:
 
@@ -4603,7 +4945,7 @@ Up to 60 data points are returned. An invalid metric or bucket is rejected ("inv
 
 ### 12.7. How inbounds and clients are synchronized
 
-An inbound "belongs" to a node through the `node_id` field (the node is selected in the inbound editor):
+An inbound "belongs" to a node through the `node_id` field (the node is selected in the inbound editor). A node can be assigned only to inbounds of the protocols listed in [5.1](#51-list-of-supported-protocols); the rest, including `mtproto` and `tuic`, run only on the local panel: choosing such a protocol clears the node in the form, and saving such an inbound with a node assigned is rejected with the error "… inbounds cannot be assigned to a node". An inbound of such a protocol that the master adopted from the node itself (for example, MTProto) is edited as usual — only switching its protocol to one that nodes do not support is rejected.
 
 **Example: token in the node form.** The token is obtained on the child panel (Settings → API Token) and pasted into the master's **API Token** field. On each poll, the master sends it in the header:
 
@@ -4615,11 +4957,20 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.abc123...
 If the child panel has a **base path** (web base path) set, e.g. `/secret/`, the master automatically prepends it before `panel/api/server/status` → `https://panel.example.com:2053/secret/panel/api/server/status`.
 
 1. **Configuration deployment (reconcile).** Whenever an inbound/client linked to a node is modified, the node is marked "dirty". A background task, for each enabled node **with `online` status**, deploys the node's inbounds (by `node_id`) when there are pending changes, then clears the "dirty" flag. A node that is disabled, offline, or "dirty" is considered "pending" — deployment to it is deferred until connectivity is restored.
+
+   In addition, the master immediately pushes client operations (creating, editing, deleting, detaching, resetting traffic, bulk changes) to all nodes that host the client, and does so **in parallel** rather than one node at a time: the duration of an operation is no longer the sum of every node's delay. Each node gets 4 seconds to respond; a node that does not respond in time does not hold up the request — it stays "dirty", and the background task (which runs every 5 seconds) delivers the changes to it later. If an operation fails on some of the inbounds, it is still applied to the others: the error lists the inbounds where it failed, and Xray is restarted so that the part already applied takes effect.
 2. **Traffic collection.** The same task requests a traffic snapshot from the node and merges it into local statistics. Based on the merged traffic, limit/expiry checks are performed and clients are disabled if necessary; the "exhausted" counter for the node reflects exactly this. If the node is unreachable, its online clients are cleared.
 
    For a client linked to multiple panels, the master in the same task additionally distributes to the nodes the **total across all panels** traffic consumed by that client (in a separate table on the node, keyed by the master's GUID; overwritten on each send, so a reset on the master side also propagates). On the node, the larger of the two values — local or received — is displayed in the client's traffic, and when the total quota is exceeded, the client is disconnected **locally on the node itself** (via the same Xray restart mechanism used during auto-disconnect, which terminates already established connections). This eliminates the situation where a node only saw its share of traffic, underestimated usage, and continued serving a client who had already exhausted the total limit. When traffic is reset, auto-renewed, or the client is deleted, the sent counters are cleared.
 
    On the **first** synchronization of an inbound hosted on a node (adding a new node or re-importing an inbound), the master initializes the client traffic counters with the real values from the node. Previously in this situation, the overall inbound counter was transferred correctly, but individual client counters were zeroed, and the master underestimated client usage by the entire history accumulated before the node was connected. Now, if the inbound is created in the same synchronization pass, the new `client_traffics` row inherits the counter value from the node (the baseline is set equal to it, so the next delta is zero and traffic is not counted twice). The counter seeding applies only to an inbound created in the same pass: a client appearing again under an already existing inbound still starts from zero (protection against "phantom" traffic), and a recently deleted client does not "resurrect" when its inbound is recreated.
+
+   Merging node snapshots is also protected against other discrepancies:
+
+   - **Deleted clients do not "resurrect".** The email of a deleted client (including one removed in a bulk delete) is filtered out of node snapshots for 90 seconds, and a bulk delete is sent to the node for all selected clients even if the master's inbound settings no longer contain the entry — a snapshot taken before the deletion will not bring the client back. If the same email is created again right away, the mark is cleared, and the new client does not disappear from the inbound for those 90 seconds.
+   - **A node cannot "claim" a client that belongs elsewhere.** A client's email is unique in the panel, so a client from a node snapshot is not accepted if, on the master, a client with that email is attached only to inbounds outside that node (local ones or another node's): otherwise the master would overwrite its UUID, and the real user would lose access. A warning containing `rename one side to remove the duplicate email` is written to the log once — rename the client on one of the sides.
+   - **Editing a client hosted on several nodes.** Before the edit is sent out, all nodes hosting the client are marked "dirty", and a snapshot arriving mid-operation is skipped: a rename does not leave a copy of the client under the old email, and a changed expiry is not rolled back. This narrows the window for such a discrepancy but does not close it completely.
+   - **Adopted inbounds with a different name.** If a node's inbound was adopted under the master's tag, that link is preserved when the identifier cache is refreshed, and the master does not create a duplicate inbound on the node on the same port. The tag reported by the node itself still takes precedence over the saved link, so operations are not sent to a different inbound on the node that has since received the old name.
 3. **Heartbeat.** A separate background task periodically polls all **enabled** nodes (with a concurrency limit) via `panel/api/server/status`, updates status/metrics/versions, and, when web clients are connected, broadcasts the updated node tree over WebSocket.
 
 ### 12.8. Node chains (sub-nodes / transitive nodes)
@@ -4717,7 +5068,7 @@ How it works:
 
 ## 13. Panel Settings
 
-The "Settings" section (page title — **Panel Settings**) controls the behavior of the 3X-UI web panel itself: which address and port it listens on, how it is protected, how it interacts with the Telegram bot and external services, and in which time zone it runs scheduled tasks. Each parameter is stored in the database `settings` table as a key–value pair; if a value is absent from the DB, the default value is applied.
+The "Settings" section (page title — **Panel Settings**) controls the behavior of the 3X-UI web panel itself: which address and port it listens on, how it is protected, how it interacts with the Telegram and Discord bots and external services, and in which time zone it runs scheduled tasks. Each parameter is stored in the database `settings` table as a key–value pair; if a value is absent from the DB, the default value is applied.
 
 > **Important — applying changes.** Any change on this page must be saved with the **Save** button, and then the panel must be restarted for the changes to take effect. The literal hint: "Every change made here needs to be saved. Please restart the panel to apply changes." When saving, the notification "Settings changed" is shown.
 
@@ -4727,7 +5078,7 @@ The "Settings" section (page title — **Panel Settings**) controls the behavior
 | --- | --- |
 | **Save** | Writes all form fields to the DB (`POST /panel/setting/update`). Before writing, the values pass validation — invalid addresses, ports, or paths will be rejected, and the panel will return an error. |
 | **Restart Panel** | Restarts the panel web server (`POST /panel/setting/restartPanel`). The restart happens with a 3-second delay. Hint: "Are you sure you want to restart the panel? If you cannot access the panel after restarting, please view the panel log info on the server." On success — "The panel was successfully restarted." |
-| **Reset to Default** | Deletes all settings saved in the DB, after which the panel uses the default values. Administrator credentials are not reset by this operation. |
+| **Reset to Default** | Deletes all settings saved in the DB, after which the panel uses the default values. Administrator credentials are not reset by this operation. Subscription paths (`subPath`, `subJsonPath`, `subClashPath`) are not returned to `/sub/`, `/json/` and `/clash/` but regenerated as new random paths, so previously issued subscription links will stop working. |
 
 The restart is performed by sending the `SIGHUP` signal to the panel process (or via a registered restart hook). On Windows, automatic restart via signal is not supported. **Changes to listening parameters (IP, port, path, domain, certificates, time zone) are applied only after the panel is restarted.**
 
@@ -4779,6 +5130,14 @@ The language of the panel web interface. The available languages are: `en-US` (E
 
 The first character of the string is always the separator; the remaining letters define which parts go into the name and in what order.
 
+#### Reality scan candidates
+
+- **Key:** `realityScanCandidates`
+- **Default value:** the former built-in list of ten targets — `www.cloudflare.com:443`, `www.microsoft.com:443`, `www.amazon.com:443`, `aws.amazon.com:443`, `www.samsung.com:443`, `www.nvidia.com:443`, `www.amd.com:443`, `www.intel.com:443`, `www.sony.com:443`, `dl.google.com:443`.
+- **Format:** comma-separated `host:port` targets and/or CIDR ranges (a multi-line field).
+- **Purpose:** the list that the REALITY target scanner (the **Find Targets** button in the REALITY settings of an inbound, see [7.4](#74-reality-mode)) checks when the search field is left empty; `POST /panel/api/server/scanRealityTargets` uses the same list when the request passes no targets. Hint: "Comma-separated host:port targets (or CIDRs) used as the default list when Find Targets runs with an empty search. Customize this with destinations you reuse often." If the field is left empty, the scanner uses the built-in list.
+- **No panel restart required** — the list is read on every scan.
+
 ### 13.3. Panel access: IP, port, path, domain, certificate
 
 This group defines the panel's network entry point. **All changes here are applied only after the panel is restarted.**
@@ -4803,7 +5162,7 @@ If **at least one** of the certificate/key paths is specified, the panel attempt
 > - working over plain HTTP — "Panel is served over plain HTTP — set up TLS for production.";
 > - the default port 2053 — "Default port 2053 is well-known — change it to a random port.";
 > - the default base path `/` — "Default base path \"/\" is well-known — change it to a random path.";
-> - the default subscription path `/sub/` and JSON subscription `/json/` — "Default subscription path \"/sub/\" is well-known — change it." / "Default JSON subscription path \"/json/\" is well-known — change it."
+> - the default subscription path `/sub/` and JSON subscription `/json/` — "Default subscription path \"/sub/\" is well-known — change it." / "Default JSON subscription path \"/json/\" is well-known — change it." A fresh install and a settings reset set random subscription paths right away, so this warning mostly appears on panels upgraded from older versions.
 > These are recommendations, not blocks.
 
 ### 13.4. Session, panel proxy, and trusted proxies ("Proxy and Server" tab / *Proxy and Server*)
@@ -4900,7 +5259,7 @@ proxy_set_header X-Forwarded-Host $host;
 
 - **Key:** `tgRunTime`
 - **Default:** `@daily` (once per day).
-- **Format:** a string in **Crontab** format (both standard cron expressions and abbreviations of the form `@daily`, `@hourly`, `@every 1h` are supported). Hint: "The Telegram bot notification time set for periodic reports. (use the crontab time format)". Controls the bot's periodic reports.
+- **Format:** the value is assembled by the schedule builder (see "[Schedule builder](#schedule-builder)" in 14.5): an `@every N` interval with the unit **Seconds**, **Minutes** or **Hours**, the presets `@hourly`, `@daily`, `@weekly`, `@monthly`, or **Custom (crontab)** — an expression of **6 fields**, the first of which is seconds: this is the panel's built-in scheduler, not the system cron with its five fields where the lowest one is minutes. Hint: "How often the Telegram bot sends periodic reports. Pick a preset interval, or choose Custom to enter a raw crontab expression." Controls the bot's periodic reports. The same builder is used for the Discord bot's **Notification Time** field (`discordRunTime`, see [14.8](#148-discord-bot)).
 
 **Field value examples.**
 
@@ -4909,8 +5268,8 @@ proxy_set_header X-Forwarded-Host $host;
 | `@daily` | once a day at midnight (default) |
 | `@hourly` | every hour |
 | `@every 6h` | every 6 hours |
-| `0 9 * * *` | daily at 09:00 |
-| `30 8 * * 1` | every Monday at 08:30 |
+| `0 0 9 * * *` | daily at 09:00 |
+| `0 30 8 * * 1` | every Monday at 08:30 |
 
 The time is interpreted in the zone from the "Time Zone" setting (section 13.6).
 
@@ -4987,6 +5346,8 @@ Details on 2FA, passwords, LDAP synchronization, and subscription formats (JSON/
 | `node-sync` | Exactly what a central panel needs: list/add/update/delete inbounds, add/update/delete/detach clients, restart Xray, `GET /server/status` |
 
 A request outside its scope gets **HTTP 403** with `this API token is not permitted to access this endpoint`. A token also has an optional **expiry** (`expiresAt`): past it, the token stops authenticating. Apps that manage the panel (the mobile manager among them) need an `admin` token — `monitor` cannot change anything.
+
+If the `Authorization: Bearer` header carries a wrong, disabled or expired token, the API answers **HTTP 401** — this way a token error can be told apart from a wrong base path, which still returns 404. A request with neither an authorization header nor a session gets 404, as before.
 
 **Replacing the TOTP secret requires a 2FA code (3.7.0).** Overwriting the stored two-factor secret is only possible with a valid code: a hijacked session cannot quietly re-point 2FA at its own secret.
 
@@ -5067,11 +5428,29 @@ Where to look for the API documentation:
 - **The built-in Swagger page.** In the panel menu — the **"API Documentation"** item (the SPA route `/panel/api-docs`). Here all endpoints are listed interactively, with descriptions, request bodies, and response examples.
 - **The raw OpenAPI 3.0 specification** is served at `/panel/api/openapi.json`. This URL can be fed directly into Postman, Insomnia, or `openapi-generator`. The specification is embedded in the binary at build time; when the panel runs under a non-standard `webBasePath`, the `servers` field in the specification is automatically rewritten to the current base path, so that the "Try it out" button and external generators hit the correct prefix.
 
+### 13.11. Discord bot ("Discord Bot" tab / *Discord Bot*)
+
+The tab opens from the **Discord Bot** item in the sidebar, in the settings group (address `/panel/settings#discord`), and is laid out like the Telegram bot tab: it has two inner tabs — **General** and **Notifications**. Below is a summary of the keys; setting up the bot in Discord, what the fields do, the events and the commands are described in [14.8](#148-discord-bot).
+
+| Inner tab | Field | Key | Default |
+| --- | --- | --- | --- |
+| General | Enable Discord Notifications | `discordBotEnable` | `false` |
+| General | Discord Bot Token | `discordBotToken` | `""` (secret) |
+| General | Channel ID | `discordChannelId` | `""` |
+| General | Admin User IDs | `discordAdminIds` | `""` |
+| General | Discord Bot Language | `discordLang` | `en-US` |
+| Notifications | Notification Time | `discordRunTime` | `@daily` |
+| Notifications | Database Backup | `discordBotBackup` | `false` |
+| Notifications | Discord Notifications (event selection) | `discordEnabledEvents` | `login.attempt,cpu.high` |
+| Notifications | The "CPU high (%)" and "Memory high (%)" thresholds | `discordCpu`, `discordMemory` | `80`, `80` |
+
+The **Send Test Notification** button (`POST /panel/api/setting/testDiscord`) is on the **General** tab and is available while the bot toggle is on. Most changes on this tab take effect right after saving, without a panel restart (details in 14.8).
+
 ---
 
 ## 14. Telegram Bot
 
-The 3X-UI panel includes a built-in Telegram bot through which you can receive notifications about server and client status, as well as manage individual clients directly from the messenger. The bot operates via long polling (continuous polling of Telegram), so it does not require an external domain or open port — outbound access to Telegram's servers is sufficient.
+The 3X-UI panel includes a built-in Telegram bot through which you can receive notifications about server and client status, as well as manage individual clients directly from the messenger. The bot operates via long polling (continuous polling of Telegram), so it does not require an external domain or open port — outbound access to Telegram's servers is sufficient. Notifications about the same events, scheduled reports and the main commands are also available in Discord — see [14.8](#148-discord-bot).
 
 The bot distinguishes between two types of users:
 
@@ -5158,7 +5537,7 @@ In addition to Telegram, the same events can be received by email. The channel i
 | Recipients | `smtpTo` | (empty) | Comma-separated list of recipients (e.g., `admin@example.com, ops@example.com`). |
 | Encryption | `smtpEncryptionType` | `starttls` | Connection encryption type: `none` (no encryption), `starttls` (STARTTLS), or `tls` (implicit TLS). |
 
-The **Send Test Email** button sends a test message and shows the result step by step: **Connection**, **Authentication**, and **Send**. If something goes wrong, the diagnostics indicate at which step the error occurred (e.g., "Authentication failed — check username and password" or "Server requires STARTTLS — change encryption type"), making it easier to tune the parameters.
+The **Send Test Email** button sends a test message and shows the result step by step: **Connection**, **Authentication**, and **Send**. If something goes wrong, the diagnostics state the step and the cause in plain language (e.g., "Authentication failed — check username and password" or "Server requires STARTTLS — change encryption type"), making it easier to tune the parameters. An error the panel does not recognize is shown as "SMTP error — see the panel log for details".
 
 The second tab (**Notifications**) lets you select which events will trigger email messages — using the same grouped cards as for Telegram (see "Event bus and notification selection" in section 14.5).
 
@@ -5176,9 +5555,9 @@ The menu is invoked with the **`/start`** command. Buttons are an inline keyboar
 
 | Button | Action |
 |---|---|
-| 📊 Sorted Traffic Usage Report | Lists all clients sorted by traffic, with each client's usage; email entries with no data are marked "❗ No results". |
+| 📊 Sorted Traffic Usage Report | Lists all clients sorted by traffic, with each client's usage — in a single message that is split into parts when there are many clients; email entries with no data are marked "❗ No results". |
 | 💻 Server Status | Server summary (see section 14.5). The "🔄 Refresh" button redraws the data. |
-| Reset All Traffic | Resets traffic counters for **all** clients. Asks for confirmation ("Are you sure? 🤔"), then reports "✅ Success" or "❌ Failed" for each client, and finally "🔚 Traffic reset completed for all clients". |
+| Reset All Traffic | Resets traffic counters for **all** clients. Asks for confirmation ("Are you sure? 🤔"), then sends a single report (split into parts when there are many clients) that marks each client "✅ Success" or "❌ Failed" and ends with "🔚 Traffic reset completed for all clients". This way the bot does not run into Telegram's message rate limit even on a panel with hundreds of clients. |
 | 📂 DB Backup | Sends the database file and `config.json` (see section 14.6). |
 | 📄 Ban Log | Sends the log files of IP addresses banned due to exceeding the IP limit. |
 | 🔌 Inbounds | Summary of all inbounds: Remark, port, traffic, number of clients, expiry date. |
@@ -5202,6 +5581,8 @@ Clients have access to a limited set of buttons:
 | QR Code | Select your client → QR codes. |
 
 If a user has no clients with their Telegram User ID, the bot responds: "❌ Your configuration not found! 💭 Please ask the administrator to use your Telegram User ID in the configuration. 🆔 Your User ID: …". This ID should be passed to the administrator to enter in the client's field.
+
+A client can use link buttons (subscription, individual links, QR code) only for their own subscriptions: the bot checks that the email in the button belongs to a client linked to the Telegram User ID of the person who pressed it. Pressing such a button on a forwarded card, in a group chat, or on a keyboard left over after the administrator removed the link gets the answer "❗ Error in operation." Administrators are not subject to this check.
 
 ### 14.3. Bot commands
 
@@ -5265,13 +5646,17 @@ All operations that change the configuration (traffic/IP limit, expiry date, Tel
 
 Any numeric input in the wizards is limited to values < 999999.
 
+If a client's expiry is in "after first use" mode, the card shows it as a number of days — for a disabled client too.
+
+**The "Add Client" wizard.** The draft is kept separately for each chat, so two administrators can add clients at the same time without overwriting each other's values. The draft card is formatted with HTML markup, and the entered values (email, comment, Telegram ID, inbound remarks) are escaped — a `<` character in them does not break the message. The expiry is set with the "♾ Unlimited(Reset)", "🔢 Custom" and "7 Days" … "12 Months" buttons: choosing again **replaces** the expiry instead of adding to it, and the expiry counts from the client's first use. The "Add …" buttons in the "📅 Change Expiry Date" menu of an existing client, by contrast, extend the current expiry.
+
 ### 14.5. Notifications and reports
 
 Notifications are sent to all administrators (all User IDs from `tgBotChatId`).
 
 #### Event bus and notification selection
 
-Notifications are built on a unified event bus, with two delivery channels — **Telegram** and **email (SMTP)**. For each channel you separately choose which events to receive notifications for. In **Settings → Telegram** this is done on the **Notifications** tab; in **Settings → Email** — on the tab of the same name.
+Notifications are built on a unified event bus, with three delivery channels — **Telegram**, **email (SMTP)** and **Discord** (see [14.8](#148-discord-bot)). For each channel you separately choose which events to receive notifications for: in **Settings → Telegram Bot**, **Settings → Email** and **Settings → Discord Bot** this is done on the inner **Notifications** tab.
 
 Events are grouped into cards; each group has a master toggle with a count of enabled events (n/total) and an intermediate state when only some are selected. Available groups:
 
@@ -5281,7 +5666,7 @@ Events are grouped into cards; each group has a master toggle with a count of en
 - **System** — "CPU high (%)" (`cpu.high`) and "Memory high (%)" (`memory.high`): high CPU and RAM load. Both events have an inline threshold field in percent next to them.
 - **Security** — "Login attempt" (`login.attempt`): an attempt to log into the panel.
 
-The set of enabled events is stored separately: for Telegram — in `tgEnabledEvents`, for Email — in `smtpEnabledEvents`. By default both channels have "Login attempt" and "CPU high" enabled (value `login.attempt,cpu.high`).
+The set of enabled events is stored separately: for Telegram — in `tgEnabledEvents`, for Email — in `smtpEnabledEvents`, for Discord — in `discordEnabledEvents`. By default all three channels have "Login attempt" and "CPU high" enabled (value `login.attempt,cpu.high`).
 
 #### Panel login notification
 
@@ -5294,11 +5679,11 @@ Controlled by the **Login Notification** checkbox (`tgBotLoginNotify`, enabled b
 
 Once per minute the panel checks CPU and RAM load. If the **`tgCpu`** threshold is > 0 and the one-minute average CPU load exceeds it, administrators receive: "🔴 CPU load is N%, which exceeds the threshold of M%". RAM load is checked similarly against the **`tgMemory`** threshold (80% by default) — the "Memory high (%)" event.
 
-Both thresholds are set via inline fields next to the "CPU high (%)" and "Memory high (%)" events in the **System** group on the Notifications tab (see "Event bus and notification selection" below). For the Email channel, separate keys `smtpCpu` and `smtpMemory` apply. When a threshold is set to 0, the corresponding check is disabled.
+Both thresholds are set via inline fields next to the "CPU high (%)" and "Memory high (%)" events in the **System** group on the **Notifications** tab (see "Event bus and notification selection" above). For the Email channel, separate keys `smtpCpu` and `smtpMemory` apply, and for Discord — `discordCpu` and `discordMemory`. When a threshold is set to 0, the corresponding check is disabled. The CPU and memory check job is scheduled when the panel starts, and only if at least one enabled channel needs this event with a non-zero threshold: if no channel needed it when the panel started, restart the panel after enabling it.
 
 #### Periodic report (scheduled)
 
-Scheduled by the cron expression from the **Notification Frequency** field (`tgRunTime`, default `@daily`). If the value is empty or invalid, `@daily` is used. The report includes:
+Scheduled by the cron expression from the **Notification Frequency** field (`tgRunTime`, default `@daily`). If the value is empty, `@daily` is used; an expression the scheduler does not accept (for example, a 5-field crontab) is not validated on save — the report is simply not scheduled, and the warning `failed to schedule runtime` appears in the panel log. The report includes:
 
 #### Schedule builder
 
@@ -5315,11 +5700,11 @@ The **Bot Notification Frequency for Admins** field is set not by typing a strin
 | `@daily` | once a day at midnight (default value) |
 | `@hourly` | every hour |
 | `@every 6h` | every 6 hours |
-| `0 9 * * *` | every day at 09:00 |
-| `0 9 * * 1` | every Monday at 09:00 |
-| `0 */12 * * *` | every 12 hours (at 00:00 and 12:00) |
+| `0 0 9 * * *` | every day at 09:00 |
+| `0 0 9 * * 1` | every Monday at 09:00 |
+| `0 0 */12 * * *` | every 12 hours (at 00:00 and 12:00) |
 
-Crontab field order: minute, hour, day of month, month, day of week.
+Field order: second, minute, hour, day of month, month, day of week. Reports are scheduled not by the system cron but by the panel's built-in scheduler (the Go library `robfig/cron`, run with seconds support), so it does not accept the familiar 5-field expression whose lowest field is minutes: the report simply will not be scheduled, and `failed to schedule runtime` will appear in the panel log.
 
 1. The line "🕰 Scheduled reports: <schedule>" and current date/time.
 2. **Server status** (see below).
@@ -5350,6 +5735,94 @@ The name of the backup file sent by the bot is derived from the server's address
 - **Delivery reliability**: on connection errors, messages are retried with exponential backoff (1s/2s/4s, up to 3 attempts).
 - **Caching**: "Server Status" data is cached to prevent frequent "Refresh" presses from overloading the system.
 - **Bot restart**: when settings affecting the bot are saved (enable flag, token, administrator User IDs, or API server address), the panel automatically stops the previous polling loop and starts a new one with the updated parameters — no panel reload is needed. Only one update-receiving instance runs at a time.
+- **Every button press gets an answer**: a button the bot cannot handle no longer spins until Telegram times out — an unrecognized press gets the answer "❗ Error in operation.". The panel keeps the data of long buttons for 20 minutes and does not preserve it across restarts; when such a stale button is pressed, the bot answers "❌ Query not found! Please use the command again!"
+- **A handler failure does not bring the panel down**: a panic while handling a command or a button is caught and written to the log; pressing an old button with the client list of an inbound that has since been deleted gets an error reply.
+- **The "🔄 Refresh" button with no data changes** does not clutter the log with `message is not modified` warnings — they are written at Debug level.
+
+### 14.8. Discord bot
+
+Besides Telegram, the panel works with a Discord bot. It handles three tasks:
+
+- **event notifications** — the same event-bus events as for Telegram and Email (see [14.5](#145-notifications-and-reports)) arrive in the channel as cards (embeds);
+- **a scheduled report** on the server status, optionally with a database backup;
+- **text commands** (`!status`, `!backup`, `!restart` and others) that administrators type in the same channel.
+
+The panel sends notifications, reports and command replies through the Discord REST API (v10) over HTTPS, and receives commands over a persistent WebSocket connection to the Discord Gateway. Both connections are outgoing, so no domain or open port is needed. If **Panel Traffic Outbound** (`panelOutbound`, see [13.4](#134-session-panel-proxy-and-trusted-proxies-proxy-and-server-tab--proxy-and-server)) is set, the bot's traffic goes through it; when Xray is not running, the panel connects directly and writes a warning to the log. The Discord bot does not depend on the Telegram bot — both can be enabled at the same time.
+
+#### Creating the bot in Discord
+
+1. In the [Discord Developer Portal](https://discord.com/developers/applications), create an application (**New Application**).
+2. On the **Bot** tab, get a token (**Reset Token**) and copy it — this is the value for the **Discord Bot Token** field. Do not confuse the token with the Client Secret or the Application ID.
+3. On the same tab, in the **Privileged Gateway Intents** block, enable **Message Content Intent**. Without it, Discord closes the Gateway connection (code 4014) and commands do not work, although notifications and reports are still sent.
+4. In **OAuth2 → URL Generator**, select the `bot` scope and the **View Channels**, **Send Messages**, **Embed Links** and **Attach Files** permissions (the last one is needed for backups), open the generated link and add the bot to your server.
+5. In the Discord client, enable Developer Mode (**User Settings → Advanced → Developer Mode**). Right-click the channel → **Copy Channel ID** to get the value for **Channel ID**; right-click your own name → **Copy User ID** to get the value for **Admin User IDs**.
+
+#### Panel settings
+
+All parameters are set under **Settings → Discord Bot** (a summary of the keys is in [13.11](#1311-discord-bot-discord-bot-tab--discord-bot)). The first five fields in the table are on the inner **General** tab, the rest on the **Notifications** tab.
+
+| Field (UI) | Settings key | Default value | Description |
+|---|---|---|---|
+| Enable Discord Notifications | `discordBotEnable` | `false` | Main toggle. Hint: "Send system and event alerts to a Discord channel via bot". While it is off, no notifications or reports are sent and no Gateway connection is established. |
+| Discord Bot Token | `discordBotToken` | (empty) | The bot token. Stored as a secret: the panel does not return it and shows "Token is configured. Enter a new token to replace it." in the field description instead. An empty field on save keeps the previous token; the **Clear** button followed by a save deletes it. A `Bot ` prefix at the start of the value does not have to be removed. |
+| Channel ID | `discordChannelId` | (empty) | The channel for notifications, reports and command replies. The bot reads commands only in this channel; direct messages and other channels are ignored. |
+| Admin User IDs | `discordAdminIds` | (empty) | Comma-separated Discord user IDs allowed to run commands. Hint: "…Messages from anyone else are ignored, and an empty list turns commands off." Does not affect notifications or reports. |
+| Discord Bot Language | `discordLang` | `en-US` | Language of the test message, notifications, reports and command replies. |
+| Notification Time | `discordRunTime` | `@daily` | Report schedule. Set with the same [schedule builder](#schedule-builder) as for the Telegram bot: a custom crontab has 6 fields, the first being seconds. |
+| Database Backup | `discordBotBackup` | `false` | Attach the database file and `config.json` to the scheduled report and to the `!report` reply. |
+| Discord Notifications | `discordEnabledEvents` | `login.attempt,cpu.high` | Event selection — the same grouped cards as for Telegram (see [14.5](#145-notifications-and-reports)). |
+| CPU and memory thresholds (in the **System** group) | `discordCpu`, `discordMemory` | `80`, `80` | Threshold in percent (0–100) for the `cpu.high` and `memory.high` events; a value of 0 disables the event. |
+
+A panel restart after saving is usually not needed. If the enable flag or the schedule has changed — or, with the bot enabled, the token or the channel ID — the panel reschedules the report and starts or stops the Gateway connection on its own. Admin IDs, language, the event set, thresholds and the backup flag are read at the moment of sending. The exception is the CPU and memory check: if no channel needed these events when the panel started, restart the panel after enabling them (see [14.5](#145-notifications-and-reports)).
+
+The **Send Test Notification** button sends a "3x-ui Discord Notification Test" card to the channel. It uses the **saved** settings, so click **Save** first. The result is shown under the button: "Test notification sent successfully", "Discord bot is not enabled" (the toggle has not been saved as on) or "Discord test failed: …" with the reason (see "Gateway connection and troubleshooting" below).
+
+#### Event notifications
+
+| Event | Card | Contents |
+|---|---|---|
+| `outbound.down` | "Outbound Down" (red) | outbound tag, error, delay |
+| `outbound.up` | "Outbound Up" (green) | outbound tag, delay |
+| `node.down` | "Node Down" (red) | node name, Xray error on the node (if any) |
+| `node.up` | "Node Up" (green) | node name, delay |
+| `xray.crash` | "Xray Core Crashed" (red) | error text |
+| `cpu.high` | "CPU Threshold Exceeded" (orange) | current load and threshold |
+| `memory.high` | "Memory Threshold Exceeded" (orange) | current usage and threshold |
+| `login.attempt` | "Login Success" (green) or "Login Failed" (red) | username, IP, time, failure reason; the password is not sent |
+
+The same event from the same source (for example, one outbound going down) is sent no more than once a minute; login attempts are not throttled. The card footer shows the server's hostname.
+
+#### Scheduled report and backup
+
+The "📊 3x-ui Status Report" is sent on the `discordRunTime` schedule while the bot is enabled and Xray is running. It contains: host, panel and Xray versions (with the core state), uptime, load average, memory, network traffic (↑, ↓ and total), TCP/UDP connections, the number of online clients, inbound and client counters in the "Total | Depleting | Disabled" format, and the IPv4/IPv6 addresses of the interfaces. "Depleting" covers the same inbounds and clients as the "Expiring Soon" block of the Telegram bot: the thresholds are taken from the `expireDiff` and `trafficDiff` settings. An empty schedule is replaced with `@daily`; an expression the scheduler does not accept is left unscheduled, and the warning `failed to schedule runtime` appears in the log.
+
+If **Database Backup** is enabled, the database file (`<domain or IP>_YYYY-MM-DD_HHMMSS.db`, or `.dump` for PostgreSQL) and `config.json` follow in a separate message. The report and the files are sent as separate messages: if the database exceeds Discord's attachment size limit, only the backup message is rejected, and the report still gets through.
+
+#### Commands
+
+Commands are ordinary text messages in the channel from the **Channel ID** field, not registered Discord slash commands. The prefix is `!` or `/` (`/status` is the same as `!status`), and case does not matter. The bot runs a command only if its author is listed in **Admin User IDs**; messages from other users and from bots, as well as unknown commands, are silently ignored.
+
+| Command | What it does |
+|---|---|
+| `!status` | The "⚡ 3x-ui Server Status" card: panel and Xray versions, uptime, load, memory, online clients, TCP/UDP connections, sent and received. |
+| `!report` | Sends the report right away, just like the scheduled one; the backup is attached only if **Database Backup** is enabled. |
+| `!backup` | Sends the database file and `config.json` — always, regardless of `discordBotBackup`. |
+| `!usage <email>` | Client card: status, upload, download, total used, quota and expiry (a date, a number of days for "after first use" mode, or "Unlimited"). The email is matched case-insensitively. Without an argument the bot shows the command format; for an unknown email it reports that the client was not found. |
+| `!inbounds` | List of inbounds: protocol, port, number of clients, traffic and state. A long list is split into several messages within Discord's limits. |
+| `!restart` | Restarts the Xray core: "🔄 Restarting Xray core...", then "✅ Xray core restarted successfully." or the error text. |
+| `!help` | List of commands (`!start` does the same). |
+
+> **Warning.** `!backup` and the backups in reports post the entire panel database to the channel. Use a private channel that only administrators can see.
+
+#### Gateway connection and troubleshooting
+
+When the Gateway connection drops, the panel reconnects after 5 seconds; if Discord stops answering heartbeat messages, the "hung" connection is closed and re-established too. If Discord closes the connection with code 4004 (invalid token) or 4010–4014 (including 4014 — Message Content Intent not enabled), the panel stops reconnecting and writes `Discord Gateway closed for good` to the log. The connection is restored after a panel restart or after a settings save that restarts the bot: a new token or channel ID, a changed schedule, or turning the bot off and on again.
+
+- **"… (401): invalid bot token"** — the token is wrong: the Client Secret or Application ID was copied instead of the token from the **Bot** tab.
+- **"… (403): bot lacks permissions for channel"** — the bot has no permissions in the channel: check **View Channels**, **Send Messages**, **Embed Links** and **Attach Files** for its role.
+- **"… (404): channel not found"** — the channel ID is wrong, or the bot has not been added to the server the channel belongs to.
+- **The bot does not respond to commands** — check that your ID is in **Admin User IDs**, that the command was sent to the channel from **Channel ID**, and that **Message Content Intent** is enabled in the Developer Portal; after enabling the intent, restart the panel.
+- **Discord is unreachable from the server** — set **Panel Traffic Outbound** (`panelOutbound`): both the REST requests and the Gateway connection go through it.
 
 ---
 
@@ -5413,8 +5886,10 @@ Specifics of updating the standard files:
 - **Button to update a single file.** Before the download a confirmation is shown: *Do you really want to update the geofile?* with the explanation *This will update the #filename# file.* On success a notification pops up: *Geofile updated successfully*.
 - **The "Update all" button** (*Update all*) downloads all six files. Confirmation: *This will update all geofiles.*
 - **Conditional download.** If the local file already exists, the `If-Modified-Since` header with the file's modification time is added to the request. A `304 Not Modified` server response means the file has not changed — it is not downloaded again, only the file's timestamp is updated.
+- **SHA-256 verification.** All three sources publish a `<name>.sha256sum` file next to each `.dat`. The panel first finds out the tag of the current release (from the redirect of the `releases/latest/download/…` link) and then downloads both the file and its checksum from **that** release — so that they cannot come from different releases if the source publishes a new one in the middle of the download. The matching line in `.sha256sum` is looked up by the file's base name (the sources write both `geoip.dat` and `release/geoip.dat`). On a mismatch the file is not installed, and the error says *"does not match the published SHA-256 checksum, so the download is corrupted or has been tampered with"*, with the expected and actual sums; if the `.sha256sum` could not be fetched or has no line for the file, the file is not installed either.
+- **All or nothing within a source.** Downloaded files are first put into a temporary folder inside `bin` and moved into place only after verification. Files from one repository (the geoip/geosite pair) are installed together: if one of them fails to download or verify, nothing from that repository is installed. The other repositories are processed independently, and their errors are collected into a single message.
 - **File name safety.** Only names from the allowlist are accepted; the name is checked to contain no `..`, no path separators `/` or `\`, no absolute paths, and must match the pattern `^[a-zA-Z0-9._-]+\.dat$`. Any name outside the list is rejected with the error "Invalid geofile name".
-- **Xray restart.** After the geo files are downloaded, Xray-core is restarted so that it re-reads the updated databases. If the restart fails, a corresponding line is added to the error message.
+- **Xray restart.** Xray-core is restarted only if at least one file was actually installed. If all sources answered `304 Not Modified` or no file passed verification, there is no restart and active connections are not dropped. If the restart fails, a corresponding line is added to the error message.
 
 #### Updating geo databases from the command line (x-ui)
 
@@ -5431,6 +5906,7 @@ At the top of the section a hint is shown: *Xray downloads these files on schedu
 - **Schedule (cron)** (*Schedule (cron)*) — a 5-field cron string; the default value is `0 4 * * *` (daily at 04:00). On save the string is checked to contain exactly 5 fields, otherwise the error *Cron must have 5 fields, e.g. 0 4 * * ** is shown.
 - **Download through outbound (optional)** (*Download through outbound (optional)*) — a dropdown with the tags of available outbounds (plus subscription outbounds) through which Xray will download the files; outbounds with the `blackhole` protocol are excluded. The field may be left empty — then a direct connection is used. This choice is independent of the outbound used for the panel's own requests (see §11): geodata auto-update has its own separate download outbound.
 - **File list** — each row defines a "URL + File name" pair (*File name*). The URL must start with `https://` (otherwise *Each file needs an HTTPS URL.*). The file name must be plain, with no paths or separators — only the characters `^[A-Za-z0-9._-]+$` (otherwise *File names must be plain names like geosite_custom.dat (no paths).*). When a URL is entered, the panel tries to fill in the file name automatically from the last path segment. The "Add file" button (*Add file*) adds a row, and the trash button removes it.
+- **Use standard sources** — adds the six standard files from §15.2 (`geoip.dat`, `geosite.dat`, `geoip_IR.dat`, `geosite_IR.dat`, `geoip_RU.dat`, `geosite_RU.dat`) to the list, with links of the form `https://github.com/<repository>/releases/latest/download/geoip.dat` (or `geosite.dat`). Only files that are not in the list yet are added (matched by file name); existing rows, including your own sources, are not replaced. The button is disabled if the panel has not provided the list of standard sources. For the changes to take effect, click "Save & Restart Xray".
 
 If the list is empty, a hint is shown: *No files configured. Reference files in routing rules as ext:geosite_custom.dat:category.*
 
@@ -5660,7 +6136,7 @@ Interface result messages:
 | Import error | "An error occurred while importing the database" |
 | File read error | "An error occurred while reading the database" |
 
-> Restore completely replaces the current data. Because Xray is briefly stopped during the process, existing client connections are interrupted for the duration of the import.
+> Restore completely replaces the current data. Because Xray is briefly stopped during the process, existing client connections are interrupted for the duration of the import. Three seconds after a successful import (on SQLite and PostgreSQL alike), the panel itself is restarted as well, so that the subscription paths and other settings from the uploaded file that are read only at startup take effect immediately; the page waits 5 seconds and reloads (see [3.14](#314-database-backup-and-restore)).
 
 #### Migration file between engines (SQLite ⇄ PostgreSQL)
 
@@ -5686,6 +6162,10 @@ There are two ways to receive a backup in Telegram:
 2. **Automatically with the report.** The bot settings have a toggle **"Database Backup"** with the description "Send a notification with the database backup file". When enabled, every time the periodic report is sent, the bot also sends the backup to all administrators after the report. The report sending period is set by the bot's cron schedule (see section 16.6). The bot introduces pauses between files and between administrators to stay within Telegram's rate limits.
 
 > The bot backup is only sent if the bot is running; on PostgreSQL it also requires `pg_dump` to be present on the server.
+
+#### Backup via the Discord bot
+
+The Discord bot (see [14.8](#148-discord-bot)) sends the same two files as well — the database (named after the server's domain or IP) and `config.json`: immediately on the `!backup` (or `/backup`) command in the configured channel, and, when the **"Database Backup"** toggle (`discordBotBackup`, off by default) is on, also after every periodic report (the "Notification Time" schedule, `@daily` by default) and on the `!report` command. Commands are accepted only from users listed in "Admin User IDs". The files are sent as a separate message after the report, so a backup that exceeds Discord's attachment size limit does not prevent the report itself from being delivered.
 
 ### 16.2. Viewing logs
 
@@ -5838,7 +6318,7 @@ Starting an update — `POST /panel/api/server/updatePanel`. Confirmation dialog
 
 After starting — a popup message "Panel update started"; if the version check fails — "Panel update check failed".
 
-**What happens on the server:** self-update is supported **only on Linux** (on other operating systems the error "panel web update is supported only on Linux installations" is returned). The panel downloads the official `update.sh` script from GitHub (`raw.githubusercontent.com/MHSanaei/3x-ui/main/update.sh`) and runs it in a separate process: preferably via `systemd-run` in a dedicated unit (`x-ui-web-update-<timestamp>`), or as a detached process if systemd is not available. When finished, the script updates the components and restarts the panel service. `bash` is required to run it.
+**What happens on the server:** self-update is supported **only on Linux** (on other operating systems the error "panel web update is supported only on Linux installations" is returned). The panel downloads the official `update.sh` script from GitHub (`raw.githubusercontent.com/MHSanaei/3x-ui/main/update.sh`) and runs it in a separate process: preferably via `systemd-run` in a dedicated unit (`x-ui-web-update-<timestamp>`), or as a detached process if systemd is not available. When finished, the script updates the components and restarts the panel service. `bash` is required to run it. Before extracting, `update.sh` checks the archive's SHA-256 against the published `.sha256` file: a mismatch or a failed checksum download aborts the update before the panel is even stopped, while for old releases without a checksum file only a warning is printed (details in [1.3](#13-installation-methods)). The `x-ui.sh` menu script, `x-ui.rc`, and the service units are taken from the tag of the release being installed (for the dev channel — from `main`); if a required file is missing for that tag, the update is cancelled and the current installation is left untouched. The `tuic-server` processes, like `mtg`, are stopped before the files are replaced — the panel starts them again once it is back up.
 
 If during an update the script generates a new random Web Base Path for the panel, the `x-ui` service is restarted automatically so the new path takes effect immediately. (Without a restart, the server would keep serving the old path while the interface showed the new one, making the new address unreachable until a manual restart.)
 
@@ -5854,7 +6334,7 @@ On dev builds the panel shows its version as `dev+<short-commit>` instead of a m
 
 #### Automatic fail2ban installation
 
-To make the per-client IP count limit (section 16.3) work out of the box, `fail2ban` is now installed and configured automatically during panel installation and update on regular servers (previously this only happened in the Docker image). The behavior is controlled by the `XUI_ENABLE_FAIL2BAN` environment variable: setup is performed when the variable is not set or is equal to `true`. Manual setup is available with the `x-ui setup-fail2ban` command. A fail2ban setup failure does not abort the panel installation or update.
+To make the per-client IP count limit (section 16.3) work out of the box, `fail2ban` is now installed and configured automatically during panel installation and update on regular servers (previously this only happened in the Docker image). The behavior is controlled by the `XUI_ENABLE_FAIL2BAN` environment variable: setup is performed when the variable is not set or is equal to `true`. Manual setup is available with the `x-ui setup-fail2ban` command. A fail2ban setup failure does not abort the panel installation or update. On Debian 12+ and Ubuntu 22.04+ the script switches fail2ban's global backend to `systemd` through a separate file, `/etc/fail2ban/jail.d/3x-ipl-backend.conf` (a `[DEFAULT]` section), instead of editing the packaged `/etc/fail2ban/jail.conf` — a setting made this way survives fail2ban package upgrades. The file is created only if `jail.conf` still has the stock `backend = auto`, so an administrator's own backend is not overwritten; the `3x-ipl` jail itself still uses `backend=auto`. When installing an old version whose `x-ui.sh` does not yet know the `setup-fail2ban` command (before 3.4.0), the auto-setup is skipped with the message "This x-ui.sh predates 'x-ui setup-fail2ban'; skipping Fail2ban auto-setup.".
 
 #### Installation and update on IPv6-only hosts
 
@@ -5892,7 +6372,7 @@ On the server, when switching versions, Xray is first stopped, the archive of th
 
 ### 16.6. Scheduled tasks (cron)
 
-The panel registers a number of background tasks at startup. Their schedules are fixed (not configurable in the UI, with the exception of the Telegram report schedule and LDAP sync). Below are the tasks relevant to operations.
+The panel registers a number of background tasks at startup. Their schedules are fixed (not configurable in the UI, with the exception of the Telegram and Discord report schedules and LDAP sync). Below are the tasks relevant to operations.
 
 | Task | Schedule | Purpose |
 |------|----------|---------|
@@ -5905,6 +6385,7 @@ The panel registers a number of background tasks at startup. Their schedules are
 | **Xray log growth cap** | **every 10 minutes** (`@every 10m`) | **New in 3.5.0.** Trims the Xray access and error logs when either exceeds **64 MiB**; disabled logs (`none`/empty) are not touched |
 | **Traffic reset by period** | `@hourly`, `@daily`, `@weekly`, `@monthly` | Resets traffic counters for inbounds (and their clients) that have the corresponding auto-reset period configured |
 | Telegram report | set in bot settings (default `@daily`) | Sends a report to administrators; if the option is enabled — with the database backup attached (section 16.1) |
+| Discord report | "Notification Time" in the Discord bot settings (default `@daily`) | Only when the Discord bot is enabled and Xray is running: sends a report to the channel; if "Database Backup" is enabled — followed by the database backup and `config.json` (section 16.1) |
 | Telegram hash store reset | every 2 m | Only when the bot is enabled |
 | CPU load monitoring for Telegram | every 10 s | Only if a CPU threshold > 0 is set |
 
@@ -5912,7 +6393,7 @@ Additional notes:
 
 - **Periodic traffic reset** only fires for inbounds that have the corresponding auto-reset mode selected (hourly/daily/weekly/monthly). The task resets the traffic for the inbound itself and for all its clients.
 - **Expiry and exhaustion check.** Disabling clients upon expiry or traffic limit exhaustion is performed as part of traffic accounting: clients with an expired `expiry_time` or exhausted quota are flagged and disabled; the next period is calculated if necessary (for cyclic limits and the "count from first use" mode). This is reflected on the "Dashboard" and in lists with the statuses "Expired" / "Exhausted" / "Expiring soon".
-- **Automatic Telegram backup** is a side effect of the report task; there is no separate cron schedule for backup alone. Therefore the frequency of automatic backups equals the frequency of the bot's report.
+- **Automatic Telegram backup** is a side effect of the report task; there is no separate cron schedule for backup alone. Therefore the frequency of automatic backups equals the frequency of the bot's report. The Discord bot's automatic backup works the same way.
 
 ### 16.7. Console menu and CLI (`x-ui`)
 
@@ -5923,7 +6404,7 @@ On the server, the panel is managed with the `x-ui` command. Without arguments i
 | 1 | Install | Install the panel (downloads and runs `install.sh`) |
 | 2 | Update | Update all x-ui components to the latest version without data loss; auto-restart afterwards |
 | 3 | Update to Dev Channel (latest commit) | Update to the `dev-latest` rolling build (latest commit of the `main` branch) with confirmation (see 16.5) |
-| 4 | Update Menu | Update only the `x-ui` menu script itself |
+| 4 | Update Menu | Update only the `x-ui` menu script itself — the version from the installed panel's tag (see 1.6) |
 | 5 | Legacy Version | Install a specified (older) panel version by entering its number (for example, `2.4.0`) |
 | 6 | Uninstall | Completely remove the panel and Xray (see 16.8) |
 | 7 | Reset Username & Password | Reset the administrator login and password |
@@ -5941,7 +6422,7 @@ On the server, the panel is managed with the `x-ui` command. Without arguments i
 
 > Menu item numbering changed in 3.4.1: the addition of item 3 "Update to Dev Channel" shifted all subsequent items by one. The total number of items is now 28, and selection is entered in the range `[0-28]`.
 
-#### Log management in CLI (item 16)
+#### Log management in CLI (item 17)
 
 The "Logs Management" submenu now opens from item **17** (previously 16):
 - **Debug Log** — streaming view of the service journal: `journalctl -u x-ui -e --no-pager -f -p debug` (on Alpine — `grep` over `/var/log/messages`).
@@ -5966,7 +6447,6 @@ All available subcommands:
 | `x-ui banlog` | View Fail2ban ban logs |
 | `x-ui setup-fail2ban` | Install and configure fail2ban for IP limiting (see 16.5) |
 | `x-ui update` | Update the panel |
-
 | `x-ui update-dev` | Update the panel to the dev channel (rolling build `dev-latest`) |
 | `x-ui update-all-geofiles` | Update all geo files (with subsequent restart) |
 | `x-ui migrateDB [file]` | Convert database `.db ⇄ .dump` (SQLite) |
@@ -5976,15 +6456,27 @@ All available subcommands:
 
 > The `x-ui update` command downloads and runs the official `update.sh` (the same script used by the web update in section 16.5), asking for confirmation: "This function will update all x-ui components to the latest version, and the data will not be lost." On completion, the panel restarts automatically.
 
-> **`-webCert` / `-webCertKey` flags in the `setting` subcommand.** The paths to the web panel certificate and private key can be set directly in the `x-ui setting -webCert <path> -webCertKey <path>` subcommand — specifying either of these flags saves the corresponding path (as does the separate `cert` subcommand), and the panel immediately switches to HTTPS.
+> **`-webCert` / `-webCertKey` flags in the `setting` subcommand.** The paths to the web panel certificate and private key can be set directly in the `/usr/local/x-ui/x-ui setting -webCert <path> -webCertKey <path>` subcommand — specifying either of these flags saves the corresponding path (as does the separate `cert` subcommand), and the panel immediately switches to HTTPS.
 
 #### Obtaining an API token via CLI
 
-The API token retrieval command via CLI (menu item / `x-ui` command) does not display a previously issued token. API tokens are stored only as hashes, so an existing token cannot be retrieved in plain text. If tokens are already configured, the command reports their count, recommends managing tokens in the panel (**Settings → API Tokens**, see the API tokens section), and immediately generates a **new fallback token** with a name like `cli-fallback-<timestamp>` and prints it, so the CLI remains useful without logging into the interface.
+An API token for scripts can be issued with a command of the panel binary itself. It is not a subcommand of the menu script, so the binary is called by its full path (in Docker — `/app/x-ui`):
+
+```bash
+/usr/local/x-ui/x-ui setting -getApiToken                     # regenerate the cli-fallback token
+/usr/local/x-ui/x-ui setting -getApiToken -tokenName ci-bot   # regenerate the token named ci-bot
+```
+
+The command cannot show a token that has already been issued: API tokens are stored only as hashes. What it does:
+
+- **If tokens already exist**, the command reports their count, recommends managing tokens in the panel (**Settings → API Tokens**, see [13.9](#139-administrator-account-and-api-tokens)), and **regenerates** the token with the name from `-tokenName` (`cli-fallback` by default): the previous token with that name is deleted and stops working at once, and a new one is created in its place. The output is the line `The API token "<name>" has been regenerated (any previous one is now invalid):` followed by `apiToken: <token>`. Repeated calls with the same name do not pile up tokens.
+- **If there are no tokens yet** (a fresh panel), a token is created with the name from `-tokenName`, or `install` without the flag. This is the token the installer saves, and later calls without `-tokenName` leave it alone: they regenerate `cli-fallback`.
+- The name is at most 64 characters long. Give different scripts different names: calls with the same name revoke each other's tokens.
+- Flags go **before** positional arguments. With `-getApiToken true -tokenName ci-bot`, flag parsing stops at `true`: the warning `warning: ignored "true -tokenName ci-bot" and any flags after it; put flags before positional arguments` is printed, and it is `cli-fallback` that gets regenerated.
 
 ### 16.8. What changed in operations in 3.7.0
 
-- **`x-ui setting -getApiToken` no longer breeds tokens.** Each call used to create a new admin token, and forgotten full-access keys piled up in the panel. The command now **rotates a single `cli-fallback` token**: CLI tokens issued earlier stop working once it rotates — update them if your scripts use them.
+- **`/usr/local/x-ui/x-ui setting -getApiToken` no longer breeds tokens.** Each call used to create a new admin token, and forgotten full-access keys piled up in the panel. The command now **rotates a single `cli-fallback` token**: CLI tokens issued earlier stop working once it rotates — update them if your scripts use them.
 - **Upgrading leaves your files in `bin/` alone.** A hand-added `geoip.dat` or any other file survives an upgrade.
 - **`update.sh` goes through the panel's proxy.** When the panel is configured with a proxy, the upgrade downloads through it — upgrades no longer fail on servers with no direct outbound access.
 - **A half-applied startup migration is no longer committed silently.** The panel refuses to come up on a half-broken schema instead of pretending everything is fine, so the error is visible immediately.
@@ -6059,6 +6551,7 @@ Output file name when the second argument is not provided:
 - **Output overwrite.** If the output file already exists, confirmation is requested (default is no); without confirmation the operation is cancelled. On restore, the old output file is removed first.
 - **Live database protection.** On restore to the default database `/etc/x-ui/x-ui.db` when the panel is running, the operation is rejected with a requirement to first stop the panel (`x-ui stop`) or choose a different output path. This prevents overwriting the working database of a running service.
 - On failure to reconstruct the database, any partial output file is deleted.
+- **Dump permissions.** A text `.dump` contains the same secrets as the database, in plain text (client UUIDs, REALITY private keys, the administrator password hash), so it is written with permissions `0600` — only the owner can read it.
 
 #### Why this is useful
 
