@@ -2,7 +2,7 @@
 
 🇬🇧 English · 🇷🇺 [Русский](3X-UI-MANUAL.ru.md)
 
-**3X-UI version: 3.8.0.** This manual is based on and current for this version. A summary of changes in 3.8.0 relative to 3.7.0 is in the [What's new in 3.8.0](#whats-new-in-380) section.
+**3X-UI version: 3.8.5.** This manual is based on and current for this version. A summary of changes in 3.8.5 relative to 3.8.0 is in the [What's new in 3.8.5](#whats-new-in-385) section.
 
 > A detailed English-language manual for the **3X-UI** web panel (Xray-core
 > management): features, configuration and operation, with an explanation of
@@ -13,7 +13,7 @@
 
 ## Table of Contents
 
-- [What's new in 3.8.0](#whats-new-in-380)
+- [What's new in 3.8.5](#whats-new-in-385)
 - [1. Introduction, Requirements, and Installation](#1-introduction-requirements-and-installation)
   - [1.1. What Is 3X-UI](#11-what-is-3x-ui)
   - [1.2. Supported Operating Systems and Architectures](#12-supported-operating-systems-and-architectures)
@@ -185,117 +185,47 @@
   - [16.9. Uninstalling the panel](#169-uninstalling-the-panel)
   - [16.10. The `x-ui migrateDB` command](#1610-the-x-ui-migratedb-command)
 
-## What's new in 3.8.0
+## What's new in 3.8.5
 
-Version 3.8.0 adds **a new protocol, TUIC v5** — it runs as a separate `tuic-server` process managed by the panel, like MTProto — along with **AmneziaWG as an outbound** and a **Discord bot** for notifications, reports and commands. The rest of the headline: **Happ client integration** (app-management headers, routing presets, encrypted links); the subscription can now serve **a separate info config with status**, **a routing profile and DNS servers for JSON**, **balancer member weights** and **a counter of free HWID slots**; WireGuard/AmneziaWG clients gained **Keepalive**; the interface gained a **"Command Palette" on Ctrl+K**. The core is updated to **Xray-core v26.9.9**: on the first start, saved configurations are rewritten to its keys, and an empty **"Min Client Ver"** in REALITY now means "no lower bound". Below are the changes relative to 3.7.0, by manual section.
-
-### Changes in section 1 — Introduction, Requirements, and Installation
-
-- **Xray-core 26.9.9 and the `tuic-server` 1.0.0 binary are bundled**, the latter for the new TUIC protocol: `install.sh` and `update.sh` install it into the panel's `bin/`, and it ships in the release archives and the Docker image (in Docker, publish the TUIC port as UDP). There are no prebuilt binaries for armv5/armv6/s390x — TUIC is unavailable there. Building from source requires Go 1.27.1.
-- **Installation and updates verify the archive's SHA-256** against the published `.sha256` file, and `x-ui.sh`, `x-ui.rc` and the service unit files are taken from the same release's tag rather than from `main`.
-- **One-time migrations on the first start:** the Xray template is rewritten to the new core's keys, the MTProto link address moves into a host, `subSortIndex` 0 → 1. **Back up the database before upgrading.**
-- **The SQLite database is owner-only:** the `x-ui.db*` files are `0600` and the `/etc/x-ui` directory is `0700`. A new database (and a settings reset) gets random subscription paths.
+Version 3.8.5 is mostly fixes and optimization. The headline: **the subscription page has been reworked** (a usage ring, tabs, one-tap import into apps), and **the link to the built-in profile page is no longer disclosed** — the profile-page mode is now an explicit setting (`None` / `Built-in` / `Custom`, `None` by default). **The Xray core survives a broken configuration:** a config the core cannot bind is rejected with the reason shown, instead of taking down every protocol in a once-a-second loop. **AmneziaWG relay ports** are fixed (on databases with a high inbound-id counter the protocol simply did not work before), **large node-farm synchronization** is faster, and **`"qType": 0`** in a DNS outbound no longer blocks every query (a one-time migration fixes the template). Requirements are unchanged: Go 1.27.1, Xray-core v26.9.9. Below are the changes relative to 3.8.0, by manual section.
 
 ### Changes in section 2 — Panel login and access security
 
-- An invalid, disabled or expired **Bearer token gets HTTP 401** instead of 404 — the authentication failure is now visible. A request without the header and a request to a wrong base path still get 404.
-- Login and logout lines in the log now follow a single format and contain the real username; a successful login is no longer logged twice.
-
-### Changes in section 3 — Overview / Dashboard
-
-- **"Command Palette" — Ctrl+K or ⌘K** ([3.17](#317-command-palette-ctrlk)): search for clients, inbounds, pages and settings tabs, copy a subscription, restart Xray (without confirmation) and switch the theme.
-- **After a database import the panel restarts itself** — the subscription paths from the backup start working immediately.
-- Updating geo files from the dashboard verifies SHA-256 and does not restart Xray if nothing has changed.
+- **The two-factor code is accepted from adjacent TOTP windows** (#6546): with a small clock skew between the server and the authenticator app, the code is no longer rejected.
 
 ### Changes in section 4 — Inbounds: creation and common parameters
 
-- **The inbound list shows the remarks of attached host groups** — multiple entry points (IPv4, IPv6, CDN) are visible without opening the inbound. Only enabled groups are taken into account, and search finds an inbound by them too.
-- **"Subscription sort order"** accepts **negative values**: `-1` is enough to put an inbound first. `0` and an empty value are normalized to `1`, including in data saved earlier.
+- **A port conflict is rejected on save and on enabling an inbound**, instead of silently crashing the core. The rejection message names the inbound or the AmneziaWG peer that holds the port — free it and retry.
 
 ### Changes in section 5 — Protocols
 
-- **A new protocol: TUIC v5** ([5.13](#513-tuic-v5)). The inbound is served by a separate `tuic-server` process behind the panel's UDP relay; the certificate is set right in the form, clients get a UUID and a password, and there are `tuic://` links and a Clash config. Limitations: traffic and limits are inbound-level only, it works on the local panel only, and any client change restarts the process and drops connections.
-- **MTProto:** all links are built from managed hosts, so behind a reverse proxy clients get the correct external address and port. The former custom link address is moved into a host on upgrade.
-- **AmneziaWG:** the default MTU is 1420 minus `S4`; the UDP socket binds to the listen IP; "Regenerate" sets single values for H1–H4; obfuscation parameters are validated against the bounds of `amneziawg-go`; clearing the header protection key applies to the running interface.
-- **Hysteria2:** the link carries the standard obfs parameters (salamander/gecko) and `mport`; in xray-core 26.9.9 port hopping is performed by the client-side `udphop` mask.
-
-### Changes in section 6 — Transport (Stream Settings)
-
-- Hysteria's `proxy` masquerade mode gained an **"X-Forwarded headers"** field: `X-Forwarded-For`, `X-Forwarded-Host` and `X-Forwarded-Proto` are added to the proxied request.
-
-### Changes in section 7 — Connection Security: TLS, XTLS, and REALITY
-
-- **An empty "Min Client Ver" no longer means the built-in minimum.** In Xray-core v26.9.8 and newer (3.8.0 ships with v26.9.9) an empty field means "no lower bound": third-party cores such as Mihomo and sing-box connect without the `1.0.0` workaround. Explicitly set values work as before.
-- **A TLS inbound cannot be saved without a certificate or key.** Every entry needs a certificate (a path or the content) and a private key, and at least one entry must be a server certificate. The check runs both in the form and on the server; incomplete entries saved earlier can still be edited.
-- **The REALITY target scanner** shows the certificate chain size and warns when, with ML-DSA-65 enabled, the chain is shorter than 3500 bytes. "Find Targets" with an empty field checks the list from the new **"Reality scan candidates"** setting.
-- A selected uTLS fingerprint of **None** is now kept — on save it used to silently revert to `chrome`. The Clash/Mihomo subscription enables ML-KEM support for REALITY (`support-x25519mlkem768`).
+- **AmneziaWG relay ports are fixed for good:** a loopback relay slot is allocated even for a row with no peers and for a disabled row, the port number wraps around, and a row does not take up its own port. On databases with a high inbound-id counter the protocol did not work at all before.
 
 ### Changes in section 8 — Clients
 
-- **Keepalive for WireGuard/AmneziaWG clients** — the "Keepalive (seconds)" field: `25` in a new client's form, `0` disables it. A button that generates a **pre-shared key** (PresharedKey) now sits next to it.
-- **Happ Encrypted Link** in the QR code window: the `happ://crypt5/…` link is generated locally on the panel server, with no external services. The option becomes available once **"Encrypted subscription links"** is enabled in the subscription settings (Happ → Subscription Links).
-- **Bulk adjust** now also sets the **HWID Limit** (lowering it removes the excess devices) and the **MTProto ad-tag**.
-- The HWID device list shows a **short fingerprint** — the first 12 characters of the identifier's hash.
-- **TUIC** clients: a UUID and a password, and the QR code window offers **"TUIC config (Clash)"**; a per-client traffic quota is not supported for TUIC.
-- A client on several tunnel inbounds keeps its keys and peer address on each of them, and its config is shown separately for each inbound.
-- Fixes: auto-renew applies to all of a client's inbounds; an expiry at 23:59:59 on the day before the renewal day is moved to midnight without spending a renewal; an explicit `enable: false` is preserved on creation and import; a partially applied client operation marks Xray for a restart; a client's external links respect its expiry.
-
-### Changes in section 9 — Client groups
-
-- **"Adjust ({count})"** on the groups page applies every bulk-adjust field — Flow, the HWID limit and the MTProto ad-tag. Previously only days and traffic were applied, and the selected Flow was silently discarded.
+- **The counter cards on the clients page are now clickable:** clicking one filters the list by that metric (total, online, etc.).
 
 ### Changes in section 10 — Subscriptions (Subscription)
 
-- **Happ client integration** ([10.7](#107-happ-client-integration)): with auto-detection enabled, the panel recognizes Happ by its User-Agent and sends it app-management headers — banners, migration to a new or fallback URL, TUN mode and engine, auto-connect, per-app proxy on Android, enforced HWID. Routing presets and a visual rule generator are included too.
-- **A separate info config:** traffic and expiry are shown as a separate "dummy" config at the top of the list, and an expired or depleted subscription serves only the status config, built from configurable templates.
-- **JSON subscription:** an embedded routing profile (JSON, a `happ://`/`incy://` deeplink or an HTTPS URL), custom **DNS servers**, a **"Block Connection"** tab; the client's local inbounds listen on `127.0.0.1`, and mux is off for Vision.
-- **Clash/Mihomo:** AmneziaWG and TUIC proxies, ML-KEM for REALITY, extra `/mihomo/` and `/clash-legacy/` endpoints.
-- **New installations get random subscription paths** (`subPath`, `subJsonPath`, `subClashPath`); an upgrade keeps the paths, and a settings reset creates new ones.
-- The **`…/hwid-status`** endpoint reports how many device slots are taken and how many are left, without using up a slot; the device limit also applies to `?view=raw`.
-- **Member weights** in leastLoad balancers: a member with a lower weight is picked more often.
-- **Hosts:** MTProto links are built from hosts; REALITY parameters are dropped when a host forces TLS; a host's "Description" is passed to Happ as the server caption.
-- The **"Month-end subscription expiry display"** option shows the end of a monthly subscription as the last second of the previous month; links of disabled and expired clients are left out of the output.
+- **The subscription page has been reworked:** a usage ring with the remaining quota, "Subscription / Apps / Configs" tabs, one-tap import on Android and iOS, a clear status (expired / depleted / disabled) and right-to-left rendering for Persian and Arabic.
+- **The built-in profile-page mode is `None` / `Built-in` / `Custom`** (`None` by default): the subscription response no longer returns a link to the built-in profile page, which used to disclose the subscription address itself (#6538); the `Profile-Web-Page-Url` header is sent only in Built-in and Custom modes. A previously set profile address is migrated to `Custom` mode.
 
 ### Changes in section 11 — Xray: routing, outbounds, DNS, and extensions
 
-- **A new outbound protocol: AmneziaWG** ([details](#amneziawg-outbound)): the tunnel is brought up by the panel's embedded engine, and Xray sees such an outbound as a local SOCKS gateway at `127.0.0.1:64900` (the port is reserved). The obfuscation parameters must exactly match the server's.
-- **One-time template conversions for xray-core 26.9.9** ([details](#one-time-template-conversions-on-upgrade-to-380)): `proxySettings` → `sockopt.dialerProxy`, the freedom strategy → `sockopt.domainStrategy`, a DNS outbound's `nonIPQuery`/`blockTypes` → `rules`.
-- **Hysteria2 port hopping** is now set by the `udphop` UDP mask. Hysteria2 outbounds imported before 3.8.0 no longer hop ports — import the link again (ones from subscriptions update on their own).
-- **NordVPN:** multiple NordLynx servers — one `nord-<hostname>` outbound per server; the load is shown in the list, **"Reset"** refreshes the key, and **"Log Out"** no longer deletes the added outbounds.
-- Routing rules gained a **"Comment"** field — for the panel only; it is not passed to the core.
-- **Subscription outbounds:** a custom **User-Agent** for providers that serve links only to "their own" clients; a server inserted in the middle of a subscription no longer takes over its neighbor's tag.
-- Blackhole gained a `custom` response type with a **"Custom response (base64)"** field, and WireGuard a **"Remote DNS"** field; the useless port field is hidden for DoH servers; protocols in the template are read case-insensitively; VLESS with `vnext` can be tested; blackhole is no longer offered in MTProto's outbound picker.
+- **`"qType": 0` in a DNS outbound no longer blocks every query:** a one-time migration rewrites the numeric `0` into the string `"0"`. Installations that reached 3.8.0 with a "block type 0" rule lost all DNS through that outbound.
 
 ### Changes in section 12 — Nodes (multi-panel, master/slave)
 
-- **Client changes go out to all nodes in parallel** — both single edits and bulk operations. A slow or unreachable node no longer holds up the request: anything that did not make it in time is applied by the background sync.
-- **A node snapshot does not resurrect deleted clients** and cannot claim a client of another inbound.
-- **Widening a node's inbound selection imports those inbounds instead of deleting them:** removal from a node waits one sync cycle.
+- **Only the IP addresses of a node's own clients are sent to it**, not the whole farm's client table; synchronization runs in batches of up to 32 nodes, and each node has its own HTTP connection pool.
 
 ### Changes in section 13 — Panel Settings
 
-- A new **"Discord Bot"** tab ([13.11](#1311-discord-bot-discord-bot-tab--discord-bot)): token, channel, admin IDs, language, report schedule, events and CPU/RAM thresholds, a test notification button.
-- **"Reality scan candidates"** on the "General" tab sets the list of targets that "Find Targets" checks when the search is empty.
-- A settings reset generates new random subscription paths. The "Notification Time" field (Telegram and Discord) offers preset intervals or a custom cron expression.
-
-### Changes in section 14 — Telegram Bot
-
-- **A new Discord bot** ([14.8](#148-discord-bot)): notifications about panel events, a scheduled report with a database backup, and the `!status`, `!report`, `!backup`, `!usage`, `!inbounds`, `!restart` commands for the admins on the list.
-- **Telegram bot:** a regular user's link buttons work only for that user's own clients; traffic reports arrive as a single message; each chat has its own new-client draft; the bot answers every button press.
-- The bot shows an "after first use" expiry in days.
-
-### Changes in section 15 — Geo databases (geoip / geosite and custom)
-
-- **Standard geo files are checked against the published SHA-256** and installed all-or-nothing within a source. If the files have not changed, Xray is not restarted and connections are not dropped.
-- The geodata auto-update editor has a **"Use standard sources"** button: it adds the missing standard files without touching your own rows.
+- **A broken configuration does not crash Xray:** a config the running core cannot bind is rejected at the restart step with the reason shown — instead of a once-a-second loop that takes down every protocol.
+- **"Restart Xray After Client Disable" also fires on manually disabling or deleting a client**, not only on auto-disable by expiry or quota.
 
 ### Changes in section 16 — Operations: backups, logs, updating, CLI
 
-- **Back up the database before upgrading to 3.8.0** — the first start runs one-time migrations (see sections 1 and 11).
-- `update.sh` verifies the archive checksum and takes the scripts from the release tag; **"Update Menu"** updates `x-ui.sh` from the installed version's tag.
-- `/usr/local/x-ui/x-ui setting -getApiToken` accepts **`-tokenName <name>`** (default `cli-fallback`): the command reissues the token with exactly that name and leaves the others untouched.
-- **Backups via the Discord bot:** the `!backup` command and scheduled reports with the database attached (`discordBotBackup`).
-- The fail2ban backend setting is written to `jail.d`, and the `migrateDB` dump is created with `0600` permissions.
+- **Back up the database before upgrading** — the first start runs a one-time DNS-template migration (`DNSOutboundQTypeZeroFix`, see section 11). An unparseable template is logged and skipped, and the panel still starts.
 
 ## 1. Introduction, Requirements, and Installation
 
@@ -449,21 +379,15 @@ docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 
 In Docker, the panel is the container's main process: autostart is controlled by the container's restart policy (e.g., `restart: unless-stopped`), not by a service inside the container.
 
-#### Upgrading to 3.8.0: what to know
+#### Upgrading to 3.8.5: what to know
 
-- **Back up the database before upgrading.** The first start of 3.8.0 runs one-time automatic migrations of the Xray configuration template (`xrayTemplateConfig`) and of the data:
-  - on outbounds, `proxySettings.tag` is moved to `sockopt.dialerProxy`, and `sockopt.addressPortStrategy` is removed from freedom outbounds — core 26.9.8 and newer will not start with these keys;
-  - the deprecated `targetStrategy` and `settings.domainStrategy` of freedom outbounds are moved to `sockopt.domainStrategy`, and `nonIPQuery` and `blockTypes` of DNS outbounds are converted into an equivalent `rules` list;
-  - the `finalRules` fixes are re-applied to freedom outbounds whose protocol is written in a different case (for example, `Freedom`);
-  - on MTProto inbounds with their own address for links (the `custom` strategy), that address is moved to an entry on the "Hosts" page, and the inbound is switched to the `listen` strategy;
-  - a `user_agent` column is added to the outbound subscriptions table.
-- **"Subscription sort order"** (`subSortIndex`) equal to `0` is coerced to `1` on every start; negative values are kept.
-- **Database files are accessible to the owner only:** `x-ui.db` and its `-wal`/`-shm` files get permissions `0600` on every start, and a newly created `/etc/x-ui` directory gets `0700` (see [1.5](#15-file-locations)). PostgreSQL is not affected.
-- **Bundled: the Xray 26.9.9 core** and the new `tuic-server` 1.0.0 sidecar for TUIC v5 inbounds (in the release archives, the Docker image, and the Windows build).
-- **Building from source requires Go 1.27.1.** Installing from packages or the script is unaffected.
-- `install.sh` and `update.sh` verify the archive's SHA-256 and take `x-ui.sh` and the service units from the tag of the release being installed rather than from `main`.
-- Your own files in `bin/` still survive an upgrade, and `update.sh` downloads through the proxy the panel is configured with.
-- When upgrading from a version older than 3.7.0, the 3.7.0 migrations run as well (see ["What's new in 3.7.0"](https://github.com/yukh975/3X-UI-Manual/blob/3.7.0/3X-UI-MANUAL.en.md#whats-new-in-370) in the manual for version 3.7.0).
+- **The subscription's built-in profile page is now off by default** (`subProfileMode` = `none`): the `Profile-Web-Page-Url` header is no longer sent to installations that never set their own profile URL. If your users rely on that page, open "Settings → Subscription" and switch the profile-page mode to **Built-in**. A previously set custom URL is preserved and migrated to **Custom** mode — no action required (see [10.2](#102-subscription-server-settings)).
+- **"Restart Xray After Client Disable" now also fires on manually disabling or deleting a client**, not only on auto-disable by expiry or quota. If you do not want the core to restart on manual client edits, turn this setting off on the "General" tab in settings (see [13.7](#137-external-traffic-and-xray-behavior-external-traffic-tab--external-traffic)).
+- **Saving or enabling an inbound with a port conflict is now rejected**, instead of silently crashing the core. If saving or enabling is rejected after the upgrade, free the port named in the rejection message (it names the owning inbound or the AmneziaWG peer that holds it).
+- **The one-time `DNSOutboundQTypeZeroFix` migration** rewrites a numeric `"qType": 0` saved in a DNS outbound into the string `"0"`. Installations that reached 3.8.0 with a "block type 0" rule in a DNS outbound lost **all** DNS through it; the migration fixes the template in place. An unparseable template is logged and skipped — the failure is not fatal, and the panel starts.
+- **Only a node's own clients' IPs are sent to it.** The master no longer pushes the full farm-wide IP table to every node on each 10-second tick — no action required.
+- **Requirements are unchanged:** the Xray-core v26.9.9 core; building from source needs Go 1.27.1. Installing from prebuilt packages and the script is unaffected.
+- When upgrading from a version older than 3.8.0, the 3.8.0 migrations run as well (see ["What's new in 3.8.0"](https://github.com/yukh975/3X-UI-Manual/blob/3.8.0/3X-UI-MANUAL.en.md#whats-new-in-380) in the manual for version 3.8.0).
 
 ### 1.4. First Launch and Default Credentials
 
@@ -1313,6 +1237,8 @@ listen = /run/xray/in.sock   port = 0
 The TCP/UDP listening port. Values from `0` to `65535` are allowed. The value `0` is used only in combination with listening on a Unix socket (see above).
 
 When saving, the service checks for a port conflict: two inbounds cannot simultaneously occupy overlapping `listen:port` for the same transport (TCP/UDP). The transport is derived from the protocol and `streamSettings`/`settings`: for example, `hysteria`, `wireguard`, `amneziawg` and `tuic` always occupy UDP, `mtproto` — TCP, `kcp`/`quic` — UDP, and most others — TCP. On a conflict, saving is rejected with an error.
+
+As of 3.8.5 the same port-conflict check runs not only on save but also when **enabling** an existing inbound (the "Enable" toggle): a disabled inbound could previously hold a port unnoticed, and the conflict surfaced only when you tried to enable it. Enabling is now rejected with the same error as saving — it names the row that owns the port — and the `enable` flag is not toggled. Separately (both on save and on enable), an inbound on a port already forwarded by an **AmneziaWG** peer (client port forwarding) is rejected, and the error names that client's email.
 
 Separately, the panel does not allow occupying the **reserved internal Xray API port** (tag `api`, default `62789` on `127.0.0.1`): a local TCP inbound whose listen address overlaps that port on loopback is rejected with the same port-conflict error. The actual API port is read from the Xray config template (with a fallback of `62789`). On nodes this restriction does not apply — they run their own Xray.
 
@@ -3111,6 +3037,8 @@ As of 3.5.0 the table has a **"Speed"** column (between "Traffic" and "Remaining
 
 The **Client filters** panel lets you filter by status (category), protocol, bound inbound, expiry date range, used traffic range, presence of auto-renewal (**Has/None**), presence of Telegram ID and comment, and by group. On panels with nodes a **Nodes** multi-select appears: you can narrow the list to clients of selected nodes; a separate **Local panel** option filters clients of inbounds not bound to a node (the filter is visible only when nodes exist). Sorting: **Oldest/Newest first**, **Recently updated**, **Recently online**, **Email A→Z / Z→A**, **Most traffic**, **Most remaining**, **Expiring soonest**.
 
+**Clicking a summary card (3.8.5).** The cards above the list (Clients, Online, Depleted, Almost depleted, Disabled, Active) are clickable: clicking a card sets its status category as the only filter, clicking it again clears the filter, and clicking the "Clients" card resets the status filter. The "Active"/"Disabled" categories themselves have also been aligned — they used to be wider than the card's counter ("Active" swept in clients on the verge of depletion, "Disabled" swept in already-depleted disabled ones); now the filter and the card always show the same number.
+
 ### 8.6. Badges and statuses
 
 Status priority: depleted/expired → inactive → expiring soon → active.
@@ -3568,8 +3496,11 @@ These strings are sent to the client in HTTP response headers and displayed in t
 |---|---|---|---|
 | Subscription title | `subTitle` | `Profile-Title` (Base64-encoded) | "Subscription name visible to the client in the VPN app". For Clash it is also used as the name of the imported profile via `Content-Disposition`. |
 | Support URL | `subSupportUrl` | `Support-Url` | "Support link displayed in the VPN client". |
-| Profile URL | `subProfileUrl` | `Profile-Web-Page-Url` | "Link to your website displayed in the VPN client". If not set, the actual subscription request URL is used. |
+| Profile page | `subProfileMode` | controls `Profile-Web-Page-Url` | The mode of the link to the built-in profile page: **No link** (`none`, default) — the header is not sent; **Built-in** (`builtin`) — a link to the built-in page of the current subscription request (see [10.5](#105-subscription-info-page-and-qr-codes)); **Custom** (`custom`) — the address from the "Profile URL" field below. |
+| Profile URL | `subProfileUrl` | `Profile-Web-Page-Url` | "Link to your website displayed in the VPN client". Shown and applied only in "Custom" mode; an empty value sends no header. |
 | Announcement | `subAnnounce` | `Announce` (Base64-encoded) | "Announcement text displayed in the VPN client". As of 3.5.0 the text is also shown as an **info banner at the top of the subscription info page** (when non-empty), and the `announce` variable is available to custom templates. |
+
+**Upgrade to 3.8.5.** Previously, when `subProfileUrl` was empty the `Profile-Web-Page-Url` header was auto-filled with the actual subscription request URL — the link to the built-in profile page was always sent, even without an explicit setting, and disclosed the subscription address itself. As of 3.8.5, when no `subProfileMode` is saved, an empty `subProfileUrl` is moved to "No link" mode and a non-empty former address to "Custom" mode without re-entering it. To restore the old behavior, choose "Built-in"; note that the built-in page discloses the subscription and config addresses.
 
 In addition, every response includes the `Subscription-Userinfo` header with the client's aggregated traffic data: `upload`, `download`, `total`, and `expire` (expiry timestamp in seconds). The client uses this to display the remaining traffic and expiry date.
 
@@ -3716,11 +3647,13 @@ If **any of the three subscription links** — raw, JSON or Clash — is opened 
 
 To download the JSON or YAML itself from a browser, append `?view=raw` to the JSON or Clash subscription address: the response arrives as a `subscription.json` / `subscription.yaml` attachment. As of 3.8.0 such a request goes through the device limit (HWID) check just like a VPN client's request.
 
+As of 3.8.5 the subscription page has been rebuilt: at the top is a ring usage indicator with a percentage (or "∞" for unlimited subscriptions) and either the remaining or the used traffic, next to a grid of brief stats (days left, expiry, status, downloaded/uploaded/limit, last online). The rest of the content is split into **"Subscription"**, **"Apps"** and **"Configs"** tabs. The footer of the "Subscription" tab holds the support link (`subSupportUrl`, if set) and the client's auto-refresh interval (`subUpdates`, see [10.2](#102-subscription-server-settings)). For the `fa-IR` and `ar-EG` languages the page renders right-to-left; addresses, identifiers and data volumes stay left-to-right.
+
 The page (a single-page application built with Vite) shows:
 
 - **Subscription information** (Descriptions block):
   - "Subscription ID" — the `subId` value;
-  - "Status" — "Active", "Inactive", or "Unlimited". The "inactive" status is set if the client is disabled, has exhausted the traffic limit, or has expired;
+  - "Status" — "Active", "Unlimited", "Expired", "Traffic depleted", or "Inactive" (for a disabled client). As of 3.8.5 the three reasons for inactivity (expired, traffic depleted, client disabled) are distinguished rather than collapsed into a single "Inactive" value;
   - "Downloaded" and "Uploaded" — traffic volumes;
   - "Total limit" — the traffic limit, or `∞` if unlimited;
   - "Expiry date" — the expiry date, or "No expiry";
@@ -3730,7 +3663,7 @@ The page (a single-page application built with Vite) shows:
 - **Individual links** ("Copy link"): a full list of individual configurations included in the subscription, each with its own protocol tag, copy button, and QR code (QR codes are not generated for post-quantum links).
 
 - **"Copy all configurations" button** (above the individual links list): copies all configuration links to the clipboard at once (each on its own line) without requiring them to be copied one by one; a "All configurations copied" notification is shown on completion.
-- **Quick-import buttons for apps** (platform dropdowns): for Android — v2box, v2rayNG (deep link `v2rayng://install-config?url=…`), Sing-box, V2RayTun, NPV Tunnel, Happ (`happ://add/…`), Incy (`incy://add/…`); for iOS — Shadowrocket (via `flag=shadowrocket` parameter), v2box (`v2box://install-sub?url=…&name=…`), Streisand (`streisand://import/…`), V2RayTun, NPV Tunnel, Happ, Incy. These buttons either open the target app's deep link with the subscription address pre-filled, or copy the link to the clipboard.
+- **Quick-import buttons for apps** (the "Apps" tab, an Android/iOS platform switch — the visitor's platform by `User-Agent` by default): each app has a single "Add" button. On Android it opens the deep link of v2box, v2rayNG (`v2rayng://install-config?url=…`), Sing-box (`sing-box://import-remote-profile?url=…`), V2RayTun (`v2raytun://import/…`), Happ (`happ://add/…`) or Incy (`incy://add/…`); on iOS — Shadowrocket (the `flag=shadowrocket` parameter), v2box (`v2box://install-sub?url=…&name=…`), Streisand (`streisand://import/…`), V2RayTun, Happ or Incy. As of 3.8.5 Sing-box and V2RayTun on Android and V2RayTun on iOS also open the app (previously they only copied the link), and NPV Tunnel is removed from both platforms' lists.
 
 The info page is returned with no-cache headers (`Cache-Control: no-cache`) so that the client always sees up-to-date traffic and expiry information.
 
@@ -4133,6 +4066,8 @@ Protocols supported by the form:
 - **`amneziawg`** — an AmneziaWG client: the panel brings up the tunnel itself, and the outbound reaches Xray as a local SOCKS proxy (see [AmneziaWG outbound](#amneziawg-outbound) below).
 - **`hysteria`** — `settings.address`/`settings.port` (UDP transport).
 - **`dns`** — intercepts DNS queries: **Rewrite network**, **Rewrite address**, **Rewrite port**, **User Level** and a **Rules** list (each rule has an **Action** — `direct`/`drop`/`return`/`hijack` — plus **QType**, **Domain Name** and **RCode**). On upgrade to 3.8.0 the legacy `nonIPQuery`/`blockTypes` keys are converted into rules (see [11.11](#1111-saving-restart-and-automatic-transformations)).
+
+**3.8.5:** the core reads a saved `qType: 0` on a DNS-outbound rule as "type unset", so such a rule matched any DNS query through the outbound — blocking, rejecting or hijacking all DNS instead of a single query type. Fixed: `0` is now written as the string `"0"`. The one-time `DNSOutboundQTypeZeroFix` migration repairs already-saved templates — relevant if the upgrade to 3.8.0 turned an old `blockTypes: [0]` into such a `qType: 0`; a template with unreadable JSON is skipped by the migration, which only writes a warning to the log without interrupting the panel's startup.
 
 The panel reads the protocol identifier (`protocol`) and the transport name (`streamSettings.network`) the same way the core does — case-insensitively, treating `mkcp` as a synonym for `kcp`. An outbound written in the template as `"Freedom"`, `"VMess"` or `"WireGuard"` opens in its own protocol's form (previously `"Freedom"` opened as an empty VLESS form), shows its address in the table and is tested in the right mode, while `"Blackhole"` is not offered in the lists that exclude blackhole outbounds (Dialer proxy, the MTProto inbound's **Outbound**, geodata downloads).
 
@@ -5102,11 +5037,12 @@ The language of the panel web interface. The available languages are: `en-US` (E
 - **Purpose:** the number of rows per page in tables (connection/inbound lists). Hint: "Define page size for inbounds table. (0 = disable)" — with `0`, pagination is disabled, and all records are shown as a single list.
 - **No panel restart required** (display setting).
 
-#### Restart Xray after auto disable (*Restart Xray After Auto Disable*)
+#### Restart Xray after client disable (*Restart Xray After Client Disable*)
 
 - **Key:** `restartXrayOnClientDisable`
 - **Default value:** `true`
-- **Purpose:** when a client is automatically disabled (due to expiration or reaching the traffic limit), Xray is restarted to tear down that client's already-established connections. Hint: "When a client is automatically disabled due to expiration or traffic limit, restart Xray.". The feature itself is unchanged — the toggle simply lives on the "Panel" (*General*) tab alongside the other general settings.
+- **Purpose:** Xray is restarted to tear down the already-established connections of a client that has stopped being served — **automatically** (on expiry or the traffic limit) **or manually** (disabling or deleting a client, including in bulk). Hint: "When a client stops being served — automatically (by expiry or traffic limit) or manually — restart Xray so its active connections are dropped." The toggle is on the "Panel" (*General*) tab alongside the other general settings.
+- **Change in 3.8.5.** Previously (*Restart Xray After Auto Disable*) the setting fired only on auto-disable: removing a client through the core API (`RemoveUser`) deletes only the credentials and does not tear down an already-established session (VLESS, VMess, Trojan, Shadowsocks keep it), so a manually disabled or deleted client could keep passing traffic. Now, with the setting on, manually disabling/deleting a client (in the client form and in bulk disable) also triggers an Xray restart. It applies only to the local inbounds of the panel performing the operation — editing a client on a node does not make the master restart its own Xray.
 
 #### Remark model and separation character (*Remark Model & Separation Character*)
 
@@ -5311,7 +5247,9 @@ The time is interpreted in the zone from the "Time Zone" setting (section 13.6).
 | --- | --- | --- | --- |
 | External Traffic Inform (*External Traffic Inform*) | `externalTrafficInformEnable` | `false` | Notify an external API on every traffic update. Hint: "Inform external API on every traffic update.". |
 | External Traffic Inform URI (*External Traffic Inform URI*) | `externalTrafficInformURI` | `""` | The URL to which the panel sends traffic updates. Passes a URL validity check when saving. Hint: "Traffic updates are sent to this URI.". |
-| Restart Xray After Auto Disable (*Restart Xray After Auto Disable*) | `restartXrayOnClientDisable` | `true` | Restart Xray when a client is automatically disabled due to expiration or exceeding the traffic limit. Hint: "When a client is automatically disabled due to expiration or traffic limit, restart Xray.". **The toggle is on the "Panel" (*General*) tab** — see section 13.2; it is listed here for completeness. |
+| Restart Xray After Client Disable (*Restart Xray After Client Disable*) | `restartXrayOnClientDisable` | `true` | Restart Xray when a client stops being served — automatically (on expiry or the traffic limit) or manually (disable/delete, including in bulk). As of 3.8.5 this also covers manual disable/delete (previously auto-disable only). Hint: "When a client stops being served — automatically (by expiry or traffic limit) or manually — restart Xray so its active connections are dropped." **The toggle is on the "Panel" (*General*) tab** — see section 13.2; it is listed here for completeness. |
+
+**Refusing a configuration the core cannot bind (as of 3.8.5).** If the generated configuration assigns two inbounds the same address and port with an overlapping transport (TCP+TCP or UDP+UDP; mixing different transports on one port, e.g. TCP and UDP, is normal and not treated as a conflict), the panel rejects that configuration at the single Xray restart point **without** stopping the already-running core. Previously a bind failure killed the Xray process itself, and the once-a-second restart-watcher loop repeated the same error over and over, taking down every protocol at once. The refusal reason (of the form "config refused: …") is shown on the panel next to the Xray status while the core keeps running on the previous (last successfully applied) configuration. A collision the running core already serves is not treated as an error — only new address-and-port overlaps are rejected.
 
 ### 13.8. Other: Xray configuration template and test URL
 
