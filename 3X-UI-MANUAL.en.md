@@ -2,7 +2,7 @@
 
 🇬🇧 English · 🇷🇺 [Русский](3X-UI-MANUAL.ru.md)
 
-**3X-UI version: 3.8.5.** This manual is based on and current for this version. A summary of changes in 3.8.5 relative to 3.8.0 is in the [What's new in 3.8.5](#whats-new-in-385) section.
+**3X-UI version: 3.9.0.** This manual is based on and current for this version. A summary of changes in 3.9.0 relative to 3.8.5 is in the [What's new in 3.9.0](#whats-new-in-390) section.
 
 > A detailed English-language manual for the **3X-UI** web panel (Xray-core
 > management): features, configuration and operation, with an explanation of
@@ -13,7 +13,7 @@
 
 ## Table of Contents
 
-- [What's new in 3.8.5](#whats-new-in-385)
+- [What's new in 3.9.0](#whats-new-in-390)
 - [1. Introduction, Requirements, and Installation](#1-introduction-requirements-and-installation)
   - [1.1. What Is 3X-UI](#11-what-is-3x-ui)
   - [1.2. Supported Operating Systems and Architectures](#12-supported-operating-systems-and-architectures)
@@ -185,47 +185,78 @@
   - [16.9. Uninstalling the panel](#169-uninstalling-the-panel)
   - [16.10. The `x-ui migrateDB` command](#1610-the-x-ui-migratedb-command)
 
-## What's new in 3.8.5
+## What's new in 3.9.0
 
-Version 3.8.5 is mostly fixes and optimization. The headline: **the subscription page has been reworked** (a usage ring, tabs, one-tap import into apps), and **the link to the built-in profile page is no longer disclosed** — the profile-page mode is now an explicit setting (`None` / `Built-in` / `Custom`, `None` by default). **The Xray core survives a broken configuration:** a config the core cannot bind is rejected with the reason shown, instead of taking down every protocol in a once-a-second loop. **AmneziaWG relay ports** are fixed (on databases with a high inbound-id counter the protocol simply did not work before), **large node-farm synchronization** is faster, and **`"qType": 0`** in a DNS outbound no longer blocks every query (a one-time migration fixes the template). Requirements are unchanged: Go 1.27.1, Xray-core v26.9.9. Below are the changes relative to 3.8.0, by manual section.
+Version 3.9.0 is a feature release. The headline: the **TUIC v5** protocol now runs natively inside the 3x-ui process — a separate `tuic-server` sidecar is no longer needed (#6577), and its traffic goes through Xray routing and chains, honors per-client quotas, and survives client edits without dropping connections. **AmneziaWG, TUIC, and MTProto** inbounds can now be deployed on nodes. The Happ client gained a **routing-rule editor, a separate ad-blocking toggle, and a "local network direct" preset** (#6545); the Happ settings are folded into four tabs. The Telegram bot got **access levels, account linking via `/start` and an invite link** (#6518) and a **`/broadcast`** command to message every client (#6510). A new **"Exclude from subscriptions"** inbound toggle hides the links without disabling the inbound itself (#6463). Clients gained **weekday calendar renewal with a schedule preview** (#6524), and **traffic counters are preserved during a portable export/import** (#6469). **Two inbounds — IPv4 and IPv6 — can share one port** (#6603). A **custom User-Agent** can be set for downloading a client's external subscriptions (#6613), and the `x-ui setting -getApiToken` command gained a **`-tokenScope`** flag (#6700). The core is updated to **Xray-core v26.9.30**: on the first start the saved configurations are rewritten once to match its keys (XDNS masks and the WireGuard outbound). Build requirements: Go 1.27.1, Xray-core v26.9.30. Below are the changes relative to 3.8.5, by manual section.
 
-### Changes in section 2 — Panel login and access security
+### Changes in section 1 — Introduction, Requirements, and Installation
 
-- **The two-factor code is accepted from adjacent TOTP windows** (#6546): with a small clock skew between the server and the authenticator app, the code is no longer rejected.
+- **Bundled with Xray-core 26.9.30** (instead of 26.9.9). Building from source still requires Go 1.27.1; installing from packages and the script is unaffected.
+- **The `tuic-server` sidecar is no longer downloaded or needed:** TUIC v5 is implemented natively inside the panel (#6577). `install.sh`, the Docker image, and the release archives no longer contain it, and on reinstall/upgrade the old binary (`bin/tuic-server*`) and the `bin/tuic` directory are removed automatically.
+- **One-time template migrations on the first start of 3.9.0:** the XDNS masks (Final Mask) are rewritten into the new object format (`XdnsFinalmaskObjectsFix`), and for the WireGuard outbound the `settings.domainStrategy` key and the `"local"` remoteDNS mode are moved into `sockopt.domainStrategy`/`targetStrategy` (`WireguardDomainStrategyFix`). **Back up the database before upgrading** — an unmigrated XDNS mask or a leftover `"local"` remoteDNS will keep the core from starting, and after the mask format changes old clients need a new client Xray.
 
 ### Changes in section 4 — Inbounds: creation and common parameters
 
-- **A port conflict is rejected on save and on enabling an inbound**, instead of silently crashing the core. The rejection message names the inbound or the AmneziaWG peer that holds the port — free it and retry.
+- **An IPv4 and an IPv6 inbound can listen on the same port** (#6603): if the IPv6 inbound listens on `::` with `v6only` enabled in sockopt, it no longer conflicts with an IPv4 inbound on the same port. A bare `0.0.0.0` or `::` without `v6only` still takes the whole port.
+- **The "Exclude from subscriptions" toggle** (`excludeFromSub`, #6463): hides the inbound's links from every subscription output format while leaving the inbound itself enabled and working (unlike disabling it).
+- **Saving an inbound no longer touches its clients:** the inbound edit form does not load or send the client list, and the "Enable" toggle is shown only when adding. A client added, deleted, renewed, or reset in parallel (by the bot, the API, or another admin) is no longer rolled back by saving the inbound. Importing an inbound from a 2.x panel now accepts the old client field format (string `tgId`) (#6663).
 
 ### Changes in section 5 — Protocols
 
-- **AmneziaWG relay ports are fixed for good:** a loopback relay slot is allocated even for a row with no peers and for a disabled row, the port number wraps around, and a row does not take up its own port. On databases with a high inbound-id counter the protocol did not work at all before.
+- **TUIC v5 runs natively inside the 3x-ui process** ([5.13](#513-tuic-v5), #6577), without the `tuic-server` sidecar. The decrypted traffic goes into the Xray core over a local SOCKS5 bridge, so **routing, geo-rules, and chains** of Xray now apply to TUIC; **a client's personal traffic quota (`totalGB`) is now supported and enforced**; adding/editing/disabling a client is **applied live, without dropping the connections** of the others; the online status no longer depends on the logging level. The `cubic` algorithm is served as `new_reno` on the server. A TUIC inbound can now be **deployed on a node** (node v3.8.0 or newer).
+- **AmneziaWG:** the signature fields **I2–I5** are exposed in the outbound form (#6611). Inbound validation is tightened: **S1 ≤ 1552, S2 ≤ 1608, S3 ≤ 1636** (so the handshake fits into the receive buffer of iOS peers), and overlapping **H1–H4** ranges **are now rejected** (#6642). AmneziaWG client connectivity is fixed (relay sniffing with `routeOnly`) (#6654).
+- **Hysteria2:** client edits are applied live (AddUser/RemoveUser) without recreating the UDP listener — neighboring connections are no longer dropped when a single client changes (#6606).
+- **WireGuard, AmneziaWG, and TUIC configs advertise the addresses from the bound hosts** (Hosts), not the panel's own address; with several hosts one config per host is issued.
+
+### Changes in section 7 — Connection Security: TLS, XTLS, and REALITY
+
+- **The hint for an empty "Min client version" is clarified by core version** (#6568): an empty field means "no lower bound" only on Xray-core v26.9.8+; on cores v26.7.11–v26.9.7 an empty field still yields the built-in minimum 26.3.27 (to accept such clients, set `1.0.0`).
+- **The "Cipher suites" field** became a multi-select with tag input — you can set several suites or a name not in the list; the same setting was added to managed hosts (see [10.4](#104-output-formats)).
 
 ### Changes in section 8 — Clients
 
-- **The counter cards on the clients page are now clickable:** clicking one filters the list by that metric (total, online, etc.).
+- **Auto-renewal is set with a single mode selector** (#6524): "Disabled", "At a fixed interval (days)", **"Calendar — by weekday"**, and "Calendar — by day of month". For the weekly mode a **"Renewal weekday"** field appeared (`resetWeekday`, 1=Mon…7=Sun). Next to it is a **renewal schedule preview** (renewal date, validity, the number of periods to be charged).
+- **Traffic counters are preserved during a portable client export/import** (#6469): the export carries `up`/`down`/`resetCount`/`lastOnline`, and the import restores them only for newly created clients (existing ones are not overwritten).
+- **The HWID device list is populated for clients without a limit too** (limit 0): devices are recorded but block nothing.
+- **Overlapping `allowedIPs` of WireGuard/AmneziaWG clients are rejected** (#6623): masked ranges are compared, not exact strings — a client with `…/24` no longer "captures" other clients' addresses.
+
+### Changes in section 9 — Client groups
+
+- **The group filter and client search work with non-ASCII uppercase** (Cyrillic, Farsi, etc.): case is now folded for non-Latin text too (#6685).
 
 ### Changes in section 10 — Subscriptions (Subscription)
 
-- **The subscription page has been reworked:** a usage ring with the remaining quota, "Subscription / Apps / Configs" tabs, one-tap import on Android and iOS, a clear status (expired / depleted / disabled) and right-to-left rendering for Persian and Arabic.
-- **The built-in profile-page mode is `None` / `Built-in` / `Custom`** (`None` by default): the subscription response no longer returns a link to the built-in profile page, which used to disclose the subscription address itself (#6538); the `Profile-Web-Page-Url` header is sent only in Built-in and Custom modes. A previously set profile address is migrated to `Custom` mode.
+- **A custom User-Agent for downloading a client's external subscriptions** (#6613): a new field on the "Subscription" settings tab (`externalSubUserAgent`, `v2rayNG/1.8.5` by default). It is a global setting; it is unrelated to the per-outbound User-Agent from [11.12](#1112-subscription-outbounds-with-auto-update).
+- **Happ: a routing-rule editor, ad blocking, and a "local network direct" preset** ([10.7](#107-happ-client-integration), #6545). Ad blocking is now a separate toggle, presets are applied with an "Apply template" button, and an "Everything through the proxy, local network direct" preset is added. The Happ settings are folded into four tabs; **Happ local-proxy authentication** was added (#6628).
+- **Incy app-management parameters** ([10.2](#102-subscription-server-settings), #6650): a dedicated "Incy" tab with auto-detection and field groups (app, banners, privacy, network, routing).
+- **When downloading external subscriptions the panel sends a stable `X-HWID`** (#6567, #6579), so providers with a per-device limit do not reject the request; no settings required.
+- **Behind a reverse proxy `X-Real-IP` is no longer used as the server address** in links (#6608).
+- **A client on several tunnel inbounds gets the correct keys and the address of its own node in each subscription** (#6653).
 
 ### Changes in section 11 — Xray: routing, outbounds, DNS, and extensions
 
-- **`"qType": 0` in a DNS outbound no longer blocks every query:** a one-time migration rewrites the numeric `0` into the string `"0"`. Installations that reached 3.8.0 with a "block type 0" rule lost all DNS through that outbound.
+- **One-time template migrations for Xray-core 26.9.30:** the XDNS masks (Final Mask) are converted into the new object format, and for the WireGuard outbound the domain strategy is moved into `sockopt.domainStrategy`/`targetStrategy` (the `"local"` remoteDNS mode is dropped). The `domainStrategy` selector is removed from the WireGuard/WARP outbound form.
+- **A `remoteDNS` that does not parse as an IP is rejected** on saving the template and for subscription outbounds.
+- **The REALITY ML-KEM hint** (`support-x25519mlkem768`) is now carried into raw `vless://` links too, for Xray 26.9.8+ clients (#6712).
 
 ### Changes in section 12 — Nodes (multi-panel, master/slave)
 
-- **Only the IP addresses of a node's own clients are sent to it**, not the whole farm's client table; synchronization runs in batches of up to 32 nodes, and each node has its own HTTP connection pool.
+- **AmneziaWG, TUIC, and MTProto inbounds can now be deployed on nodes** (#6306). The protocol is run by the node's own panel, so a node version threshold applies: MTProto — v3.5.0+, AmneziaWG — v3.7.0+, TUIC — v3.8.0+; a node below the threshold (or one that has not yet reported its version) rejects the save.
 
-### Changes in section 13 — Panel Settings
+### Changes in section 14 — Telegram Bot
 
-- **A broken configuration does not crash Xray:** a config the running core cannot bind is rejected at the restart step with the reason shown — instead of a once-a-second loop that takes down every protocol.
-- **"Restart Xray After Client Disable" also fires on manually disabling or deleting a client**, not only on auto-disable by expiry or quota.
+- **Access levels** (#6518): "unlinked" (only `/start` and `/id`), "user" (own `/usage`, `/status`, `/help`), and "administrator" (everything). New commands get administrator rights until explicitly allowed.
+- **Account linking via `/start`:** the bot's client card gained an **"Invite link"** button — the first person to open the link is bound to this client (the previous manual linking via `/id` is kept). There is a rate limit (5 attempts per hour).
+- **The `/broadcast` command** (#6510, admin only): sends a message (text, media, album) to every client with a linked Telegram ID, with a preview, confirmation, and progress; the admin is not disclosed to the recipients.
+- The "New client" wizard is now split by admin, not by chat (#6604); WireGuard and AmneziaWG are available in the inbound picker (#6621); links and QR codes are built in-process (#6597); the QR caption is localized (#6562).
 
 ### Changes in section 16 — Operations: backups, logs, updating, CLI
 
-- **Back up the database before upgrading** — the first start runs a one-time DNS-template migration (`DNSOutboundQTypeZeroFix`, see section 11). An unparseable template is logged and skipped, and the panel still starts.
+- **The `-tokenScope` flag for `x-ui setting -getApiToken`** (#6700): the token scope — `admin`, `monitor`, or `node-sync`. On reissue the token **keeps its previous scope and expiry** (it used to silently become `admin`); an unknown value is rejected before the token is deleted.
+- **Viewing the system log is capped by a 15-second `journalctl` timeout** (#6689); the `x-ui` menu reads the service state without scanning the journal (#6629) — no more delays on hosts with large logs.
+- **On EL7/CentOS 7 `x-ui.sh` keeps firewalld, pulled in by fail2ban, from blocking the panel ports** (#6688).
+- **A restore from an SQL dump is isolated to its own database file** — a malicious dump cannot open or create an outside file.
+- **Back up the database before upgrading** — the first start runs one-time template migrations (see sections 1 and 11).
 
 ## 1. Introduction, Requirements, and Installation
 
@@ -237,7 +268,7 @@ Version 3.8.5 is mostly fixes and optimization. The headline: **the subscription
 
 Key features:
 
-- **Inbound for various protocols** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, AmneziaWG, Hysteria2, HTTP, SOCKS (Mixed), Dokodemo-door / Tunnel, TUN, **MTProto** (Telegram proxy, added in 3.3.0), and **TUIC v5** (a separate `tuic-server` process running alongside Xray, see [5.13](#513-tuic-v5)).
+- **Inbound for various protocols** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, AmneziaWG, Hysteria2, HTTP, SOCKS (Mixed), Dokodemo-door / Tunnel, TUN, **MTProto** (Telegram proxy, added in 3.3.0), and **TUIC v5** (a native server inside the panel process, see [5.13](#513-tuic-v5)).
 - **Modern transports and encryption** — TCP (Raw), mKCP, WebSocket, gRPC, HTTPUpgrade, and XHTTP, secured with TLS, XTLS, and REALITY.
 - **Fallback** — serving multiple protocols on a single port (e.g., VLESS and Trojan on 443) using Xray's fallback mechanism.
 - **Per-client management** — traffic quotas, expiration dates, IP limits, online status display, one-click invite links, QR codes, and subscriptions.
@@ -279,7 +310,7 @@ The architecture is determined from the output of `uname -m` and mapped to one o
 
 If the architecture is not in this list, the script prints "Unsupported CPU architecture!" and aborts installation.
 
-**TUIC and architecture.** TUIC v5 inbounds are served by the `tuic-server` 1.0.0 sidecar (the [EAimTY/tuic](https://github.com/EAimTY/tuic) project), whose prebuilt binaries are available only for `amd64`, `386`, `arm64`, `armv7`, and Windows x64. On `armv6`, `armv5`, and `s390x` the installer prints "tuic-server does not provide prebuilt binaries for …; TUIC inbounds will be unavailable on this machine" and carries on with the installation: the panel and the other protocols work, only TUIC inbounds do not start. The panel will find a self-built `tuic-server` in its own `bin/` directory, in `/usr/local/bin` or `/usr/bin`, or on `PATH`.
+**TUIC and architecture.** As of 3.9.0 a TUIC v5 inbound is served by a native server **inside the panel process** — a separate `tuic-server` sidecar is no longer needed. TUIC is therefore available on every architecture where the panel itself runs (including `armv6`, `armv5`, and `s390x`), and no prebuilt sidecar binaries need to be downloaded.
 
 #### Base Dependencies
 
@@ -302,7 +333,7 @@ What the installer does, step by step:
 1. Detects the OS and architecture.
 2. Installs base dependencies.
 3. Downloads the release archive `x-ui-linux-<arch>.tar.gz`, verifies its SHA-256 against the published checksum (see below), and extracts it to `/usr/local/x-ui`.
-4. If the archive does not contain the TUIC sidecar (`bin/tuic-server`), downloads `tuic-server` 1.0.0 for the machine's architecture (see [1.2](#12-supported-operating-systems-and-architectures)); a failed download does not abort the installation — "Failed to download tuic-server (optional), skipping".
+4. **(As of 3.9.0.)** TUIC is built into the panel — a separate `tuic-server` sidecar is no longer downloaded; on an upgrade the installer removes a leftover `bin/tuic-server*` binary and the `bin/tuic` directory from earlier versions.
 5. Downloads the management script `x-ui.sh` of **the same version** as the panel (from the release tag; for a dev build, from the `main` branch) and installs it as the `/usr/bin/x-ui` command. The Alpine init script `x-ui.rc` and the systemd units are taken from the same tag if the archive does not include them.
 6. Creates the log directory `/var/log/x-ui`.
 7. Runs initial setup: database selection, credential generation, port selection, optional SSL configuration.
@@ -371,7 +402,7 @@ docker run -d \
 
 The `/etc/x-ui` volume preserves the `x-ui.db` file across container restarts; without it, settings and accounts will be lost.
 
-The image also includes the `tuic-server` sidecar (for amd64, arm64, armv7, and 386). A TUIC v5 inbound listens on **UDP**, so when publishing the container's ports, publish its port as UDP, for example `-p 8443:8443/udp` (see [5.13](#513-tuic-v5)).
+A TUIC v5 inbound listens on **UDP** (the server is built into the panel; there is no longer a separate sidecar in the image), so when publishing the container's ports, publish its port as UDP, for example `-p 8443:8443/udp` (see [5.13](#513-tuic-v5)).
 
 ```bash
 docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
@@ -379,15 +410,15 @@ docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 
 In Docker, the panel is the container's main process: autostart is controlled by the container's restart policy (e.g., `restart: unless-stopped`), not by a service inside the container.
 
-#### Upgrading to 3.8.5: what to know
+#### Upgrading to 3.9.0: what to know
 
-- **The subscription's built-in profile page is now off by default** (`subProfileMode` = `none`): the `Profile-Web-Page-Url` header is no longer sent to installations that never set their own profile URL. If your users rely on that page, open "Settings → Subscription" and switch the profile-page mode to **Built-in**. A previously set custom URL is preserved and migrated to **Custom** mode — no action required (see [10.2](#102-subscription-server-settings)).
-- **"Restart Xray After Client Disable" now also fires on manually disabling or deleting a client**, not only on auto-disable by expiry or quota. If you do not want the core to restart on manual client edits, turn this setting off on the "General" tab in settings (see [13.7](#137-external-traffic-and-xray-behavior-external-traffic-tab--external-traffic)).
-- **Saving or enabling an inbound with a port conflict is now rejected**, instead of silently crashing the core. If saving or enabling is rejected after the upgrade, free the port named in the rejection message (it names the owning inbound or the AmneziaWG peer that holds it).
-- **The one-time `DNSOutboundQTypeZeroFix` migration** rewrites a numeric `"qType": 0` saved in a DNS outbound into the string `"0"`. Installations that reached 3.8.0 with a "block type 0" rule in a DNS outbound lost **all** DNS through it; the migration fixes the template in place. An unparseable template is logged and skipped — the failure is not fatal, and the panel starts.
-- **Only a node's own clients' IPs are sent to it.** The master no longer pushes the full farm-wide IP table to every node on each 10-second tick — no action required.
-- **Requirements are unchanged:** the Xray-core v26.9.9 core; building from source needs Go 1.27.1. Installing from prebuilt packages and the script is unaffected.
-- When upgrading from a version older than 3.8.0, the 3.8.0 migrations run as well (see ["What's new in 3.8.0"](https://github.com/yukh975/3X-UI-Manual/blob/3.8.0/3X-UI-MANUAL.en.md#whats-new-in-380) in the manual for version 3.8.0).
+- **Bundled with the Xray 26.9.30 core** (instead of 26.9.9). Building from source needs **Go 1.27.1**; installing from prebuilt packages and the script is unaffected.
+- **Back up the database before upgrading.** On the first start of 3.9.0 the Xray configuration template is migrated once to match the new core's keys:
+  - the XDNS masks (Final Mask) in inbounds, hosts, the template, the JSON subscription mask, and the subscription-outbound cache are rewritten from lists of strings into the object format (`XdnsFinalmaskObjectsFix`). The mask format changed in the protocol — old clients will need a new client Xray, and an unmigrated mask will keep the server core from starting;
+  - for the WireGuard outbound the `settings.domainStrategy` key and the `"local"` remoteDNS mode are moved into `sockopt.domainStrategy` and `targetStrategy` (`WireguardDomainStrategyFix`); a leftover `"local"` mode no longer starts the core.
+  Each transformation is recorded in `history_of_seeders` and does not repeat; a template with unreadable JSON is skipped with a log entry, and the panel still starts.
+- **The `tuic-server` sidecar is no longer needed.** TUIC v5 runs natively inside the panel; on reinstall/upgrade the old binary (`bin/tuic-server*`) and the `bin/tuic` directory are removed automatically. There is no longer a sidecar in the release archives, the Docker image, or the Windows build.
+- When upgrading from a version older than 3.8.5, the 3.8.5 migrations run as well (see ["What's new in 3.8.5"](https://github.com/yukh975/3X-UI-Manual/blob/3.8.5/3X-UI-MANUAL.en.md#whats-new-in-385) in the manual for version 3.8.5).
 
 ### 1.4. First Launch and Default Credentials
 
@@ -420,8 +451,6 @@ After installation, use the `x-ui` command to open the management menu (see sect
 | --- | --- |
 | `/usr/local/x-ui/` | panel installation directory (binary `x-ui`, script `x-ui.sh`) |
 | `/usr/local/x-ui/bin/xray-linux-<arch>` | Xray-core binary (on armv5/armv6/armv7 renamed to `xray-linux-arm32`) |
-| `/usr/local/x-ui/bin/tuic-server` | `tuic-server` sidecar for TUIC v5 inbounds (not available on every architecture, see 1.2; in the Windows build — `tuic-server-windows-amd64.exe`) |
-| `/usr/local/x-ui/bin/tuic/` | TUIC configurations, one `tuic_<id>.json` file per inbound (permissions `0600`); the panel generates them itself |
 | `/usr/bin/x-ui` | management script (the `x-ui` command) |
 | `/etc/x-ui/` | panel data directory; created with permissions `0700` |
 | `/etc/x-ui/x-ui.db` | SQLite database file (default); on every panel start it and the `x-ui.db-wal`/`x-ui.db-shm` files get permissions `0600`, since the database holds client UUIDs, REALITY private keys, and the administrator password hash |
@@ -984,11 +1013,11 @@ Switching: `POST /installXray/:version`. Scenario:
 **Example.** Switch to a specific Xray-core version (the session cookie must already be obtained via authentication):
 
 ```bash
-curl -X POST 'https://panel.example.com:2053/xpanel/installXray/v26.9.9' \
+curl -X POST 'https://panel.example.com:2053/xpanel/installXray/v26.9.30' \
   -b cookie.txt
 ```
 
-Here `v26.9.9` is a tag from the list returned by `GET /getXrayVersion`. The version must be present in that list; otherwise the panel will reject the request. As of version 3.4.2 the minimum Xray version allowed for installation has been raised to **26.6.27**, and 3.5.0 bundles the **Xray 26.7.11** core. Accompanying core changes: the Shadowsocks `none`/`plain` and VMess `none`/`zero` ciphers have been removed (saved configs are rewritten automatically: SS — to a supported cipher, VMess — to `auto`), and an unencrypted VLESS/Trojan outbound to a public address is rejected on save — the core would not start with such a config. Version 3.8.0 bundles the **Xray 26.9.9** core; outbound keys that it rejects or treats as deprecated are rewritten by the panel on first start (see [1.3](#13-installation-methods)).
+Here `v26.9.30` is a tag from the list returned by `GET /getXrayVersion`. The version must be present in that list; otherwise the panel will reject the request. As of version 3.4.2 the minimum Xray version allowed for installation has been raised to **26.6.27**, and 3.5.0 bundles the **Xray 26.7.11** core. Accompanying core changes: the Shadowsocks `none`/`plain` and VMess `none`/`zero` ciphers have been removed (saved configs are rewritten automatically: SS — to a supported cipher, VMess — to `auto`), and an unencrypted VLESS/Trojan outbound to a public address is rejected on save — the core would not start with such a config. Version 3.9.0 bundles the **Xray 26.9.30** core; outbound keys that it rejects or treats as deprecated are rewritten by the panel on first start (XDNS masks and the WireGuard outbound domain strategy, see [1.3](#13-installation-methods) and [11.11](#1111-saving-restart-and-automatic-transformations)).
 1. The selected version is verified against the current release list (otherwise — rejected).
 2. Xray is stopped.
 3. The archive `Xray-<os>-<arch>.zip` for the current OS and architecture is downloaded from GitHub (supported: amd64/64, arm64-v8a, arm32-v7a/v6/v5, 386/32, s390x; for Windows — `xray.exe`). The archive and binary size limit is 200 MB.
@@ -1190,7 +1219,7 @@ A drop-down list of the inbound's protocol. The allowed values are:
 | `tun` | accepted by the validator, no separate protocol constant |
 | `mtproto` | Telegram proxy; handled by the `mtg` process, see [5.12](#512-mtproto-telegram-proxy) |
 | `amneziawg` | WireGuard with obfuscation; run by the panel's embedded engine, see [5.10](#510-amneziawg) |
-| `tuic` | TUIC v5; handled by the `tuic-server` process, see [5.13](#513-tuic-v5) |
+| `tuic` | TUIC v5; a native server inside the panel process, see [5.13](#513-tuic-v5) |
 
 The field is required (`required`). The choice of protocol determines which client settings fields and which transport will be available (see the protocol-specific sections).
 
@@ -1240,7 +1269,11 @@ When saving, the service checks for a port conflict: two inbounds cannot simulta
 
 As of 3.8.5 the same port-conflict check runs not only on save but also when **enabling** an existing inbound (the "Enable" toggle): a disabled inbound could previously hold a port unnoticed, and the conflict surfaced only when you tried to enable it. Enabling is now rejected with the same error as saving — it names the row that owns the port — and the `enable` flag is not toggled. Separately (both on save and on enable), an inbound on a port already forwarded by an **AmneziaWG** peer (client port forwarding) is rejected, and the error names that client's email.
 
+As of 3.9.0 two inbounds on the same port number are allowed if they belong to **different address families**. An IPv6 inbound listening on `::` with **`v6only`** enabled in `streamSettings.sockopt` takes IPv6 only and can coexist with an IPv4 inbound (`0.0.0.0` or a specific IPv4) on the same port. A bare `0.0.0.0` or `::` without `v6only` is opened by the core as a dual-stack socket — it still takes the whole port and conflicts with any inbound on it. Two inbounds of the same family, like two identical listen rows, conflict as before.
+
 Separately, the panel does not allow occupying the **reserved internal Xray API port** (tag `api`, default `62789` on `127.0.0.1`): a local TCP inbound whose listen address overlaps that port on loopback is rejected with the same port-conflict error. The actual API port is read from the Xray config template (with a fallback of `62789`). On nodes this restriction does not apply — they run their own Xray.
+
+> **As of 3.9.0 saving an inbound's settings does not change its clients.** The inbound edit form no longer loads or sends the client list, and the "Enable" toggle is shown only when adding an inbound (for an existing one the state is toggled from the list). Client lifecycle fields (`enable`, expiry, quota, auto-renewal, traffic counters) are changed only by separate client operations. So a client added, deleted, renewed, reset, or depleted in parallel (by the bot, the API, LDAP, or another administrator while the form was open) is no longer rolled back by saving the inbound. Importing an inbound exported from a 2.x panel now accepts the legacy string `tgId` and other old client field types (#6663).
 
 > The Xray tag (`Tag`, unique) is generated automatically from the port and transport in the format `in-<port>-<tcp|udp|tcpudp|any>`; for an inbound deployed on a node, the prefix `n<nodeId>-` is added. On a collision, `-2`, `-3`, etc. is appended to the tag. The user usually does not edit the tag.
 
@@ -1327,6 +1360,8 @@ The position of this inbound's links in subscription output. The field hint:
 As of 3.8.0 the value can be **negative**: to put one inbound first, it is enough to give it, say, `-1`, without renumbering the others. `0` and an empty value are coerced to `1` — on save, and for values already stored in the database, at panel startup. If at least one inbound has a value other than `1`, a sortable **"Sub order"** column appears in the list. How the order is applied to the subscription formats is covered in [10.1](#inbound-link-order-in-the-subscription).
 
 #### Disabling XTLS flow, and a narrow edit of the order (3.7.0)
+
+**"Exclude from subscriptions"** (`excludeFromSub`, as of 3.9.0) — a toggle in the inbound's common parameters (next to "Sub order"): it hides this inbound's links from the subscription output (raw, JSON, Clash) **while leaving the inbound itself enabled and working** (#6463). Unlike disabling the inbound (which stops serving it in Xray), traffic and authentication keep working, and this inbound's clients are still counted in the `Subscription-Userinfo` header (usage, quota, expiry). It is useful for handing a client a working server without publishing its link.
 
 **"Disable XTLS flow"** (`disableFlow`, VLESS only) **stops the panel from injecting `xtls-rprx-vision`** into this inbound, even when its transport formally allows it. It is for the cases where Vision gets in the way — a tunneled XHTTP inbound with VLESS encryption, for instance. Vision keeps working on your other inbounds in the same subscription: the opt-out is per inbound.
 
@@ -1567,7 +1602,7 @@ oneof=vmess vless trojan shadowsocks wireguard hysteria http mixed tunnel tun mt
 | `tun` | TUN interface (rendering of existing ones only) | No clients |
 | `mtproto` | Telegram proxy (MTProto), added in 3.3.0; handled by a separate `mtg` process, not Xray | No clients (access via secret) |
 | `amneziawg` | WireGuard with DPI-resistant obfuscation, added in 3.7.0; run by an embedded engine inside the panel process, not Xray | Clients (one enabled client = one peer) |
-| `tuic` | TUIC v5 proxy over QUIC, added in 3.8.0; handled by a separate `tuic-server` process, not Xray | Clients with a UUID and a password |
+| `tuic` | TUIC v5 proxy over QUIC, added in 3.8.0; as of 3.9.0 a native server inside the panel process (traffic goes through Xray routing) | Clients with a UUID and a password |
 
 > Note on `tun`: the value is kept in the list for compatibility and **display** of previously saved inbounds, but in the current backend version creating new ones is not recommended — support is considered deprecated. There is no point in creating new inbounds of this type.
 
@@ -1938,9 +1973,9 @@ The **Listen IP** field (see [4.1](#41-common-form-fields)) is honored: the Amne
 | `RandomTrailers` | Appends random bytes to every packet. **Requires AmneziaWG 3.1+ on both ends** |
 | `DisableCookies` | Never send cookie replies: removes one DPI fingerprint, but weakens flood mitigation |
 
-On save, the values are checked against the same bounds that `amneziawg-go` itself accepts: `Jc`, `Jmin`, `Jmax` — from 0 to 4294967295 (`Jmin` no greater than `Jmax`); `S1`, `S2` — from 0 to 65535, `S3` — up to 64, `S4` — up to 32, and `S1` + 56 must not equal `S2`; `I1`–`I5` are checked for the `<tag value>` structure (tags `b`, `t`, `r`, `rc`, `rd`, `d`, `ds`, `dz`). An invalid value is rejected right in the form instead of silently leaving the interface down.
+On save, the values are checked against the bounds that `amneziawg-go` itself accepts. As of 3.9.0 the inbound padding is capped so that the handshake fits into the receive buffer of iOS peers (1700 bytes): **`S1` ≤ 1552, `S2` ≤ 1608, `S3` ≤ 1636** (previously `S1`/`S2` allowed up to 65535, and `S3` was wrongly capped at 64, blocking valid configs); `S4` — up to 32; the `S1` + 56 = `S2` prohibition is kept. `Jc`, `Jmin`, `Jmax` — from 0 to 4294967295 (`Jmin` no greater than `Jmax`). Each of `H1`–`H4` is a number or a `low-high` range; **overlapping H ranges are rejected** (#6642) (the core and `amneziawg-go` do not bring the interface up on an overlap). `I1`–`I5` are checked for the `<tag value>` structure (tags `b`, `t`, `r`, `rc`, `rd`, `d`, `ds`, `dz`). An invalid value is rejected right in the form. On the AmneziaWG **outbound**, as of 3.9.0 the optional signature fields **I2–I5** are exposed (#6611).
 
-**Client parameters** sit on the client's credentials tab (shown when the bound inbound is AmneziaWG): **AmneziaWG Private Key**, **Public Key**, **Pre-Shared Key** (with a generate button), **Allowed IPs** (empty auto-assigns an address; separate entries with commas), **Keepalive (seconds)** (`25` for new clients, `0` — do not send) and **Forwarded Ports** — ports and ranges DNAT'd to this client, e.g. `80, 443, 8000-8100`; empty means no forwarding. More on client fields in [8.1](#81-client-fields).
+**Client parameters** sit on the client's credentials tab (shown when the bound inbound is AmneziaWG): **AmneziaWG Private Key**, **Public Key**, **Pre-Shared Key** (with a generate button), **Allowed IPs** (empty auto-assigns an address; separate entries with commas), **Keepalive (seconds)** (`25` for new clients, `0` — do not send) and **Forwarded Ports** — ports and ranges DNAT'd to this client, e.g. `80, 443, 8000-8100`; empty means no forwarding. More on client fields in [8.1](#81-client-fields). As of 3.9.0 the panel rejects a client whose **Allowed IPs overlap** the range of another client of the same inbound (masked ranges are compared, not exact strings), so an entry like `10.10.2.9/24` no longer "captures" the whole subnet; the default route `/0` reserves nothing, and already-saved overlapping clients keep working until the next edit (#6623).
 
 The ready client config is on the client's card under **"AmneziaWG config"** (the same `.conf` the Amnezia apps read). Tunnel state is visible under **`Tools → AmneziaWG Logs`**: last handshake, interface, inbound, endpoint, idle time and events.
 
@@ -1951,6 +1986,8 @@ When to choose AmneziaWG: when you need a VPN tunnel and plain WireGuard is alre
 ### 5.11. Hysteria (v2 by default)
 
 Purpose: Hysteria inbound over QUIC. The panel works with version 2 by default. Each client authenticates with an `auth` token instead of a UUID/password. TLS is always available for Hysteria (see the capability table in 5.2).
+
+As of 3.9.0 adding, deleting, and editing a Hysteria2 client is applied live (AddUser/RemoveUser) without recreating the UDP listener: the connections of this inbound's other clients are no longer dropped when a single client changes (#6606).
 
 `settings` block fields:
 
@@ -2051,22 +2088,22 @@ tg://proxy?server=<address>&port=<port>&secret=<secret>
 
 > Added in version **3.8.0**. Protocol value — `tuic`.
 
-**TUIC v5** is a proxy protocol over QUIC (UDP) with mandatory TLS, stream multiplexing and a selectable congestion control algorithm; it works well on links with packet loss. As with MTProto, such an inbound **is handled not by Xray but by a separate `tuic-server` process** (TUIC 1.0.0) managed by the panel. For each enabled TUIC inbound the panel writes the config `bin/tuic/tuic_<id>.json` and starts a dedicated process instance; every 10 seconds it reconciles the running processes with the database (starting missing ones and stopping extra ones), on startup on Linux it terminates processes left over from a previous run, and when the panel stops it stops all of them.
+**TUIC v5** is a proxy protocol over QUIC (UDP) with mandatory TLS, stream multiplexing and a selectable congestion control algorithm; it works well on links with packet loss. As of 3.9.0 TUIC runs as a **native Go server right inside the 3x-ui process** — a separate `tuic-server` sidecar is no longer used (#6577). The panel routes the decrypted traffic into the Xray core over a local SOCKS5 bridge, so Xray routing, geo-rules and chains apply to TUIC (TUIC → VLESS / Shadowsocks / WARP). The inbound's public UDP port is served by the panel server itself; to keep accounted traffic across a stop, a journal is kept (the `tuic_traffic_receipts` table), which is appended on the next start without double-counting.
 
-**Traffic path.** The inbound's public UDP port is held by the panel itself — by a small relay — while `tuic-server` listens on a random port on `127.0.0.1` behind it. The relay forwards datagrams and counts bytes in both directions, so the inbound's traffic is accounted accurately on any OS, and the inbound's **"Total Flow"** and **"Duration"** (expiry) limits take effect just as they do for other protocols. A side effect: in the `tuic-server` logs every client's address shows up as `127.0.0.1`. The relay holds up to 4096 concurrent UDP flows (keyed by client address and port); when the table is full, the flow that has been idle the longest is evicted, so a flood of junk datagrams from many ports cannot block new clients from connecting. An inactive flow is forgotten after 2 minutes. TUIC traffic never enters Xray: `tuic-server` sends it out to the network itself, so Xray routing, sniffing and outbounds do not apply to it.
+**Traffic path.** The inbound's public UDP port is served by the panel's built-in TUIC server; the decrypted stream goes into the Xray core over a local SOCKS5 bridge. So Xray routing, sniffing, geo-rules and chaining to any Xray outbounds apply to TUIC — unlike the former sidecar, which sent traffic out past Xray. The inbound's and each client's traffic is accounted accurately on any OS, and the inbound's **"Total Flow"** and **"Duration"** (expiry) take effect just as they do for other protocols.
 
-**Installation and limitations.** The `tuic-server` binary is installed by the install script into the panel's `bin` directory (static builds for x86_64, aarch64, armv7 and i686) and is included in the Docker image; there are no prebuilt builds for armv5/armv6 and s390x, so TUIC is unavailable there. The panel looks for the binary in `bin` (`tuic-server-<os>-<arch>`, then `tuic-server`), then in `/usr/local/bin`, `/usr/bin` and `PATH`. The inbound runs **on the local panel only**: TUIC has no **"Deploy to"** field. The form has the **"Basics"**, **"Protocol"** and **"Advanced"** tabs, while **"Stream"**, **"Security"** and **"Sniffing"** are absent. The port is taken on UDP only, so in the port-conflict check TUIC may use the same port number as a TCP inbound (for example, VLESS on 443/TCP).
+**Deployment.** No separate binary needs to be installed — TUIC is built into the panel. A TUIC inbound can also be deployed **on a node** (it is run by the node's own panel; the node must be on version **v3.8.0** or newer, see [12.7](#127-how-inbounds-and-clients-are-synchronized)). The form has the **"Basics"**, **"Protocol"** and **"Advanced"** tabs, while **"Stream"**, **"Security"** and **"Sniffing"** are absent. The port is taken on UDP only, so in the port-conflict check TUIC may use the same port number as a TCP inbound (for example, VLESS on 443/TCP).
 
 **"Protocol" tab fields** (stored in `settings.server`):
 
 | UI field | Key | Default | Description |
 |---|---|---|---|
-| **SNI** | `sni` | empty | Server name for clients: it goes into the link and the Clash config and is not passed to `tuic-server` itself. While the certificate paths are empty or point into `/root/cert/`, typing an SNI fills them in as `/root/cert/<SNI>/fullchain.pem` and `/root/cert/<SNI>/privkey.pem`; the **"Auto Fill"** button sets these paths unconditionally |
+| **SNI** | `sni` | empty | Server name for clients: it goes into the link and the Clash config and is not passed to the TUIC server itself. While the certificate paths are empty or point into `/root/cert/`, typing an SNI fills them in as `/root/cert/<SNI>/fullchain.pem` and `/root/cert/<SNI>/privkey.pem`; the **"Auto Fill"** button sets these paths unconditionally |
 | **"Public Key"** | `certificate` | empty | Path to the certificate file (full chain). Input suggestions: `/root/cert/<SNI>/fullchain.pem`, `/etc/letsencrypt/live/<SNI>/fullchain.pem`, `/root/cert.pem` |
 | **"Private Key"** | `private_key` | empty | Path to the private key file; the suggestions are the same directories with `privkey.pem` |
-| **"Congestion Control"** | `congestion_control` | `bbr` | QUIC congestion control algorithm: BBR, CUBIC or New Reno |
+| **"Congestion Control"** | `congestion_control` | `bbr` | QUIC congestion control algorithm: BBR, CUBIC or New Reno. The value goes into the client profile; on the server the built-in engine only supports `bbr` and `new_reno`, so a choice of `cubic` is served as `new_reno`. On the server a change of algorithm takes effect after a reconnect |
 | **ALPN** | `alpn` | `h3`, `spdy/3.1` | ALPN list, entered as tags |
-| **"UDP Relay Mode"** | `udp_relay_mode` | `native` | How the client carries UDP traffic: **Native (Recommended)** — as QUIC datagrams, **QUIC** — over QUIC streams. A client-side parameter: it goes into the link and the Clash config and is not written to the `tuic-server` config |
+| **"UDP Relay Mode"** | `udp_relay_mode` | `native` | How the client carries UDP traffic: **Native (Recommended)** — as QUIC datagrams, **QUIC** — over QUIC streams. A client-side parameter: it goes into the link and the Clash config and has no effect on the server |
 
 The **"Set Cert from Panel"** button fills in the certificate and key paths configured for the panel's web interface (if there are none, the warning "No certificate is configured for the panel. Set one under Settings first." is shown); **"Clear"** erases both paths.
 
@@ -2075,21 +2112,21 @@ The collapsible **"Advanced Settings"** group:
 | UI field | Key | Default | Description |
 |---|---|---|---|
 | **"Zero-RTT Handshake"** | `zero_rtt_handshake` | on | 0-RTT handshake when a client reconnects; in the Clash config it is passed as `reduce-rtt` |
-| **"Log Level"** | `log_level` | `info` | Info, Warn, Error or Debug; `tuic-server` output is written to the panel log with the `tuic:` prefix. The field hint notes that online status, "last online" and "start after first use" are read from Info lines, and Warn or Error turns them off for this inbound |
+| **"Log Level"** | `log_level` | `info` | Info, Warn, Error or Debug; the TUIC server's output is written to the panel log with the `tuic:` prefix. The field hint is "Minimum level of messages in this inbound's logs" (online status no longer depends on the log level) |
 | **"Max Idle Time (s)"** | `max_idle_time` | `15` | After how many seconds of inactivity a QUIC connection is closed |
 | **"Auth Timeout (s)"** | `authentication_timeout` | `3` | How many seconds the server waits for the client to authenticate |
-| **"Max UDP Packet Size"** | `max_udp_relay_packet_size` | `1500` | Maximum size of a relayed UDP packet in bytes (`max_external_packet_size` in the `tuic-server` config) |
+| **"Max UDP Packet Size"** | `max_udp_relay_packet_size` | `1500` | Maximum size of a relayed UDP packet in bytes. Up to `65245` is allowed (larger values are truncated) |
 
-**A certificate is required.** QUIC works only with TLS, so the certificate and key paths must be specified. They are not validated on save (the save-time certificate check covers only TLS on the "Security" tab): with an empty or wrong path `tuic-server` will not start, the panel will retry at every reconciliation, and the reason ends up in the panel log.
+**A certificate is required.** QUIC works only with TLS, so the certificate and key paths must be specified. They are not validated on save (the save-time certificate check covers only TLS on the "Security" tab): with an empty or wrong path the TUIC server for this inbound will not come up, the panel will retry on the next configuration apply, and the reason ends up in the panel log.
 
-**Clients.** TUIC is a multi-client protocol: clients are created and attached just like for the other protocols (see [section 8](#8-clients)). A client must have an **Email**, a **UUID** and a **password** — otherwise saving is rejected; when a client is attached to a TUIC inbound, a missing UUID and password are generated automatically. Only enabled clients with a UUID and password are passed to `tuic-server`; while there are none, the process is not started and nothing listens on the inbound's UDP port.
+**Clients.** TUIC is a multi-client protocol: clients are created and attached just like for the other protocols (see [section 8](#8-clients)). A client must have an **Email**, a **UUID** and a **password** — otherwise saving is rejected; when a client is attached to a TUIC inbound, a missing UUID and password are generated automatically. Only enabled clients with a UUID and password are passed to the built-in server; while there are none, the server for this inbound is not started and nothing listens on the UDP port.
 
-- A client's **expiry** and **enable/disable** work: an expired or disabled client is removed from the `tuic-server` user list.
-- A **per-client traffic quota** (`totalGB`) **is not supported**: `tuic-server` does not report per-user statistics, and the clients' traffic counters do not grow. The field hint in the client form: "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead."
+- A client's **expiry** and **enable/disable** work: an expired or disabled client is removed from the built-in server's user list.
+- A **per-client traffic quota** (`totalGB`) **is supported and enforced:** the built-in server accounts each client's usage, the counters grow, and on reaching the quota the client is disabled, just as for other protocols (the former "TUIC does not support per-client quotas" hint is gone).
 - **"IP Limit"** has no effect on TUIC clients: it is built on Xray's online-IP statistics, and TUIC connections bypass Xray.
-- **Online status**, "last online" and the "after first use" expiry countdown are determined from Info-level lines in the `tuic-server` log that contain the client's UUID, so the Info or Debug log level is required.
+- **Online status**, "last online" and the "after first use" expiry countdown are determined by the built-in server directly and no longer depend on the log level.
 
-**Any change restarts the process.** `tuic-server` cannot change users on the fly, so adding, deleting or disabling a client (including automatically, on expiry), changing its UUID or password, as well as editing the inbound's fields, restarts the process together with the relay: active connections of all clients of this inbound are dropped, and clients have to reconnect.
+**Client edits are applied live.** Adding, deleting, or disabling a client (including automatically, on expiry or quota), changing its UUID or password updates the built-in server's user registry instantly, **without dropping the connections** of the other clients and without reopening the UDP port. (Changing the inbound's own network fields still recreates the listener.)
 
 **Link and configs.** For a client the panel generates this link:
 
@@ -2112,7 +2149,7 @@ When to choose TUIC: when you need a QUIC proxy with fast connection setup and c
 - **WireGuard** — full VPN tunnel.
 - **tunnel** — transparent port forwarding.
 - **MTProto** — proxy for bypassing Telegram blocks (FakeTLS); separate `mtg` process.
-- **TUIC v5** — QUIC proxy with congestion control for lossy links; separate `tuic-server` process, traffic and limits at the inbound level only.
+- **TUIC v5** — QUIC proxy with congestion control for lossy links; a native server inside the panel, with Xray routing and per-client quotas.
 
 ---
 
@@ -2674,7 +2711,7 @@ Fields of the `realitySettings` block. REALITY does not use an SSL certificate: 
 
 As of version 3.4.2, **Target** (`target`) and **SNI** (`serverNames`) are **no longer** filled automatically when REALITY is enabled — both fields stay empty, and the target is picked by the live scanner (see below). Choose a heavyweight, stable third-party HTTPS site that supports TLS 1.3 and HTTP/2 and is not behind your own server.
 
-> **An empty "Min Client Version" field and the core version.** Before 3.8.0 an empty field did not mean "no restriction": Xray-core substituted its built-in minimum of `26.3.27`, and third-party cores (Mihomo, sing-box) failed the REALITY check even with the right keys. Xray-core v26.9.8 and newer (3.8.0 ships with v26.9.9) has no built-in minimum; explicitly saved values still apply. If the server runs an older core build, an empty field may still mean the built-in minimum. When lowering or removing the restriction, keep in mind that outdated TLS fingerprints get through along with third-party clients.
+> **An empty "Min Client Version" field and the core version.** Before 3.8.0 an empty field did not mean "no restriction": Xray-core substituted its built-in minimum of `26.3.27`, and third-party cores (Mihomo, sing-box) failed the REALITY check even with the right keys. Xray-core v26.9.8 and newer (3.9.0 ships with v26.9.30) has no built-in minimum; explicitly saved values still apply. On cores v26.7.11–v26.9.7 an empty field means the built-in minimum `26.3.27` — to accept such clients, set `1.0.0`. The field hint now takes the core version into account (#6568). When lowering or removing the restriction, keep in mind that outdated TLS fingerprints get through along with third-party clients.
 
 > **Mihomo and ML-KEM.** Xray-core v26.9.8+ accepts a REALITY handshake only with an ML-KEM key (`X25519MLKEM768`). That is why the Clash/Mihomo subscription for REALITY nodes (including a client's external links) adds the `support-x25519mlkem768: true` flag to `reality-opts` and sets `client-fingerprint: chrome` when no fingerprint is set; an explicitly chosen fingerprint is kept and must support ML-KEM. A `vless://` link has no such parameter — when importing the link into Mihomo directly, enable the flag in the client itself. More on the Clash subscription — [10.4](#104-output-formats).
 
@@ -2814,16 +2851,19 @@ The client form is split into two tabs: **General** (email, inbound binding, lim
 | HWID limit | `limitHwid` | `0` (no limit) | Maximum registered subscription devices (3.7.0) |
 | Forwarded ports | `forwardedPorts` | empty | Ports/ranges DNAT'd to an AmneziaWG client (3.7.0) |
 | Keepalive (seconds) | `keepAlive` | `25` in the new-client form | PersistentKeepalive period of a WireGuard/AmneziaWG client, `0` — off |
+| Renewal weekday | `resetWeekday` | `0` (off) | Weekday for weekly calendar renewal: 1=Mon … 7=Sun (3.9.0) |
 
 #### Renewals, reset cycles and the device limit (3.7.0)
 
 **Renewal on a calendar day.** The **"Renew on day"** field (`resetDay`, 1–31) switches the client from "every N days" to the calendar: the renewal fires on that day of every month, at midnight in the panel's time zone. A month too short for the chosen day (the 31st in April) renews on its last day. `0` keeps the interval mode (`reset`). An expiry set to exactly 23:59:59 on the eve of the renewal day (an "up to and including the end of the month" entry) is moved by the panel to midnight of that day without spending a renewal — so the first counted renewal is a full month, and the **"Max renewals"** limit is not spent on the alignment.
 
+**Auto-renewal mode (3.9.0).** Instead of separate fields there is now a single **"Auto-renewal"** selector with the modes: **"Disabled"**, **"At a fixed interval (days)"** (the `reset` field, days), **"Calendar — by weekday"** (new), and **"Calendar — by day of month"** (the `resetDay` field, 1–31). The weekly mode is set by the **"Renewal weekday"** field — the client field **`resetWeekday`** (1 = Monday … 7 = Sunday). Like the monthly one, the weekly renewal fires at midnight in the panel's time zone and **resets the client's traffic**. Next to it a **renewal schedule preview** is shown: the next renewal date, the validity until then, the validity after renewal, and the number of periods to be charged; if no expiry is set yet, the preview offers a button to set the first cutoff. The mode is determined by the filled field (`resetDay` → monthly, otherwise `resetWeekday` → weekly, otherwise `reset` → interval). **The weekly mode requires every node to be updated:** old nodes ignore `resetWeekday` (#6524).
+
 **A cap on auto-renewals.** The **"Max renewals"** field (`resetMax`) limits how many times auto-renew may fire before the client is left to expire; `0` means no limit. When the panel catches up several missed periods at once, each period spends one renewal. A **"Renewals used"** counter is shown next to it.
 
 **A per-client traffic reset cycle.** Before 3.7.0 the periodic counter reset was an inbound-level setting only; the client now has its own `trafficReset` (`never` / `hourly` / `daily` / `weekly` / `monthly`) and `trafficResetDay` — the day of the month for the monthly cycle.
 
-**The device limit (HWID).** The **"HWID Limit"** field (`limitHwid`) is the maximum number of devices whose subscription requests are accepted; `0` means unlimited. Next to it is the **"HWID Devices"** list: device, OS and its version, model, first and last seen, and the **"HWID fingerprint"** — the first 12 characters of the SHA-256 hash of the device identifier (the `fingerprint` field in the API), which make devices easy to tell apart; the panel shows neither the HWID itself nor the full hash. A device is removed one at a time (`DELETE /panel/api/clients/hwids/:email/:id`) or as a whole list (`DELETE /panel/api/clients/hwids/:email`) — a removed device simply re-registers on its next subscription fetch, so this is a way to "unlink a phone", not a punishment.
+**The device limit (HWID).** The **"HWID Limit"** field (`limitHwid`) is the maximum number of devices whose subscription requests are accepted; `0` means unlimited. Next to it is the **"HWID Devices"** list: device, OS and its version, model, first and last seen, and the **"HWID fingerprint"** — the first 12 characters of the SHA-256 hash of the device identifier (the `fingerprint` field in the API), which make devices easy to tell apart; the panel shows neither the HWID itself nor the full hash. As of 3.9.0 devices are recorded in the **"HWID Devices"** list for clients **without a limit** too (limit 0): the accounting runs but does not restrict the subscription. A device is removed one at a time (`DELETE /panel/api/clients/hwids/:email/:id`) or as a whole list (`DELETE /panel/api/clients/hwids/:email`) — a removed device simply re-registers on its next subscription fetch, so this is a way to "unlink a phone", not a punishment.
 
 #### A client's external links: what 3.7.0 added
 
@@ -2892,7 +2932,7 @@ Related operations: **IP log** shows the list of recorded IPs for the client; ea
 
 #### Total sent/received (GB) — traffic quota
 
-**Total sent/received (GB)** (field `totalGB`) — the combined traffic quota (upload + download). The default value `0` means **unlimited**. Once the quota is reached (`up + down >= total`), the client is considered **depleted** and is disabled. In the UI values are usually entered in gigabytes; the database stores them in bytes. Per-client quotas are not supported for TUIC clients — the field tooltip points this out: "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.".
+**Total sent/received (GB)** (field `totalGB`) — the combined traffic quota (upload + download). The default value `0` means **unlimited**. Once the quota is reached (`up + down >= total`), the client is considered **depleted** and is disabled. In the UI values are usually entered in gigabytes; the database stores them in bytes. As of 3.9.0 the per-client quota is supported for **TUIC** clients too: the built-in server accounts their usage, and on reaching the quota the client is disabled, just as for the other protocols.
 
 In the client list the **Traffic** column shows a colored usage bar: the amount of traffic consumed, the limit label (or ∞ for unlimited), and a hover tooltip breaking down upload/download and the remaining amount. The same compact indicator appears in client cards on mobile.
 
@@ -3027,6 +3067,10 @@ When nothing is selected, the **More** menu on the **Clients** page offers three
 
 **Delete clients without inbound** (`POST /clients/delOrphans`) — a destructive operation: deletes all clients not bound to any inbound, along with their traffic record, IP log, and external links. Confirmation: "Delete clients without an inbound?", "Removes every client that is not attached to any inbound, along with its traffic record. This cannot be undone.". Toast: "{count} unattached clients deleted". The action is irreversible.
 
+#### Portable export and import of clients
+
+Clients can be exported and imported as portable JSON (the endpoints `POST /panel/api/clients/export` and `/panel/api/clients/import`). As of 3.9.0 the export also carries the client's **traffic counters** (`up`, `down`, the number of resets, last online), and the import restores them **only for newly created** clients; existing ones (matched by email) end up in `skipped` and keep their own counters (#6469).
+
 ### 8.5. Search, filters, and sorting
 
 Above the list there is a search bar ("Search email, comment, sub ID, UUID, password, auth, Telegram ID…") — it searches by email, comment, subId, UUID, password, auth, and (again as of 3.5.0) by **Telegram ID**. Result counter: "Showing {shown} of {total}".
@@ -3036,6 +3080,8 @@ The client list updates automatically: the panel fetches the current page every 
 As of 3.5.0 the table has a **"Speed"** column (between "Traffic" and "Remaining"): the client's live speed — a blue `↑ upload / ↓ download` label (a sliding ~5-second average, refreshed every 5 seconds); when there is no traffic — a gray dash. On mobile the speed is shown as a row in the client card.
 
 The **Client filters** panel lets you filter by status (category), protocol, bound inbound, expiry date range, used traffic range, presence of auto-renewal (**Has/None**), presence of Telegram ID and comment, and by group. On panels with nodes a **Nodes** multi-select appears: you can narrow the list to clients of selected nodes; a separate **Local panel** option filters clients of inbounds not bound to a node (the filter is visible only when nodes exist). Sorting: **Oldest/Newest first**, **Recently updated**, **Recently online**, **Email A→Z / Z→A**, **Most traffic**, **Most remaining**, **Expiring soonest**.
+
+**Search and the group filter with non-ASCII (3.9.0).** Client search and the group filter now fold case for non-Latin text too (Cyrillic, Farsi, etc.): an uppercase Cyrillic letter in a group name or a search query is found again (previously SQLite's `LOWER()` folded ASCII only) (#6685).
 
 **Clicking a summary card (3.8.5).** The cards above the list (Clients, Online, Depleted, Almost depleted, Disabled, Active) are clickable: clicking a card sets its status category as the only filter, clicking it again clears the filter, and clicking the "Clients" card resets the status filter. The "Active"/"Disabled" categories themselves have also been aligned — they used to be wider than the card's counter ("Active" swept in clients on the verge of depletion, "Disabled" swept in already-depleted disabled ones); now the filter and the card always show the same number.
 
@@ -3435,6 +3481,14 @@ The section is divided into tabs: **"General"**, **"Information"**, **"Profile"*
 
 If both paths are set and the certificate loads successfully, the subscription server runs over **HTTPS**. If the fields are empty or the certificate cannot be read, the server falls back to **HTTP** (the error is written to the log). A valid TLS certificate also affects base URL construction: when the port is 443 with TLS or 80 without TLS, the port number is omitted from the link.
 
+#### External subscription User-Agent
+
+| Field (UI) | Key | Default | Description |
+|---|---|---|---|
+| External subscription User-Agent | `externalSubUserAgent` | `v2rayNG/1.8.5` | The `User-Agent` header the panel uses to download a client's **external subscriptions** (the "Links" tab in the client card). An empty value means the default `v2rayNG/1.8.5`. Needed by providers that reject unknown clients (#6613). |
+
+This is a global panel setting; it is unrelated to the **User-Agent** field of an individual "subscription outbound" (see [11.12](#1112-subscription-outbounds-with-auto-update)), which applies only to that outbound source. When downloading external subscriptions the panel also sends a stable device identifier `X-HWID` (and `X-Device-OS`), so providers with a per-device limit do not reject the request; no settings required (#6567, #6579).
+
 #### Update interval
 
 | Field (UI) | Key | Default | Description |
@@ -3518,7 +3572,7 @@ As of 3.8.0 these fields are on the "Happ" tab, **"Routing & Rules"** sub-tab, n
 
 #### Incy routing (Incy client only)
 
-For the **Incy** VPN client, the subscription settings have a dedicated **"Incy"** tab with two fields: an **"Enable routing"** toggle (`subIncyEnableRouting`, disabled by default) and a **"Routing rules"** text field (`subIncyRoutingRules`) in the format `incy://routing/onadd/<base64>`. When routing is enabled and the field is filled in, this string is appended as a separate line to the subscription body (raw format) — delivering the routing profile to the Incy client without conflicting with the Happ client's `Routing` header. These settings only apply to the Incy client.
+For the **Incy** VPN client, the subscription settings have a dedicated **"Incy"** tab. As of 3.9.0 it has an **"Incy header auto-detection"** toggle (`subIncyAppAutoDetect`): the app-management headers go only to clients with a `User-Agent` of the form `INCY/<version>/<platform>`. The fields are grouped into **"App"** (profile description, sort order, support e-mail, "About"/Premium links), **"Banners"** (text, button, colors), **"Privacy"** (hiding the URL/check, the iOS memory-saving mode), **"Network"** (per-app Android proxy — `bypass`/`proxy` modes; TCP fragmentation; UDP noise; pre-resolving the server address via DoH) and **"Routing"** (#6650). The former routing fields: an **"Enable routing"** toggle (`subIncyEnableRouting`, disabled by default) and a **"Routing rules"** text field (`subIncyRoutingRules`) in the format `incy://routing/onadd/<base64>`. When routing is enabled and the field is filled in, this string is appended as a separate line to the subscription body (raw format) — delivering the routing profile to the Incy client without conflicting with the Happ client's `Routing` header. These settings only apply to the Incy client.
 
 #### Reverse proxy URI
 
@@ -3529,6 +3583,8 @@ For the **Incy** VPN client, the subscription settings have a dedicated **"Incy"
 If the field is empty, the panel constructs the base link address itself from the subscription domain and port (taking TLS into account). If the subscription is served through an external reverse proxy/CDN on a different domain or path, you set the final base URI in this field and all links will be built from it. Separate fields of the same kind exist for JSON (`subJsonURI`) and Clash (`subClashURI`).
 
 If only the common `subURI` is set and the individual JSON and Clash fields are left empty, the links for those formats on the subscription page inherit the scheme and host from `subURI` (rather than the sub-server port and `http`) — so they match the reverse proxy address.
+
+As of 3.9.0, behind a reverse proxy that sends only `X-Real-IP`, the server address in links is no longer taken from that header (it is the subscriber's own public IP): the host is determined from a trusted `X-Forwarded-Host` or from the address the request arrived on (#6608).
 
 **Example: subscription behind a reverse proxy.** The subscription itself listens on `2096`, but is externally accessible via nginx/CDN at `https://cfg.example.com/u/`. To have links in the response built from the external address instead of the internal `domain:2096`, set the final base URI in the "Reverse proxy URI" field:
 
@@ -3579,8 +3635,8 @@ Each host (group) has:
 
 - **Remark** and **"Description"** (up to 64 characters; as of 3.8.0 it is passed to the Happ client as the server caption, see [10.7](#107-happ-client-integration)), binding to **Inbounds** (multi-select with search; at least one), an **Enable** toggle, and assignment to **Nodes**.
 - **Address** — as of 3.5.0 this is a **list of addresses** (tag input; separators — comma, semicolon, space; placeholder `cdn.example.com, cdn2.example.com:443`). Each entry may carry its own inline `:port` (including IPv6 in brackets `[::1]:443`); the drop-down suggests addresses already used by other hosts. An empty list — the inbound's own address is inherited (shown in the list as an orange **Inherits** label). **Port** (`0` — inherits the inbound port) serves as the default port for entries without an inline port; **Tags** (applied only in the RAW subscription).
-- A **Security** tab — `same` / `tls` / `none` / `reality` with SNI, fingerprint, ALPN, pinned-cert, `allowInsecure`, and ECH. The SNI and Fingerprint fields, as well as ALPN, the pinned SHA-256, "Verify peer cert by name", "Allow insecure", and ECH, are also shown with `same` — so that previously set overrides can be cleared; the Fingerprint list has a "None" option (no uTLS). If a host switches a REALITY inbound to `tls` or `none`, the REALITY parameters (`pbk`, `sid`, `spx`, `pqv`, plus the `sni` and `fp` of the REALITY target) are removed from the link, and the host's own SNI and fingerprint are applied afresh.
-- An **Advanced** tab — Host header, Path, VLESS flow, Mux, Sockopt, Final Mask, and exclusion of the host from individual subscription formats (raw / json / clash). As of 3.5.0 the **host's Final Mask is also included in raw links** (`fm=`; previously — JSON/Clash only): the host's TCP/UDP masks are added to the inbound's masks, and the host's QUIC parameters are taken only if the inbound has none. The **Allow insecure** toggle now also applies to **Hysteria/Hysteria2** (`insecure=1` in the link, `skip-cert-verify: true` in Clash).
+- A **Security** tab — `same` / `tls` / `none` / `reality` with SNI, fingerprint, ALPN, **cipher suites** (`cipherSuites`, as of 3.9.0 a multi-select with tag input; for the JSON subscription they replace the inbound's suites, an empty field inherits them), pinned-cert, `allowInsecure`, and ECH. The SNI and Fingerprint fields, as well as ALPN, the pinned SHA-256, "Verify peer cert by name", "Allow insecure", and ECH, are also shown with `same` — so that previously set overrides can be cleared; the Fingerprint list has a "None" option (no uTLS). If a host switches a REALITY inbound to `tls` or `none`, the REALITY parameters (`pbk`, `sid`, `spx`, `pqv`, plus the `sni` and `fp` of the REALITY target) are removed from the link, and the host's own SNI and fingerprint are applied afresh.
+- An **Advanced** tab — Host header, Path, VLESS flow, Mux, Sockopt, Final Mask, and exclusion of the host from individual subscription formats (raw / json / clash). As of 3.5.0 the **host's Final Mask is also included in raw links** (`fm=`; previously — JSON/Clash only): the host's TCP/UDP masks are added to the inbound's masks, and the host's QUIC parameters are taken only if the inbound has none. The **Allow insecure** toggle now also applies to **Hysteria/Hysteria2** (`insecure=1` in the link, `skip-cert-verify: true` in Clash). As of 3.9.0 **WireGuard, AmneziaWG, and TUIC** configs in every output (raw, the downloadable `.conf`, the links API, export, QR, and the client and inbound cards) advertise the addresses from the bound enabled **hosts**, not the panel's own address; with several hosts the client gets one config per host.
 - A **Clash (mihomo)** tab — IP version, Mihomo X25519, shuffle host.
 
 In the list, the **Endpoint** column shows the addresses as chips (the first one visible, the rest in a "+N" popover), and the **Inbounds** column shows inbound chips colored by protocol. As of 3.5.0 hosts are ordered **globally** (by sort order, then by remark) rather than within their inbound; bulk enable, disable, and delete remain available. Managed Hosts replace the previous External Proxy array. In the **Inbounds** list, the remarks of the enabled hosts bound to an inbound are shown next to it (a long list is shortened, with the full list in a tooltip; search works on them too).
@@ -3637,7 +3693,7 @@ When the Clash subscription is enabled, the server also answers at two fixed add
 
 An alias is not registered if its path matches one of the configured subscription paths (a warning is written to the log); if `subClashPath` itself is `/mihomo/`, the full profile is served there.
 
-The format of generated links and YAML is kept up to date for modern clients: Shadowsocks-2022 (SS2022) no longer Base64-encodes userinfo; Shadowsocks links with HTTP obfuscation are output in SIP002 format with the `obfs-local` plugin; Clash/Mihomo subscriptions include a complete set of XHTTP fields. As of 3.5.0 clients of **native WireGuard inbounds** are also included in the Clash/Mihomo subscription (fields `private-key`, `public-key`, `pre-shared-key`, `persistent-keepalive`, `ip`/`ipv6`, `mtu`, `dns`) — previously they were silently skipped. No separate settings are required — links are simply recognized more correctly by clients. As of 3.8.0 the Clash/Mihomo subscription also includes **AmneziaWG** (a `type: wireguard` proxy with an `amnezia-wg-option` block: `jc`/`jmin`/`jmax`, `s1`–`s4`, `h1`–`h4`, `i1`–`i5`, plus `version: 3` when version-3 parameters such as `header-protection-key` are set; `mtu` is always emitted and takes `S4` into account) and **TUIC** (`type: tuic` with `uuid`, `password`, `congestion-controller`, `udp-relay-mode`, `reduce-rtt`, `alpn`, `sni`; see [5.13](#513-tuic-v5)). REALITY nodes get `support-x25519mlkem768: true` in `reality-opts` (Xray 26.9.8+ rejects a REALITY handshake without the ML-KEM key), and `client-fingerprint` is set to `chrome` when the inbound has no fingerprint. The server address in a proxy is emitted as a bare host — IPv6 without the square brackets that Mihomo could not parse.
+The format of generated links and YAML is kept up to date for modern clients: Shadowsocks-2022 (SS2022) no longer Base64-encodes userinfo; Shadowsocks links with HTTP obfuscation are output in SIP002 format with the `obfs-local` plugin; Clash/Mihomo subscriptions include a complete set of XHTTP fields. As of 3.5.0 clients of **native WireGuard inbounds** are also included in the Clash/Mihomo subscription (fields `private-key`, `public-key`, `pre-shared-key`, `persistent-keepalive`, `ip`/`ipv6`, `mtu`, `dns`) — previously they were silently skipped. No separate settings are required — links are simply recognized more correctly by clients. As of 3.8.0 the Clash/Mihomo subscription also includes **AmneziaWG** (a `type: wireguard` proxy with an `amnezia-wg-option` block: `jc`/`jmin`/`jmax`, `s1`–`s4`, `h1`–`h4`, `i1`–`i5`, plus `version: 3` when version-3 parameters such as `header-protection-key` are set; `mtu` is always emitted and takes `S4` into account) and **TUIC** (`type: tuic` with `uuid`, `password`, `congestion-controller`, `udp-relay-mode`, `reduce-rtt`, `alpn`, `sni`; see [5.13](#513-tuic-v5)). REALITY nodes get `support-x25519mlkem768: true` in `reality-opts` (Xray 26.9.8+ rejects a REALITY handshake without the ML-KEM key), and `client-fingerprint` is set to `chrome` when the inbound has no fingerprint. The server address in a proxy is emitted as a bare host — IPv6 without the square brackets that Mihomo could not parse. As of 3.9.0, for a client on several tunnel inbounds (for example, WireGuard/AmneziaWG on different nodes) each subscription carries the keys, `AllowedIPs`, and keepalive of its own inbound, not the shared record of the last synchronized one (#6653).
 
 > Note: this build supports exactly three formats — regular links (Base64/text), JSON (Xray JSON), and Clash/Mihomo (YAML, including the `/mihomo/` and `/clash-legacy/` aliases). There is no separate Outline format in the subscription server.
 
@@ -3789,8 +3845,8 @@ The **"Happ"** tab of the subscription settings gathers what the panel passes to
 
 | Field (UI) | Key | Header | Description |
 |---|---|---|---|
-| Routing Presets | — | — | A preset list and a button of the same name: a ready-made deeplink is written to "Routing rules", replacing the field's previous contents. "Iran Bypass" and "China Direct" send national domains and IPs (`domain:ir`/`geoip:ir`, `geosite:cn`/`geoip:cn`) and private networks direct while blocking ads; "AdBlock" sends private networks direct and blocks `geosite:category-ads-all`; "Full Proxy" sends everything through the proxy; "Disable Routing (happ://routing/off)" writes `happ://routing/off`. |
-| Visual Rule Generator | — | — | The button opens the "Happ Visual Routing Rule Generator" window with six lists (comma- or newline-separated): "Direct Domains (Bypass)", "Proxy Domains (Tunnel)", "Blocked Domains (Ad/Malware)", "Direct IPs / CIDRs", "Proxy IPs / CIDRs", "Blocked IPs / CIDRs". The "Generate Deeplink" button writes `happ://routing/onadd/<base64>` to "Routing rules" (profile `Custom Rules`, `DomainStrategy: IPIfNonMatch`). |
+| Routing Presets | — | — | A preset list and an **"Apply template"** button: a ready-made deeplink is written to "Routing rules", replacing the previous contents. As of 3.9.0: **"Iran Bypass"**, **"Bypass-CN"** (DoH DNS, `geosite:geolocation-cn`), **"Full Proxy (Global)"**, **"Everything through the proxy, local network direct"** (the new LAN preset: `GlobalProxy`, `DirectSites: geosite:private`, `DirectIp: geoip:private`) and **"Disable Routing"** (`happ://routing/off`). Next to it is a separate **"Add AdBlock"** toggle (`subHappIncludeAdblock`): it mixes `geosite:category-ads-all` into the block list of the chosen preset (the former standalone AdBlock preset is removed). |
+| Routing rule editor | — | — | The button opens an editor window that **loads the current routing profile and lets you edit it**: a **"Basic rules"** tab (one rule per line) and an **"Advanced editor"** tab (the full profile JSON). The generate button writes the result to "Routing rules" as `happ://routing/onadd/<base64>`. It replaces the former one-way generator by domain/IP lists (#6545). |
 | No-Limit Mode | `subHappNoLimit` | `No-Limit-Enabled: 1` | "Raise the xray-core RAM limit in Happ for better stability and performance (beta)." |
 
 **"Subscription Links".** The **"Encrypted subscription links"** toggle (`happLinkEnable`, off by default) — "Allow encrypted Happ links to be generated in the client QR code window. Subscription URLs are processed locally." It adds no headers and does not depend on auto-detection; the encrypted link itself is described in [8.3](#83-per-client-operations).
@@ -3818,6 +3874,7 @@ The **"Happ"** tab of the subscription settings gathers what the panel passes to
 | Latency Ping Method | `subHappPingType` | `Ping-Type` | `proxy` (via the proxy, GET latency), `proxy-head` (via the proxy, HEAD), `tcp`, or `icmp`. |
 | Auto-Connect on Launch | `subHappAutoConnect` | `Subscription-Autoconnect: 1` | Connect to the VPN when the app starts. |
 | Auto-Connect Target | `subHappAutoConnectType` | `Subscription-Autoconnect-Type` | `lowestdelay` (default), `lastused`, or `random`; sent only when auto-connect is enabled. |
+| Local proxy authentication | `subHappLocalProxyAuth` | `Socks-Auth-Mode` / `Http-Auth-Mode` | (3.9.0) Authentication of Happ's local SOCKS/HTTP proxies on the device: **Auto (random credentials)** (`auto`), **Disabled** (`disable`), or **Do not send** (empty — keep the client's setting). Previously the proxies ran without authentication, and any app on the device could reach the tunnel and learn the server address (#6628). |
 
 **"Appearance & Theme".**
 
@@ -4530,6 +4587,15 @@ When saving Xray settings, the panel performs (in this order):
 
 > Due to point 3, do not try to remove or move the `api → api` rule — the panel will put it back in place on the next save. This is service infrastructure for statistics, not a user route.
 
+#### One-time template conversions on upgrade to 3.9.0
+
+Xray-core 26.9.30 changed yet another set of keys, so on the first start of 3.9.0 the panel rewrites the saved template (`xrayTemplateConfig`) once; each conversion is recorded in `history_of_seeders` and is never repeated:
+
+1. **XDNS masks (Final Mask) → object format** (`XdnsFinalmaskObjectsFix`). Lists of strings are replaced with `{name, types, edns0, lenLimit, labelLimit}` objects and resolver objects; inbounds, hosts, the template, the JSON subscription mask, and the subscription-outbound cache are converted. The mask format changed in the protocol — old clients need a new client Xray, and an unmigrated mask keeps the core from starting.
+2. **WireGuard outbound: domain strategy** (`WireguardDomainStrategyFix`). `settings.domainStrategy` and the `"local"` remoteDNS mode are moved into `sockopt.domainStrategy` and `targetStrategy`; a leftover `"local"` no longer starts the core. The `domainStrategy` selector is removed from the WireGuard/WARP outbound form.
+
+In addition, a `remoteDNS` that is not an IP is now rejected on saving the template and for subscription outbounds.
+
 #### One-time template conversions on upgrade to 3.8.0
 
 xray-core 26.9.8–26.9.9 stopped accepting some keys and deprecated others, so on the first start of 3.8.0 the panel rewrites the saved template (`xrayTemplateConfig`) once. Each conversion is recorded in the `history_of_seeders` table and is never repeated; a template with invalid JSON is skipped, with a log entry.
@@ -4560,7 +4626,7 @@ The "Add Subscription" form has the following fields:
 | Subscription URL | `url` | — (required) | Subscription address. Placeholder: "https://... (base64 link list)". Only HTTP(S) is accepted; the address is validated for safety. |
 | Remark | `remark` | empty | Arbitrary label (placeholder "e.g. HK nodes"). |
 | Tag Prefix | `tagPrefix` | `subN-` | Prefix that imported `outbound` tags start with. If left empty, the panel automatically picks the lowest available number in the form `sub1-`, `sub2-`, etc. |
-| User-Agent | `userAgent` | empty (= `3x-ui-outbound-sub/1.0`) | The `User-Agent` header used to download the subscription — both on updates and in the preview. Needed for providers that serve links only to "their own" clients. Leading and trailing spaces are trimmed; an empty value means the standard `3x-ui-outbound-sub/1.0` (also shown as the placeholder). |
+| User-Agent | `userAgent` | empty (= `3x-ui-outbound-sub/1.0`) | The `User-Agent` header used to download the subscription — both on updates and in the preview. Needed for providers that serve links only to "their own" clients. Leading and trailing spaces are trimmed; an empty value means the standard `3x-ui-outbound-sub/1.0` (also shown as the placeholder). This is the User-Agent of **this outbound source**; the User-Agent for downloading a client's own external subscriptions (the "Links" tab) is set by a separate global setting, `externalSubUserAgent` (see [10.2](#102-subscription-server-settings)). |
 | Update Interval | `updateInterval` | 600 seconds (10 minutes) | How often the subscription is re-fetched. Set in hours/minutes in the UI. |
 | Enabled | `enabled` | yes (`true`) | Only enabled subscriptions are included in the config and updated automatically. |
 | Allow Private Addresses | `allowPrivate` | no (`false`) | Allows URLs on localhost, LAN, and private IPs. Disabled by default as SSRF protection — enable only for a trusted local source. |
@@ -4880,7 +4946,7 @@ Up to 60 data points are returned. An invalid metric or bucket is rejected ("inv
 
 ### 12.7. How inbounds and clients are synchronized
 
-An inbound "belongs" to a node through the `node_id` field (the node is selected in the inbound editor). A node can be assigned only to inbounds of the protocols listed in [5.1](#51-list-of-supported-protocols); the rest, including `mtproto` and `tuic`, run only on the local panel: choosing such a protocol clears the node in the form, and saving such an inbound with a node assigned is rejected with the error "… inbounds cannot be assigned to a node". An inbound of such a protocol that the master adopted from the node itself (for example, MTProto) is edited as usual — only switching its protocol to one that nodes do not support is rejected.
+An inbound "belongs" to a node through the `node_id` field (the node is selected in the inbound editor). As of 3.9.0 **AmneziaWG, TUIC, and MTProto** can also be deployed on nodes (#6306) — the protocol is run by the node's own panel, with its own engine/server. A node version threshold therefore applies: **MTProto — v3.5.0+, AmneziaWG — v3.7.0+, TUIC — v3.8.0+**. A node below the threshold (or one that has not yet reported its version) rejects the save with an error of the form "node … runs panel …; … inbounds need … or newer". The protocols that remain panel-local are `http`, `mixed`, `tunnel`/`dokodemo`, and `tun`: choosing one of them clears the node in the form, and saving it with a node assigned is rejected. On an MTProto node the loopback port is allocated by the node's own panel, and AmneziaWG forwarded ports are checked against the node's inbounds, not the master's.
 
 **Example: token in the node form.** The token is obtained on the child panel (Settings → API Token) and pasted into the master's **API Token** field. On each poll, the master sends it in the header:
 
@@ -5524,6 +5590,8 @@ A client can use link buttons (subscription, individual links, QR code) only for
 
 ### 14.3. Bot commands
 
+As of 3.9.0 the bot has **three access levels**, determined by the sender: **unlinked** (any account the admin has not tied to a client) — only `/start` and `/id` are available; **user** (an account linked to a client by Telegram ID) — its own `/usage`, plus `/status` and `/help`; **administrator** (an ID from the bot settings) — every command, including the new `/broadcast`. A new command stays admin-only until it is explicitly opened to the lower levels. Authorization considers private chats only (#6518).
+
 As of version 3.5.0, **eight** commands are registered in the Telegram "/" menu:
 
 | Command | Description (from menu) | Access | What it does |
@@ -5536,6 +5604,7 @@ As of version 3.5.0, **eight** commands are registered in the Telegram "/" menu:
 | `/inbound` | Search inbound: /inbound remark (admin) | admin | Added to the menu in 3.5.0. |
 | `/restart` | Restart Xray core (admin) | admin | Added to the menu in 3.5.0. |
 | `/clearall` | Reset all clients' traffic (admin) | admin | **New in 3.5.0**: asks for confirmation ("Cancel" / "Confirm traffic reset" buttons) and zeroes the traffic of all clients. |
+| `/broadcast` | Broadcast to all clients (admin) | admin | **New in 3.9.0** (#6510): the bot asks for a message (text, photo, video, file, or album), shows a preview, and asks for confirmation with the number of recipients. The broadcast is copied verbatim (no "forwarded" tag, the admin's identity hidden) to every client with a linked Telegram ID except admins; there is progress and a cancel. Unreachable recipients (those who have not pressed Start / have blocked the bot) are marked "Skipped". |
 
 Details of the argument-based commands:
 
@@ -5578,6 +5647,7 @@ After opening a client card (via "All Clients", "Online", "Expiring Soon", or `/
 | 🔢 IP Log | Shows the client's recorded IP addresses (with timestamps if available). From the log you can use "🔄 Refresh" and "❌ Clear IPs" (with confirmation "✅ Confirm IP clear?"). |
 | 🔢 IP Limit | Limit on simultaneous IPs. Options: ♾ Unlimited (0), 1–10, or "🔢 Custom" (numeric keyboard). |
 | 👤 Set Telegram User | Shows the currently linked Telegram User ID for the client; allows clearing the link ("❌ Remove Telegram User" with confirmation). Linking a new user is done via the system Telegram contact picker. |
+| 🔗 Invite link | (3.9.0) Creates a `https://t.me/<bot>?start=…` link: the **first** person to open it is bound to this client. The link is single-use, answers an invalid and an already-used token identically (no guessing possible), and is rate-limited to 5 attempts per hour per account. Manual linking via `/id` is kept (#6518). |
 | 🔘 Enable/Disable | Enables or disables the client. Requires confirmation "✅ Confirm enable/disable user?". |
 
 All operations that change the configuration (traffic/IP limit, expiry date, Telegram user link/unlink, enable/disable) flag Xray for a restart when necessary so the changes take effect. After a successful operation the bot displays a confirmation like "✅ <email>: …" and shows the client card again.
@@ -6005,7 +6075,7 @@ This section covers day-to-day panel maintenance: creating and restoring databas
 
 ### 16.1. Database backup and restore
 
-All panel data (inbounds, clients, groups, nodes, settings) is stored in a single database. Backup management is available on the **"Dashboard"** page under the **"Backup"** tab, with the block heading **"Backup & Restore"**.
+All panel data (inbounds, clients, groups, nodes, settings) is stored in a single database. Backup management is available on the **"Dashboard"** page under the **"Backup"** tab, with the block heading **"Backup & Restore"**. As of 3.9.0 a restore from an SQL dump is isolated: it runs on a single connection that is forbidden from attaching other databases, so a malicious or corrupted dump cannot open or create an outside file.
 
 The panel supports two database engines, and backup behavior depends on which one is in use:
 
@@ -6107,7 +6177,7 @@ The Discord bot (see [14.8](#148-discord-bot)) sends the same two files as well 
 
 ### 16.2. Viewing logs
 
-The panel has two independent log viewers, both accessible from the **"Logs"** tab on the "Dashboard". Each window can be refreshed (the refresh icon in the header) and its contents can be downloaded to a file named `x-ui.log` (the download icon button).
+The panel has two independent log viewers, both accessible from the **"Logs"** tab on the "Dashboard". Each window can be refreshed (the refresh icon in the header) and its contents can be downloaded to a file named `x-ui.log` (the download icon button). As of 3.9.0 viewing the system log is capped by a 15-second `journalctl` timeout (#6689), and the `x-ui` menu reads the service state via `systemctl show` instead of parsing the journal — on hosts with large logs the menu and the viewer no longer hang (#6629).
 
 #### Panel logs (application / syslog)
 
@@ -6256,7 +6326,7 @@ Starting an update — `POST /panel/api/server/updatePanel`. Confirmation dialog
 
 After starting — a popup message "Panel update started"; if the version check fails — "Panel update check failed".
 
-**What happens on the server:** self-update is supported **only on Linux** (on other operating systems the error "panel web update is supported only on Linux installations" is returned). The panel downloads the official `update.sh` script from GitHub (`raw.githubusercontent.com/MHSanaei/3x-ui/main/update.sh`) and runs it in a separate process: preferably via `systemd-run` in a dedicated unit (`x-ui-web-update-<timestamp>`), or as a detached process if systemd is not available. When finished, the script updates the components and restarts the panel service. `bash` is required to run it. Before extracting, `update.sh` checks the archive's SHA-256 against the published `.sha256` file: a mismatch or a failed checksum download aborts the update before the panel is even stopped, while for old releases without a checksum file only a warning is printed (details in [1.3](#13-installation-methods)). The `x-ui.sh` menu script, `x-ui.rc`, and the service units are taken from the tag of the release being installed (for the dev channel — from `main`); if a required file is missing for that tag, the update is cancelled and the current installation is left untouched. The `tuic-server` processes, like `mtg`, are stopped before the files are replaced — the panel starts them again once it is back up.
+**What happens on the server:** self-update is supported **only on Linux** (on other operating systems the error "panel web update is supported only on Linux installations" is returned). The panel downloads the official `update.sh` script from GitHub (`raw.githubusercontent.com/MHSanaei/3x-ui/main/update.sh`) and runs it in a separate process: preferably via `systemd-run` in a dedicated unit (`x-ui-web-update-<timestamp>`), or as a detached process if systemd is not available. When finished, the script updates the components and restarts the panel service. `bash` is required to run it. Before extracting, `update.sh` checks the archive's SHA-256 against the published `.sha256` file: a mismatch or a failed checksum download aborts the update before the panel is even stopped, while for old releases without a checksum file only a warning is printed (details in [1.3](#13-installation-methods)). The `x-ui.sh` menu script, `x-ui.rc`, and the service units are taken from the tag of the release being installed (for the dev channel — from `main`); if a required file is missing for that tag, the update is cancelled and the current installation is left untouched. The `mtg` (MTProto) process is stopped before the files are replaced — the panel starts it again once it is back up (as of 3.9.0 TUIC is built into the panel, with no separate process).
 
 If during an update the script generates a new random Web Base Path for the panel, the `x-ui` service is restarted automatically so the new path takes effect immediately. (Without a restart, the server would keep serving the old path while the interface showed the new one, making the new address unreachable until a manual restart.)
 
@@ -6403,6 +6473,7 @@ An API token for scripts can be issued with a command of the panel binary itself
 ```bash
 /usr/local/x-ui/x-ui setting -getApiToken                     # regenerate the cli-fallback token
 /usr/local/x-ui/x-ui setting -getApiToken -tokenName ci-bot   # regenerate the token named ci-bot
+/usr/local/x-ui/x-ui setting -getApiToken -tokenName ci-bot -tokenScope monitor  # set the token scope (3.9.0)
 ```
 
 The command cannot show a token that has already been issued: API tokens are stored only as hashes. What it does:
@@ -6410,6 +6481,7 @@ The command cannot show a token that has already been issued: API tokens are sto
 - **If tokens already exist**, the command reports their count, recommends managing tokens in the panel (**Settings → API Tokens**, see [13.9](#139-administrator-account-and-api-tokens)), and **regenerates** the token with the name from `-tokenName` (`cli-fallback` by default): the previous token with that name is deleted and stops working at once, and a new one is created in its place. The output is the line `The API token "<name>" has been regenerated (any previous one is now invalid):` followed by `apiToken: <token>`. Repeated calls with the same name do not pile up tokens.
 - **If there are no tokens yet** (a fresh panel), a token is created with the name from `-tokenName`, or `install` without the flag. This is the token the installer saves, and later calls without `-tokenName` leave it alone: they regenerate `cli-fallback`.
 - The name is at most 64 characters long. Give different scripts different names: calls with the same name revoke each other's tokens.
+- **The token scope — the `-tokenScope` flag** (as of 3.9.0): `admin`, `monitor`, or `node-sync`. On regenerating an existing token its scope and expiry are **kept** (it used to silently become `admin`); a new token gets `admin` without the flag. An unknown value is rejected before the old token is deleted, so a typo does not revoke the token being regenerated. An already-expired token is not regenerated.
 - Flags go **before** positional arguments. With `-getApiToken true -tokenName ci-bot`, flag parsing stops at `true`: the warning `warning: ignored "true -tokenName ci-bot" and any flags after it; put flags before positional arguments` is printed, and it is `cli-fallback` that gets regenerated.
 
 ### 16.8. What changed in operations in 3.7.0
