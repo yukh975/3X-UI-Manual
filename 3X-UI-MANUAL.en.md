@@ -2,7 +2,7 @@
 
 🇬🇧 English · 🇷🇺 [Русский](3X-UI-MANUAL.ru.md)
 
-**3X-UI version: 3.9.0.** This manual is based on and current for this version. A summary of changes in 3.9.0 relative to 3.8.5 is in the [What's new in 3.9.0](#whats-new-in-390) section.
+**3X-UI version: 3.10.0.** This manual is based on and current for this version. A summary of changes in 3.10.0 relative to 3.9.0 is in the [What's new in 3.10.0](#whats-new-in-3100) section.
 
 > A detailed English-language manual for the **3X-UI** web panel (Xray-core
 > management): features, configuration and operation, with an explanation of
@@ -13,7 +13,7 @@
 
 ## Table of Contents
 
-- [What's new in 3.9.0](#whats-new-in-390)
+- [What's new in 3.10.0](#whats-new-in-3100)
 - [1. Introduction, Requirements, and Installation](#1-introduction-requirements-and-installation)
   - [1.1. What Is 3X-UI](#11-what-is-3x-ui)
   - [1.2. Supported Operating Systems and Architectures](#12-supported-operating-systems-and-architectures)
@@ -73,6 +73,7 @@
   - [5.12. MTProto (Telegram Proxy)](#512-mtproto-telegram-proxy)
   - [5.13. TUIC v5](#513-tuic-v5)
   - [5.14. Quick Protocol-Selection Reference](#514-quick-protocol-selection-reference)
+  - [5.15. MASQUE](#515-masque)
 - [6. Transport (Stream Settings)](#6-transport-stream-settings)
   - [6.1. Choosing the transmission network](#61-choosing-the-transmission-network)
   - [6.2. RAW / TCP (`tcpSettings`)](#62-raw--tcp-tcpsettings)
@@ -83,6 +84,9 @@
   - [6.7. XHTTP / SplitHTTP (`xhttpSettings`)](#67-xhttp--splithttp-xhttpsettings)
   - [6.8. Hysteria transport (`hysteriaSettings`)](#68-hysteria-transport-hysteriasettings)
   - [6.9. Related parameters](#69-related-parameters)
+  - [6.10. XDRIVE (`xdriveSettings`)](#610-xdrive-xdrivesettings)
+  - [6.11. MASQUE transport (`masqueSettings`)](#611-masque-transport-masquesettings)
+  - [6.12. FinalMask: transport-level obfuscation](#612-finalmask-transport-level-obfuscation)
 - [7. Connection Security: TLS, XTLS, and REALITY](#7-connection-security-tls-xtls-and-reality)
   - [7.1. The Difference: TLS vs XTLS vs REALITY](#71-the-difference-tls-vs-xtls-vs-reality)
   - [7.2. None Mode (`none`)](#72-none-mode-none)
@@ -132,6 +136,7 @@
   - [11.11. Saving, restart, and automatic transformations](#1111-saving-restart-and-automatic-transformations)
   - [11.12. Subscription outbounds (with auto-update)](#1112-subscription-outbounds-with-auto-update)
   - [11.13. IP rotation in WARP](#1113-ip-rotation-in-warp)
+  - [11.14. Lua scripts for routing and DNS](#1114-lua-scripts-for-routing-and-dns)
 - [12. Nodes (multi-panel, master/slave)](#12-nodes-multi-panel-masterslave)
   - [12.1. Summary at the top of the list](#121-summary-at-the-top-of-the-list)
   - [12.2. Adding and editing a node](#122-adding-and-editing-a-node)
@@ -185,78 +190,105 @@
   - [16.9. Uninstalling the panel](#169-uninstalling-the-panel)
   - [16.10. The `x-ui migrateDB` command](#1610-the-x-ui-migratedb-command)
 
-## What's new in 3.9.0
+## What's new in 3.10.0
 
-Version 3.9.0 is a feature release. The headline: the **TUIC v5** protocol now runs natively inside the 3x-ui process — a separate `tuic-server` sidecar is no longer needed (#6577), and its traffic goes through Xray routing and chains, honors per-client quotas, and survives client edits without dropping connections. **AmneziaWG, TUIC, and MTProto** inbounds can now be deployed on nodes. The Happ client gained a **routing-rule editor, a separate ad-blocking toggle, and a "local network direct" preset** (#6545); the Happ settings are folded into four tabs. The Telegram bot got **access levels, account linking via `/start` and an invite link** (#6518) and a **`/broadcast`** command to message every client (#6510). A new **"Exclude from subscriptions"** inbound toggle hides the links without disabling the inbound itself (#6463). Clients gained **weekday calendar renewal with a schedule preview** (#6524), and **traffic counters are preserved during a portable export/import** (#6469). **Two inbounds — IPv4 and IPv6 — can share one port** (#6603). A **custom User-Agent** can be set for downloading a client's external subscriptions (#6613), and the `x-ui setting -getApiToken` command gained a **`-tokenScope`** flag (#6700). The core is updated to **Xray-core v26.9.30**: on the first start the saved configurations are rewritten once to match its keys (XDNS masks and the WireGuard outbound). Build requirements: Go 1.27.1, Xray-core v26.9.30. Below are the changes relative to 3.8.5, by manual section.
+Version 3.10.0 is a feature release. The headline: a new **MASQUE** protocol — an IP tunnel over HTTP/3 or HTTP/2 ([5.15](#515-masque)) — and with it **WARP over MASQUE**, straight from the WARP window; a new **XDRIVE** transport that carries the stream as files through Google Drive, a local folder, or any HTTP storage ([6.10](#610-xdrive-xdrivesettings)); and **Lua scripts for routing and DNS** ([11.14](#1114-lua-scripts-for-routing-and-dns)). Client-side port hopping is now configured with the **UDP Hop** UDP mask, and Final Mask gained Header Custom variables, Sudoku for UDP, and a Reset range for Noise. The systemd service **runs in a sandbox** (#6718), the installer sets up **PostgreSQL 18 from PGDG**, and node sync is more robust: an empty node snapshot no longer deletes clients (#6734), and client edits are applied on the node without dropping connections. The core is updated to **Xray-core v26.10.10**: it verifies TLS certificates against built-in root certificates (for your own CA there is a "Use system CA" toggle), and on the first start the configuration is rewritten once to match its keys. ⚠️ **Shadowsocks-2022 inbounds using the `2022-blake3-chacha20-poly1305` method are switched to `aes-256-gcm` — their clients' links change.** Build requirements: Go 1.27.2, Xray-core v26.10.10. Below are the changes relative to 3.9.0, by manual section.
 
 ### Changes in section 1 — Introduction, Requirements, and Installation
 
-- **Bundled with Xray-core 26.9.30** (instead of 26.9.9). Building from source still requires Go 1.27.1; installing from packages and the script is unaffected.
-- **The `tuic-server` sidecar is no longer downloaded or needed:** TUIC v5 is implemented natively inside the panel (#6577). `install.sh`, the Docker image, and the release archives no longer contain it, and on reinstall/upgrade the old binary (`bin/tuic-server*`) and the `bin/tuic` directory are removed automatically.
-- **One-time template migrations on the first start of 3.9.0:** the XDNS masks (Final Mask) are rewritten into the new object format (`XdnsFinalmaskObjectsFix`), and for the WireGuard outbound the `settings.domainStrategy` key and the `"local"` remoteDNS mode are moved into `sockopt.domainStrategy`/`targetStrategy` (`WireguardDomainStrategyFix`). **Back up the database before upgrading** — an unmigrated XDNS mask or a leftover `"local"` remoteDNS will keep the core from starting, and after the mask format changes old clients need a new client Xray.
+- **Bundled with Xray-core 26.10.10** (instead of 26.9.30); building from source requires Go 1.27.2, while installing from packages and the script is unaffected. The new core verifies the TLS certificates of outbound servers against Mozilla's built-in root certificates rather than the system store; for a server with a private CA, the outbound's TLS settings have a "Use system CA" toggle (`useSystemCA`).
+- **One-time migrations on the first start of 3.10.0:** the XDNS masks are converted to the new core's `names`/`addrs` format (`XdnsFinalmaskNamesAddrsFix`), the legacy `quicParams.udpHop` in client-side masks is replaced by the `udphop` mask (`UDPHopClientMaskFix`), and on hosts the leftover checkbox-era values `0`/`1`/`false`/`true` of the "Verify peer cert by name" field are cleared (`HostVerifyPeerCertByNameBoolFix`). Shadowsocks inbounds using `2022-blake3-chacha20-poly1305` are switched to `2022-blake3-aes-256-gcm`, and an SS-2022 server key of the wrong length is replaced — **the links of these inbounds change**. **Back up the database before upgrading.**
+- **The local PostgreSQL is now installed as version 18 from the official PGDG repository** (apt on Debian/Ubuntu, dnf on the RHEL family 8+). Where PGDG has no build, the distribution package is installed as before; an existing cluster is left untouched.
+- **A WireGuard outbound in Docker no longer crashes Xray** (#6796): where a kernel TUN cannot be created (in a container with `NET_ADMIN` but without `/dev/net/tun` and with a read-only `/proc/sys`), the panel switches WireGuard outbounds to the userspace TUN (`noKernelTun`) on its own.
 
-### Changes in section 4 — Inbounds: creation and common parameters
+### Changes in section 2 — Panel login and access security
 
-- **An IPv4 and an IPv6 inbound can listen on the same port** (#6603): if the IPv6 inbound listens on `::` with `v6only` enabled in sockopt, it no longer conflicts with an IPv4 inbound on the same port. A bare `0.0.0.0` or `::` without `v6only` still takes the whole port.
-- **The "Exclude from subscriptions" toggle** (`excludeFromSub`, #6463): hides the inbound's links from every subscription output format while leaving the inbound itself enabled and working (unlike disabling it).
-- **Saving an inbound no longer touches its clients:** the inbound edit form does not load or send the client list, and the "Enable" toggle is shown only when adding. A client added, deleted, renewed, or reset in parallel (by the bot, the API, or another admin) is no longer rolled back by saving the inbound. Importing an inbound from a 2.x panel now accepts the old client field format (string `tgId`) (#6663).
+- **The LDAP sync schedule accepts a standard five-field crontab** (for example, `30 8 * * *`) alongside the six-field form, `@every`, and `@daily`/`@hourly`/…: previously such a value was saved, but the sync silently never ran. An unrecognized schedule is now rejected on save, and one saved earlier is replaced at startup with the default `@every 1m`, with a warning in the log.
+
+### Changes in section 3 — Overview / Dashboard
+
+- **The panel update confirmation dialog closes immediately** after clicking "Confirm" (#6766): from then on only the "Installation is in progress, please do not refresh this page" indicator is shown, instead of a confirmation that hangs until the update finishes.
 
 ### Changes in section 5 — Protocols
 
-- **TUIC v5 runs natively inside the 3x-ui process** ([5.13](#513-tuic-v5), #6577), without the `tuic-server` sidecar. The decrypted traffic goes into the Xray core over a local SOCKS5 bridge, so **routing, geo-rules, and chains** of Xray now apply to TUIC; **a client's personal traffic quota (`totalGB`) is now supported and enforced**; adding/editing/disabling a client is **applied live, without dropping the connections** of the others; the online status no longer depends on the logging level. The `cubic` algorithm is served as `new_reno` on the server. A TUIC inbound can now be **deployed on a node** (node v3.8.0 or newer).
-- **AmneziaWG:** the signature fields **I2–I5** are exposed in the outbound form (#6611). Inbound validation is tightened: **S1 ≤ 1552, S2 ≤ 1608, S3 ≤ 1636** (so the handshake fits into the receive buffer of iOS peers), and overlapping **H1–H4** ranges **are now rejected** (#6642). AmneziaWG client connectivity is fixed (relay sniffing with `routeOnly`) (#6654).
-- **Hysteria2:** client edits are applied live (AddUser/RemoveUser) without recreating the UDP listener — neighboring connections are no longer dropped when a single client changes (#6606).
-- **WireGuard, AmneziaWG, and TUIC configs advertise the addresses from the bound hosts** (Hosts), not the panel's own address; with several hosts one config per host is issued.
+- **New MASQUE protocol** ([5.15](#515-masque)): a CONNECT-IP tunnel over HTTP/3 or HTTP/2 with mandatory TLS (xray-core v26.10.10). Clients sign in with an email and password (HTTP Basic); the inbound has an "Address pool" (`10.14.0.1/24`, `fd14::1/64` by default), an MTU, and a request path. Quotas, expiry, "IP Limit", and live client edits work as with other Xray protocols; depending on the ALPN, the inbound takes UDP (`h3`), TCP (`h2`), or both. There is no share link — the client gets its configuration from the JSON subscription. It can be deployed on a node (node panel v3.9.1+, i.e. 3.10.0). The email of a MASQUE inbound's client cannot contain ":".
+- **VLESS: Vision inside VLESS encryption on any transport** ([5.3](#53-vless)): with `encryption`/`decryption` enabled, the `xtls-rprx-vision` flow is available on any network, not only XHTTP. If the transport cannot carry Vision, the panel strips the clients' flow from the server config — previously a leftover flow made the server reject every client.
+- **Shadowsocks: the `2022-blake3-chacha20-poly1305` method is removed from inbounds** ([5.6](#56-shadowsocks)): the core cannot bring up a multi-user inbound with it, which kept the whole of Xray from starting. On the first start of 3.10.0 such inbounds are switched to `2022-blake3-aes-256-gcm` (the keys are kept, but the clients' links change — refresh the subscriptions); the method remains available for outbounds. A Shadowsocks inbound is now always multi-user — the single-user QR code in the inbound row and the link block in the info window are removed.
+- **Shadowsocks-2022: the server key length is validated** ([5.6](#56-shadowsocks)): 16 bytes for `aes-128-gcm`, 32 for `aes-256-gcm`. A key of the wrong length (for example, one sent via the API) is no longer saved and no longer crashes Xray; an invalid key that is already saved is replaced with a new one at startup.
+- **TUN: "Adapter type", "System DNS to gateway", and "Block leaks (WFP)"** ([5.1](#51-list-of-supported-protocols)): the xray-core 26.9 parameters `desc` (Windows), `autoSystemDnsToGateway` (Linux), and `autoSystemWfpBlockLeak` (Windows: `dns`, `misconfigtun`) can now be set in the TUN inbound form.
+- **TUIC:** sniffing on the bridge into Xray no longer overrides the destination IP requested by the client — the domain is used for routing only (`routeOnly`) (#6753); the speed of TUIC clients is shown on the clients page again, and the certificate buttons no longer overflow the form (#6723) ([5.13](#513-tuic-v5)).
+- **AmneziaWG:** UDP replies to a peer respect the tunnel MTU — large datagrams are fragmented instead of being sent over the MTU (#6780) ([5.10](#510-amneziawg)).
+- **WireGuard + AmneziaWG on the same client:** the WireGuard peer now gets the public key and keepalive of its own WireGuard inbound rather than the AmneziaWG tunnel's, so such a WireGuard tunnel connects again (#6751) ([5.9](#59-wireguard-inbound)).
+
+### Changes in section 6 — Transport (Stream Settings)
+
+- **New XDRIVE transport** ([6.10](#610-xdrive-xdrivesettings)): the stream is carried as files in a shared storage folder — Google Drive, a local folder, or any HTTP API described by a template — with an optional fronting address and core tuning parameters. There are no links, QR codes, or Clash output for it: clients get the configuration, together with the storage secrets, from the JSON subscription; on the inbound, security is always "None".
+- **An incomplete XDRIVE setup no longer crashes Xray** ([6.10](#610-xdrive-xdrivesettings)): the folder, the three Google Drive secrets, and the template operations (`put`/`get`/`list`/`delete` with `url`, `namesRegex` with a capture group) are validated when the inbound and the Xray template are saved, not when the listener starts.
+- **MASQUE transport** ([6.11](#611-masque-transport-masquesettings)) for the new MASQUE protocol ([5.15](#515-masque)): it is set automatically, and on the server only the **Path** is configured (`/.well-known/masque/ip/*/*/` by default); TLS is mandatory, and the ALPN selects the listeners — `h3` (HTTP/3 over UDP, the default) and/or `h2` (HTTP/2 over TCP).
+- **The client-side UDP Hop UDP mask** ([6.12](#612-finalmask-transport-level-obfuscation)): since xray-core 26.9.9, port hopping works only through the `udphop` mask (modes, interval, the server's ports and IPs); the panel converts the legacy client-side `quicParams.udpHop` into it (the `UDPHopClientMaskFix` migration) and keeps a single `udphop` at the end of the UDP mask list — otherwise the client could not connect. On an inbound, the **UDP Hop** toggle merely advertises the range to clients.
+- **FinalMask: variables and Errors in Header Custom, Sudoku for UDP, a Reset range for Noise** ([6.12](#612-finalmask-transport-level-obfuscation)): Header Custom items can store bytes in a variable (**Capture**), repeat it (**Reuse variable**), or set an expression (**Transform**); the TCP mask has an **Errors** group, and the UDP mask a **Mode** of Prefix/Standalone; Sudoku is available as a UDP mask; Noise's **Reset** accepts a range such as `60-120`. Previously such keys from a hand-written config were lost on the next save.
+- **A Salamander password shorter than 4 bytes is rejected** ([6.12](#612-finalmask-transport-level-obfuscation)): the core failed to open such a socket only after the config check had passed, and an inbound with a short password stopped the whole of Xray. The check runs in the editor and when saving the inbound, hosts, the subscription Final Mask, and the Xray template.
+- **xDNS in the Xray-core 26.10.10 format** ([6.12](#612-finalmask-transport-level-obfuscation)): domains are given as a **Names** list, resolvers as a list of `udp://`/`tcp://` URLs, and **Record Types** are optional. Saved masks are rewritten by the `XdnsFinalmaskNamesAddrsFix` migration; clients on an older core cannot read the new format.
 
 ### Changes in section 7 — Connection Security: TLS, XTLS, and REALITY
 
-- **The hint for an empty "Min client version" is clarified by core version** (#6568): an empty field means "no lower bound" only on Xray-core v26.9.8+; on cores v26.7.11–v26.9.7 an empty field still yields the built-in minimum 26.3.27 (to accept such clients, set `1.0.0`).
-- **The "Cipher suites" field** became a multi-select with tag input — you can set several suites or a name not in the list; the same setting was added to managed hosts (see [10.4](#104-output-formats)).
+- **TLS on WebSocket: the default ALPN is `http/1.1`** ([7.3](#73-tls-mode), #6787): with the previous default of `h2, http/1.1` the server negotiated h2 and the WebSocket handshake failed (#6782). The new value is set when TLS is enabled on WebSocket and when a TLS inbound is switched to WebSocket; saved inbounds are not changed.
+- **Security for the new transports** ([7](#7-connection-security-tls-xtls-and-reality)): MASQUE offers only **TLS** (ALPN `h3`, uTLS **None** by default; the ALPN determines the listeners, see [6.11](#611-masque-transport-masquesettings)), and an inbound on XDRIVE offers only **None** (see [6.10](#610-xdrive-xdrivesettings)).
 
 ### Changes in section 8 — Clients
 
-- **Auto-renewal is set with a single mode selector** (#6524): "Disabled", "At a fixed interval (days)", **"Calendar — by weekday"**, and "Calendar — by day of month". For the weekly mode a **"Renewal weekday"** field appeared (`resetWeekday`, 1=Mon…7=Sun). Next to it is a **renewal schedule preview** (renewal date, validity, the number of periods to be charged).
-- **Traffic counters are preserved during a portable client export/import** (#6469): the export carries `up`/`down`/`resetCount`/`lastOnline`, and the import restores them only for newly created clients (existing ones are not overwritten).
-- **The HWID device list is populated for clients without a limit too** (limit 0): devices are recorded but block nothing.
-- **Overlapping `allowedIPs` of WireGuard/AmneziaWG clients are rejected** (#6623): masked ranges are compared, not exact strings — a client with `…/24` no longer "captures" other clients' addresses.
-
-### Changes in section 9 — Client groups
-
-- **The group filter and client search work with non-ASCII uppercase** (Cyrillic, Farsi, etc.): case is now folded for non-Latin text too (#6685).
+- **The auto-renewal preview is clearer** ([8.1](#81-client-fields), #6662): dates are shown as `YYYY-MM-DD HH:MM:SS UTC±HH:MM` in the panel's time zone (accounting for daylight saving time), the heading names that zone ("Server local time" when it is `Local`), and the "Estimated renewals used" counter is an estimate of how much of the limit will be used, not renewals already performed. The client preview does not renew anything; the calculation and the saved values are unchanged.
+- **The auto-renewal form is rearranged** ([8.1](#81-client-fields), #6672): the mode, the day/interval field, and "Max renewals" sit in one row, the explanation depends on the selected mode (the end-of-month note appears only for the monthly one), and the outdated "0 = disabled" is gone from the hints.
+- **The email of a client on a MASQUE inbound cannot contain `:`** ([8.1](#81-client-fields)): MASQUE passes the email as the Basic-auth username, and such an email brought down the whole inbound along with the Xray startup. The panel now rejects it on creation, attach, bulk operations, import, and inbound edits; nothing changes for other protocols.
+- **The QR code is hidden only for links with a post-quantum key** ([8.3](#83-per-client-operations), #6730): a non-empty `pqv` or an ML-KEM-768 VLESS encryption key. REALITY links with the ML-KEM hint and VLESS encryption with an X25519 key get a QR code again — in the client windows, on the inbound, and on the subscription page.
+- **The "Attach Clients To…" / "Detach Clients" windows on the Inbounds page** ([8.2](#82-inbound-binding), #6736) show the inbound's clients right on first open — previously the table stayed empty until the window was reopened.
 
 ### Changes in section 10 — Subscriptions (Subscription)
 
-- **A custom User-Agent for downloading a client's external subscriptions** (#6613): a new field on the "Subscription" settings tab (`externalSubUserAgent`, `v2rayNG/1.8.5` by default). It is a global setting; it is unrelated to the per-outbound User-Agent from [11.12](#1112-subscription-outbounds-with-auto-update).
-- **Happ: a routing-rule editor, ad blocking, and a "local network direct" preset** ([10.7](#107-happ-client-integration), #6545). Ad blocking is now a separate toggle, presets are applied with an "Apply template" button, and an "Everything through the proxy, local network direct" preset is added. The Happ settings are folded into four tabs; **Happ local-proxy authentication** was added (#6628).
-- **Incy app-management parameters** ([10.2](#102-subscription-server-settings), #6650): a dedicated "Incy" tab with auto-detection and field groups (app, banners, privacy, network, routing).
-- **When downloading external subscriptions the panel sends a stable `X-HWID`** (#6567, #6579), so providers with a per-device limit do not reject the request; no settings required.
-- **Behind a reverse proxy `X-Real-IP` is no longer used as the server address** in links (#6608).
-- **A client on several tunnel inbounds gets the correct keys and the address of its own node in each subscription** (#6653).
+- **A host's "Description" reaches Happ in Hysteria/Hysteria2 links too** ([10.7](#107-happ-client-integration), #6740): the `?serverDescription=` server caption is appended to the name the same way as for VLESS/Trojan/Shadowsocks, instead of the standard "Hysteria | hysteria | TLS".
+- **JSON subscription: host TLS verification works again** ([10.4](#104-output-formats), #6743): ECH, "Verify peer cert by name", and the host's pinned SHA-256 are emitted at the top level of `tlsSettings`, where Xray reads them; previously they were lost, and connections through such a host failed.
+- **JSON subscription: a `udphop` mask for every host** ([10.4](#104-output-formats)): for a Hysteria inbound with port hopping and several hosts, only the first host used to get the hopping; now all of them do.
+- **VLESS without a saved `encryption` is emitted with `none`** ([10.4](#104-output-formats), #6781): inbounds from older versions or added via the API produced `"encryption": ""` in the JSON subscription, and Xray would not load the config; the `vless://` link now carries `encryption=none` too.
+- **XDRIVE and MASQUE are delivered only via the JSON subscription** ([10.4](#104-output-formats)): inbounds with the XDRIVE transport and of the MASQUE protocol have no share link (neither in the regular subscription, nor in the panel's QR codes, nor in Clash/Mihomo). ⚠️ The JSON subscription hands every client of an XDRIVE inbound the entire `xdriveSettings` block, including the storage secrets (for Google Drive — Client ID, Client Secret, Refresh Token).
+- **The subscription page follows the panel theme** ([10.5](#105-subscription-info-page-and-qr-codes)): the colors of the light, dark, and ultra-dark themes and the panel's blue accent replace its own purple-and-teal palette with an animated background; the content is unchanged. The QR code for REALITY and X25519-encryption links is shown on the page again (see section 8).
 
 ### Changes in section 11 — Xray: routing, outbounds, DNS, and extensions
 
-- **One-time template migrations for Xray-core 26.9.30:** the XDNS masks (Final Mask) are converted into the new object format, and for the WireGuard outbound the domain strategy is moved into `sockopt.domainStrategy`/`targetStrategy` (the `"local"` remoteDNS mode is dropped). The `domainStrategy` selector is removed from the WireGuard/WARP outbound form.
-- **A `remoteDNS` that does not parse as an IP is rejected** on saving the template and for subscription outbounds.
-- **The REALITY ML-KEM hint** (`support-x25519mlkem768`) is now carried into raw `vless://` links too, for Xray 26.9.8+ clients (#6712).
+- **Lua scripts for routing and DNS** ([11.14](#1114-lua-scripts-for-routing-and-dns)): new fields **"Routing Script"** (`routing.script`) in "Basics", **"Lua Script"** (`dns.script`) in DNS, and an **ID** on a DNS server — the path to a `.lua` file for Xray-core 26.10.10 scripts. A routing script replaces all rules, including the internal `api` rule (which the script itself has to route); without the file Xray will not start. Keys entered into the JSON by hand are no longer lost on save.
+- **WARP over MASQUE** ([11.8](#118-wireguard--warp--nordvpn)): the **"Add WARP over MASQUE outbound"** button in the WARP window registers a separate WARP device with an ECDSA P-256 key and creates (or updates) the `warp-masque` outbound; the WireGuard WARP registration is not affected.
+- **A balancer target override is no longer reset** when the Xray settings are saved or a node is tested through an outbound ([11.5](#115-balancers), #6779): the panel restores it after a hot reload of routing, rejects a target that is not in the running configuration, and clears the override when the target outbound is deleted. Restarting Xray still resets it.
+- **One-time migrations for Xray-core 26.10.10** ([11.11](#1111-saving-restart-and-automatic-transformations)): the XDNS masks are converted to the `names`/`addrs` format (`XdnsFinalmaskNamesAddrsFix`, which supersedes `XdnsFinalmaskObjectsFix` from 3.9.0), and the old `quicParams.udpHop` on outbounds, hosts, and in the JSON subscription becomes the `udphop` mask (`UDPHopClientMaskFix`). Clients with a core older than 26.10.10 need a new Xray. **Back up the database before upgrading.**
+- **UDP Hop on an outbound is now the `udphop` mask** ([11.4](#114-outbounds-outgoing-connections)): the toggle in the outbound's QUIC parameters is replaced by the **UDP Hop** UDP mask (modes, interval, remote ports and IPs), available for Hysteria2 and XHTTP; old settings are converted automatically, with no need to re-import links; the panel keeps a single `udphop` mask last in the list, otherwise the core cannot connect.
+- **The "Use system CA" toggle** (`useSystemCA`) in the outbound's TLS ([11.4](#114-outbounds-outgoing-connections)): Xray-core 26.10.10 verifies certificates against Mozilla's built-in root certificates, so for a server with a private CA installed into the system, the system store has to be enabled explicitly.
+- **MASQUE outbound** ([11.4](#114-outbounds-outgoing-connections), protocol — [5.15](#515-masque)): a new protocol in the outbound form — address, port, **Remote DNS**; the `masque` transport with TLS is set automatically.
+- **TLS for XDRIVE outbounds** ([11.4](#114-outbounds-outgoing-connections)): SNI, the uTLS fingerprint, and ALPN configure the HTTPS connection to the storage API; previously TLS was not offered for XDRIVE and was silently dropped.
 
 ### Changes in section 12 — Nodes (multi-panel, master/slave)
 
-- **AmneziaWG, TUIC, and MTProto inbounds can now be deployed on nodes** (#6306). The protocol is run by the node's own panel, so a node version threshold applies: MTProto — v3.5.0+, AmneziaWG — v3.7.0+, TUIC — v3.8.0+; a node below the threshold (or one that has not yet reported its version) rejects the save.
+- **Clients attached on the master reach nodes with an `admin` token** ([12.2](#122-adding-and-editing-a-node)): the master tags its requests with the `X-3x-Master-Push` header, and the node applies the pushed clients just as with a `node-sync` token. In 3.9.0 such nodes silently kept their previous clients. The header is read by the node — **upgrade the nodes to 3.10.0**. An inbound deleted directly on the node is now recreated by the master.
+- **The `node-sync` token (and mTLS) covers every call from the master** ([12.2](#122-adding-and-editing-a-node)): the inbound order in the subscription, the bulk client traffic reset, and the request for active inbounds used for online attribution reach the node again (previously HTTP 403).
+- **A MASQUE inbound can be deployed on a node** ([12.7](#127-how-inbounds-and-clients-are-synchronized)): the threshold in the code is node v3.9.1+, in practice 3.10.0.
+- **Client edits are applied on the node without dropping connections** ([12.7](#127-how-inbounds-and-clients-are-synchronized), #6795): if only the clients changed in the pushed inbound, the node adds and removes them one by one through the Xray API instead of recreating the inbound (`vless`, `vmess`, `trojan`, `hysteria`, `masque`; AmneziaWG — in place, like MTProto and TUIC).
+- **An empty node snapshot no longer deletes clients** ([12.7](#127-how-inbounds-and-clients-are-synchronized), #6734): a snapshot without clients for an inbound that has clients on the master is not treated as authoritative — the master deletes nothing and pushes the clients to the node again.
+- **Stats for detached clients from a node are ignored** ([12.7](#127-how-inbounds-and-clients-are-synchronized), #6724): the stale usage of a detached client no longer disables it on the master or restores its previous quota.
+- **Traffic history is kept when a node's inbound is replaced** ([12.7](#127-how-inbounds-and-clients-are-synchronized), #6749): when an inbound is adopted under a new tag, the clients' traffic rows are carried over rather than reset to zero.
+- **On PostgreSQL, node traffic sync no longer hangs the panel** (#6789): the lookup of shared emails runs inside the open transaction and does not wait for a free connection from the pool.
+
+### Changes in section 13 — Panel Settings
+
+- **The report and LDAP sync schedules accept a 5-field crontab and are validated on save** ([13.5](#135-telegram-bot-telegram-bot-tab--telegram-bot)): `tgRunTime`, `discordRunTime`, and `ldapSyncCron` are parsed with an optional seconds column (`30 8 * * *` and `0 30 8 * * *` are equivalent), an unrecognized value is rejected with the error `… cron schedule <…> is not valid`, and an unparseable value saved earlier is replaced with the default, with a warning in the log, instead of silently disabling the job.
 
 ### Changes in section 14 — Telegram Bot
 
-- **Access levels** (#6518): "unlinked" (only `/start` and `/id`), "user" (own `/usage`, `/status`, `/help`), and "administrator" (everything). New commands get administrator rights until explicitly allowed.
-- **Account linking via `/start`:** the bot's client card gained an **"Invite link"** button — the first person to open the link is bound to this client (the previous manual linking via `/id` is kept). There is a rate limit (5 attempts per hour).
-- **The `/broadcast` command** (#6510, admin only): sends a message (text, media, album) to every client with a linked Telegram ID, with a preview, confirmation, and progress; the admin is not disclosed to the recipients.
-- The "New client" wizard is now split by admin, not by chat (#6604); WireGuard and AmneziaWG are available in the inbound picker (#6621); links and QR codes are built in-process (#6597); the QR caption is localized (#6562).
+- **A scheduled report no longer silently goes missing** ([14.5](#145-notifications-and-reports)): the "Notification Time" of the Telegram and Discord bots also accepts a standard 5-field crontab (previously it was saved, but the report was never scheduled), an invalid expression is rejected on save, and an unparseable old one is replaced with `@daily`, with a warning in the log.
 
 ### Changes in section 16 — Operations: backups, logs, updating, CLI
 
-- **The `-tokenScope` flag for `x-ui setting -getApiToken`** (#6700): the token scope — `admin`, `monitor`, or `node-sync`. On reissue the token **keeps its previous scope and expiry** (it used to silently become `admin`); an unknown value is rejected before the token is deleted.
-- **Viewing the system log is capped by a 15-second `journalctl` timeout** (#6689); the `x-ui` menu reads the service state without scanning the journal (#6629) — no more delays on hosts with large logs.
-- **On EL7/CentOS 7 `x-ui.sh` keeps firewalld, pulled in by fail2ban, from blocking the panel ports** (#6688).
-- **A restore from an SQL dump is isolated to its own database file** — a malicious dump cannot open or create an outside file.
-- **Back up the database before upgrading** — the first start runs one-time template migrations (see sections 1 and 11).
+- **The database migration runs before the service starts** (#6729): `update.sh` runs `x-ui migrate` before starting the service, so the service no longer fails during an upgrade because of concurrent migrations (for example, "duplicate column name: exclude_from_sub" when going from 3.8.5 to 3.9.0).
+- **Updating the panel leaves TLS alone:** `update.sh` no longer opens the SSL menu on a panel without a certificate (during a web update this could issue an IP certificate or delete `/root/cert/ip` and the acme.sh state) and no longer waits for an IP to be entered manually; "Access URL" shows `https://` only when a certificate is configured.
+- **systemd service sandbox** (#6718): write restrictions on `/usr`, `/etc`, `/boot`, `/efi`, and home directories, reduced root capabilities, `UMask=0077`, and a system call filter on systemd 239+. Put your own settings into a separate drop-in (for example, `20-x-ui-local.conf`); `/proc/sys/net` is left writable for WireGuard with a kernel TUN. The web-update fallback path without `systemd-run` stops immediately inside the sandbox with a clear message; `x-ui uninstall` removes the whole `x-ui.service.d` directory.
+- **The PostgreSQL menu installs PostgreSQL 18 from PGDG** (like the installer), manages the `postgresql-18` service on the RHEL family, and on a full PostgreSQL removal also uninstalls the PGDG packages.
+- **Back up the database before upgrading** — the first start runs one-time migrations (the XDNS and `udphop` masks, the certificate verification field on hosts, the Shadowsocks-2022 method and keys; see section 1).
 
 ## 1. Introduction, Requirements, and Installation
 
@@ -337,7 +369,7 @@ What the installer does, step by step:
 5. Downloads the management script `x-ui.sh` of **the same version** as the panel (from the release tag; for a dev build, from the `main` branch) and installs it as the `/usr/bin/x-ui` command. The Alpine init script `x-ui.rc` and the systemd units are taken from the same tag if the archive does not include them.
 6. Creates the log directory `/var/log/x-ui`.
 7. Runs initial setup: database selection, credential generation, port selection, optional SSL configuration.
-8. Installs and starts the autostart service (systemd unit `x-ui.service` or an OpenRC init script for Alpine).
+8. Installs and starts the autostart service (systemd unit `x-ui.service` or an OpenRC init script for Alpine). **(Since 3.10.0.)** The systemd unit runs in a sandbox, and a drop-in `x-ui.service.d/10-xui-sandbox.conf` listing the directories the panel may write to is generated next to it (see [16.5](#165-restarting-and-updating-the-panel), "systemd service sandbox").
 
 **Checksum verification.** Each release archive (`x-ui-linux-<arch>.tar.gz`, `x-ui-windows-amd64.zip`) is published together with a `<archive>.sha256` file. Like `update.sh`, the installer downloads that file and, before extracting, compares it with the SHA-256 of the downloaded archive; on a match it prints "Checksum verified: <hash>". A mismatch ("Checksum mismatch for …") or a failure to download the checksum file ("Failed to download the checksum for … (HTTP <code>)") aborts the installation, and the downloaded archive is deleted. The exception is an HTTP 404 response: releases published before checksum files were introduced do not have them, so the warning "No checksum published for this release, skipping verification" is printed and the installation continues.
 
@@ -345,6 +377,8 @@ What the installer does, step by step:
 
 - `1) SQLite` (default, recommended for fewer than 500 clients) — a single file at `/etc/x-ui/x-ui.db`, no configuration required.
 - `2) PostgreSQL` (recommended for a large number of clients or multiple nodes). PostgreSQL can be installed locally (a dedicated user and database named `xui` are created) or you can provide a DSN for an existing server. The connection parameters are written to the service environment file (`/etc/default/x-ui`, `/etc/conf.d/x-ui`, or `/etc/sysconfig/x-ui` depending on the distribution) as the `XUI_DB_TYPE` and `XUI_DB_DSN` variables.
+
+**Which PostgreSQL version is installed locally (since 3.10.0).** For a local installation (both here and from the `x-ui` menu → "PostgreSQL Management"), the script adds the official PostgreSQL repository (PGDG) and installs **PostgreSQL 18**: on Ubuntu/Debian/Armbian via `apt` (package `postgresql-18`), on the RHEL family 8+ (RHEL, AlmaLinux, Rocky, Oracle Linux, CentOS Stream, Virtuozzo) via `dnf` with the AppStream `postgresql` module disabled; there the service is called `postgresql-18` and the data lives in `/var/lib/pgsql/18/data`. Previously the distribution's version was installed (Ubuntu 22.04 — 14, Debian 12 — 15, EL9 — 13), so servers ended up on different major versions, and a `pg_dump` backup from a newer server cannot be restored onto an older one. Where PGDG has no build (Ubuntu 20.04, Debian 11, the armhf/i386/s390x architectures, CentOS 7, Fedora, Amazon Linux, old EL point releases), the added repository is rolled back, "PostgreSQL 18 is not available for this system; installing the distribution's PostgreSQL instead." is printed, and the distribution package is installed as before. If the host already has a PostgreSQL cluster, it is kept — existing pre-18 installations are not upgraded.
 
 **Example: writing PostgreSQL parameters to the service environment file.** After selecting PostgreSQL and providing the DSN, the installer will add approximately the following lines to the environment file:
 
@@ -410,15 +444,20 @@ docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 
 In Docker, the panel is the container's main process: autostart is controlled by the container's restart policy (e.g., `restart: unless-stopped`), not by a service inside the container.
 
-#### Upgrading to 3.9.0: what to know
+**WireGuard outbound in a container (since 3.10.0).** `docker-compose.yml` grants the container `NET_ADMIN` (for Fail2ban), and with that capability the Xray core brings up a kernel TUN interface for a WireGuard outbound by default. Docker, however, keeps `/proc/sys` read-only and does not pass `/dev/net/tun` through, so previously a single such outbound kept Xray from starting at all — together with every inbound (#6796). Now the panel checks once whether the kernel can create a kernel TUN and, if it cannot, turns on `noKernelTun` (the gVisor userspace TUN) for all WireGuard outbounds. Where the kernel TUN is available, it is kept.
 
-- **Bundled with the Xray 26.9.30 core** (instead of 26.9.9). Building from source needs **Go 1.27.1**; installing from prebuilt packages and the script is unaffected.
-- **Back up the database before upgrading.** On the first start of 3.9.0 the Xray configuration template is migrated once to match the new core's keys:
-  - the XDNS masks (Final Mask) in inbounds, hosts, the template, the JSON subscription mask, and the subscription-outbound cache are rewritten from lists of strings into the object format (`XdnsFinalmaskObjectsFix`). The mask format changed in the protocol — old clients will need a new client Xray, and an unmigrated mask will keep the server core from starting;
-  - for the WireGuard outbound the `settings.domainStrategy` key and the `"local"` remoteDNS mode are moved into `sockopt.domainStrategy` and `targetStrategy` (`WireguardDomainStrategyFix`); a leftover `"local"` mode no longer starts the core.
-  Each transformation is recorded in `history_of_seeders` and does not repeat; a template with unreadable JSON is skipped with a log entry, and the panel still starts.
-- **The `tuic-server` sidecar is no longer needed.** TUIC v5 runs natively inside the panel; on reinstall/upgrade the old binary (`bin/tuic-server*`) and the `bin/tuic` directory are removed automatically. There is no longer a sidecar in the release archives, the Docker image, or the Windows build.
-- When upgrading from a version older than 3.8.5, the 3.8.5 migrations run as well (see ["What's new in 3.8.5"](https://github.com/yukh975/3X-UI-Manual/blob/3.8.5/3X-UI-MANUAL.en.md#whats-new-in-385) in the manual for version 3.8.5).
+#### Upgrading to 3.10.0: what to know
+
+- **Bundled with the Xray 26.10.10 core** (instead of 26.9.30). Building from source needs **Go 1.27.2**; installing from prebuilt packages and the script is unaffected. The new core verifies the TLS certificates of outbound servers against a built-in set of Mozilla root certificates rather than the system store: for an outbound to a server with a private-CA certificate, turn on the new "Use system CA" toggle (`useSystemCA`) in its TLS settings.
+- **Back up the database before upgrading.** On the first start of 3.10.0 the following transformations run once (each is recorded in `history_of_seeders` and does not repeat):
+  - `XdnsFinalmaskNamesAddrsFix` — the XDNS masks (Final Mask) in inbounds, hosts, the template, the JSON subscription mask, and the subscription-outbound cache are converted to the Xray 26.10.10 format: the domain becomes a `names` list instead of a single `name`, and the resolver becomes an `addrs` list of `udp://`/`tcp://` URLs instead of `{type, settings:{addr}}`. The new core silently ignores the old keys, so without the migration the XDNS tunnel would carry nothing. The wire protocol has not changed, but a client on an older core cannot read the new configuration format;
+  - `UDPHopClientMaskFix` — the deprecated `finalmask.quicParams.udpHop`, which the core has ignored since 26.9.9, is replaced with the `udphop` UDP mask in client masks (hosts, the global JSON subscription mask, the subscription-outbound cache, template outbounds); otherwise Hysteria2/XHTTP clients silently stopped hopping ports. In inbounds `udpHop` stays as is — it is the data for `mport` in the link;
+  - `HostVerifyPeerCertByNameBoolFix` — the "Verify peer cert by name" field (`verifyPeerCertByName`) is cleared on hosts where it still holds `0`, `1`, `false` or `true` left over from the days when it was a checkbox; real names are left alone. Since 3.10.0 the JSON subscription passes this field down to the Xray level, and a leftover `0` would reach the client as a certificate name — Happ and other clients would reject the server certificate.
+  In addition, on every start Shadowsocks inbounds with the `2022-blake3-chacha20-poly1305` method are switched to `2022-blake3-aes-256-gcm` (with users the core accepts only AES methods and did not start at all with chacha20; keys of the same length stay valid), and a Shadowsocks-2022 server key of the wrong length is replaced with a random one (such an inbound did not work before either). **The share links of these inbounds change** — clients need to be given them again; the log records `Inbound "<tag>": switched … to 2022-blake3-aes-256-gcm; its share links changed` or `… replaced a … server key of the wrong size; its share links changed`.
+- **The database is migrated before the service starts.** `update.sh` now runs `x-ui migrate` before starting the service, so the service no longer crashes during an upgrade because of concurrent migrations (#6729), and **the upgrade leaves the TLS settings alone** (see [16.5](#165-restarting-and-updating-the-panel)). `update.sh` is taken from the `main` branch, so both fixes already apply when upgrading to 3.10.0.
+- **The systemd service runs in a sandbox** (#6718): `/usr`, `/etc`, `/boot`, `/efi` and home directories are read-only for the panel and Xray, except for the panel's own directories. If Xray or your scripts launched by the panel write files into these trees, or if the panel's storage has been moved with the `XUI_*_FOLDER` variables, read [16.5](#165-restarting-and-updating-the-panel) ("systemd service sandbox"). Nothing changes on Alpine, in Docker, or on Windows.
+- **A new local PostgreSQL is version 18** from the PGDG repository; an already installed PostgreSQL server is left untouched by the upgrade (see "Database selection during installation" above).
+- When upgrading from a version older than 3.9.0, the 3.9.0 migrations run as well: the WireGuard outbound domain strategy is moved into `sockopt` (`WireguardDomainStrategyFix`), and old XDNS masks are converted straight to the 26.10.10 format; on reinstall the no-longer-needed `tuic-server` sidecar is removed (details in ["What's new in 3.9.0"](https://github.com/yukh975/3X-UI-Manual/blob/3.9.0/3X-UI-MANUAL.en.md#whats-new-in-390) in the manual for version 3.9.0).
 
 ### 1.4. First Launch and Default Credentials
 
@@ -456,6 +495,7 @@ After installation, use the `x-ui` command to open the management menu (see sect
 | `/etc/x-ui/x-ui.db` | SQLite database file (default); on every panel start it and the `x-ui.db-wal`/`x-ui.db-shm` files get permissions `0600`, since the database holds client UUIDs, REALITY private keys, and the administrator password hash |
 | `/var/log/x-ui/` | panel log directory |
 | `/etc/systemd/system/x-ui.service` | systemd service unit (not for Alpine) |
+| `/etc/systemd/system/x-ui.service.d/10-xui-sandbox.conf` | service sandbox drop-in (since 3.10.0): the directories the panel may write to and the system-call filter; regenerated on every install and update, so keep your own changes in a separate drop-in (for example, `20-x-ui-local.conf`) |
 | `/etc/init.d/x-ui` | OpenRC init script (Alpine only) |
 | `/etc/default/x-ui` · `/etc/conf.d/x-ui` · `/etc/sysconfig/x-ui` | service environment variable file (path depends on distribution); `XUI_DB_TYPE`/`XUI_DB_DSN` are written here |
 
@@ -470,6 +510,8 @@ systemctl restart x-ui
 ```
 
 The full database path will become `/data/x-ui/x-ui.db`.
+
+Since 3.10.0 the service runs in a systemd sandbox (see [16.5](#165-restarting-and-updating-the-panel)): a directory outside `/usr`, `/etc`, `/boot`, `/efi` and home directories, like `/data` in the example, is writable anyway. If you move the storage inside those trees instead, run `x-ui update` (or reinstall) after editing the environment file — the script regenerates the `10-xui-sandbox.conf` drop-in with the new path; otherwise the panel cannot write to the new directory.
 
 #### Main Environment Variables
 
@@ -506,7 +548,7 @@ The menu is divided into thematic sections.
 #### Installation and Updates
 
 - **1. Install** — install the panel (runs `install.sh`). Checks that the panel is not already installed before proceeding.
-- **2. Update** — update all x-ui components to the latest version. Data is preserved; the panel restarts automatically after the update. Requires confirmation.
+- **2. Update** — update all x-ui components to the latest version. Data is preserved; the panel restarts automatically after the update. Requires confirmation. Since 3.10.0 the database migration runs before the service starts, and the update leaves the TLS settings alone (see [16.5](#165-restarting-and-updating-the-panel)).
 - **3. Update to Dev Channel (latest commit)** — update to the `dev-latest` rolling build from the latest commit on the `main` branch; requires confirmation (see [16.5](#165-restarting-and-updating-the-panel)).
 - **4. Update Menu** — update only the management script (`x-ui.sh` / the `x-ui` command) without reinstalling the panel. The script is taken from the tag of the **installed** panel version (`v<version>`) so that the menu matches the binary; if it is not published for that version (on a dev build, for example), `main` is used with the warning "No x-ui.sh published for the installed version (…), using main".
 - **5. Legacy Version** — install a specified (older) version of the panel. The script prompts for a version number (e.g., `2.4.0`) and downloads the corresponding release.
@@ -856,7 +898,7 @@ Section fields:
 | General flag attribute (opt.) | "General flag attribute (opt.)" (`flagField`), hint "If set, overrides the VLESS flag — e.g. shadowInactive." | empty | If set, it is used instead of `vless_enabled`. |
 | Truthy values | "Truthy values" (`truthyValues`), hint "Comma-separated; default: true,1,yes,on" | `true,1,yes,on` | The list of flag-attribute values treated as "enabled". |
 | Invert flag | "Invert flag" (`invertFlag`), hint "Enable when the attribute means \"disabled\" (e.g. shadowInactive)." | **false** | Inverts the meaning of the flag. |
-| Sync schedule | "Sync schedule" (`syncSchedule`), hint "A cron-like string, e.g. @every 1m" | `@every 1m` | The synchronization frequency in a cron-like format. |
+| Sync schedule | "Sync schedule" (`syncSchedule`), hint "A cron-like string, e.g. @every 1m" | `@every 1m` | The synchronization frequency (settings key `ldapSyncCron`) in a cron-like format. Since 3.10.0 it accepts `@every <interval>`, the `@hourly`/`@daily`/`@weekly`/`@monthly` macros, and crontab with either five fields (`30 8 * * *` — every day at 8:30) or six fields with seconds (`0 30 8 * * *`). An unrecognized value is rejected when the settings are saved, with the error `ldapSyncCron: cron schedule <…> is not valid: …`; an empty field is allowed and means `@every 1m`. The schedule is read when the panel starts. |
 | Inbound tags | "Inbound tags" (`inboundTags`), hint "The inbounds on which LDAP synchronization may auto-create or auto-delete clients." | empty | Restricts which inbounds allow auto-operations. If there are no inbounds: "No inbounds found. Create an inbound first." |
 | Auto-create clients | "Auto-create clients" (`autoCreate`) | **false** | Create a client in the specified inbounds if it appeared in the directory. |
 | Auto-delete clients | "Auto-delete clients" (`autoDelete`) | **false** | Delete a client if it disappeared from the directory. |
@@ -884,6 +926,8 @@ Specifics of the synchronization flag logic: when reading the flag attribute (`f
 | Sync schedule | `@every 5m` |
 
 With this setup, every 5 minutes the panel walks the `OU=Users` subtree, matches clients by `mail`, and enables/disables VLESS access based on the `vless_enabled` value.
+
+> Before 3.10.0 the panel's scheduler understood only six-field crontab (with seconds): a familiar five-field expression such as `30 8 * * *` was saved without an error, but the sync job was not registered at startup and silently never ran. Such a value now works, and a previously saved unrecognized value no longer disables synchronization: the panel logs the warning "LDAP sync: cron schedule <…> is not valid: …; using default @every 1m" and syncs once a minute until the schedule is fixed.
 
 ---
 
@@ -1013,11 +1057,11 @@ Switching: `POST /installXray/:version`. Scenario:
 **Example.** Switch to a specific Xray-core version (the session cookie must already be obtained via authentication):
 
 ```bash
-curl -X POST 'https://panel.example.com:2053/xpanel/installXray/v26.9.30' \
+curl -X POST 'https://panel.example.com:2053/xpanel/installXray/v26.10.10' \
   -b cookie.txt
 ```
 
-Here `v26.9.30` is a tag from the list returned by `GET /getXrayVersion`. The version must be present in that list; otherwise the panel will reject the request. As of version 3.4.2 the minimum Xray version allowed for installation has been raised to **26.6.27**, and 3.5.0 bundles the **Xray 26.7.11** core. Accompanying core changes: the Shadowsocks `none`/`plain` and VMess `none`/`zero` ciphers have been removed (saved configs are rewritten automatically: SS — to a supported cipher, VMess — to `auto`), and an unencrypted VLESS/Trojan outbound to a public address is rejected on save — the core would not start with such a config. Version 3.9.0 bundles the **Xray 26.9.30** core; outbound keys that it rejects or treats as deprecated are rewritten by the panel on first start (XDNS masks and the WireGuard outbound domain strategy, see [1.3](#13-installation-methods) and [11.11](#1111-saving-restart-and-automatic-transformations)).
+Here `v26.10.10` is a tag from the list returned by `GET /getXrayVersion`. The version must be present in that list; otherwise the panel will reject the request. As of version 3.4.2 the minimum Xray version allowed for installation has been raised to **26.6.27**, and 3.5.0 bundles the **Xray 26.7.11** core. Accompanying core changes: the Shadowsocks `none`/`plain` and VMess `none`/`zero` ciphers have been removed (saved configs are rewritten automatically: SS — to a supported cipher, VMess — to `auto`), and an unencrypted VLESS/Trojan outbound to a public address is rejected on save — the core would not start with such a config. Version 3.9.0 shipped with the **Xray 26.9.30** core, and 3.10.0 ships with **Xray 26.10.10**; keys that the new core rejects or reads differently are rewritten by the panel on first start (XDNS masks, the WireGuard outbound domain strategy, `udpHop` in client masks, see [1.3](#13-installation-methods) and [11.11](#1111-saving-restart-and-automatic-transformations)).
 1. The selected version is verified against the current release list (otherwise — rejected).
 2. Xray is stopped.
 3. The archive `Xray-<os>-<arch>.zip` for the current OS and architecture is downloaded from GitHub (supported: amd64/64, arm64-v8a, arm32-v7a/v6/v5, 386/32, s390x; for Windows — `xray.exe`). The archive and binary size limit is 200 MB.
@@ -1041,7 +1085,8 @@ The **Update Panel** button (*Update Panel*) triggers `POST /updatePanel`. Toolt
 Specifics and limitations:
 - Self-update is supported **on Linux only** (other OSes return an error).
 - The updater script is downloaded from the official repository (`raw.githubusercontent.com/MHSanaei/3x-ui/main/update.sh`, 2 MB limit) and executed via `bash`, where possible in isolation via `systemd-run`. The `update.sh` script itself verifies the SHA-256 of the release archive and takes `x-ui.sh` and the service units from that release's tag (see [16.5](#165-restarting-and-updating-the-panel)).
-- On successful launch, "Panel update started" is shown; if the update check failed — "Panel update check failed". During installation a warning "Installation in progress. Do not refresh the page" is displayed.
+- On successful launch, "Panel update started" is shown; if the update check failed — "Panel update check failed". During installation a warning "Installation is in progress, please do not refresh this page" is displayed.
+- Since 3.10.0 the confirmation dialog closes as soon as **"Confirm"** is clicked, and from then on the page shows only the "Installation is in progress, please do not refresh this page" indicator with the number of the version being installed (#6766); previously the confirmation stayed open until the update finished. After a successful update the page reloads by itself; on failure "Panel update failed" is shown, and if the panel did not report the result in time — "Couldn't confirm the update finished".
 
 ### 3.13. Geo-file Update (GeoIP / GeoSite)
 
@@ -1583,32 +1628,43 @@ The protocol field is set once when the inbound is created and **cannot be chang
 The server accepts the following set of values for the `Protocol` field:
 
 ```
-oneof=vmess vless trojan shadowsocks wireguard hysteria http mixed tunnel tun mtproto amneziawg tuic
+oneof=vmess vless trojan shadowsocks wireguard hysteria http mixed tunnel tun mtproto amneziawg tuic masque
 ```
 
-> Starting with version **3.3.0**, the value `mtproto` (Telegram proxy) was added to the list, with **3.7.0** — `amneziawg` (WireGuard with DPI-resistant obfuscation), and with **3.8.0** — `tuic` (TUIC v5 over QUIC).
+> Starting with version **3.3.0**, the value `mtproto` (Telegram proxy) was added to the list, with **3.7.0** — `amneziawg` (WireGuard with DPI-resistant obfuscation), with **3.8.0** — `tuic` (TUIC v5 over QUIC), and with **3.10.0** — `masque` (a CONNECT-IP IP tunnel over HTTP/3 or HTTP/2, see [5.15](#515-masque)).
 
 | Config value | Purpose | Client model |
 |---|---|---|
 | `vless` | Primary proxy protocol (default when creating an inbound) | Clients with UUID, flow and post-quantum encryption support |
 | `vmess` | Classic Xray proxy protocol | Clients with UUID and `security` parameter |
 | `trojan` | Proxy disguised as regular HTTPS | Clients with a password |
-| `shadowsocks` | Shadowsocks proxy (including SIP022 / 2022-blake3) | Single user or multiple users (2022) |
+| `shadowsocks` | Shadowsocks proxy (including SIP022 / 2022-blake3) | Clients with a password; since 3.10.0 the inbound is always multi-user |
 | `wireguard` | WireGuard inbound | Peers (not clients) |
 | `hysteria` | Hysteria inbound (version 2 by default) | Clients with an `auth` token |
 | `http` | Classic HTTP forward proxy | User/pass accounts, no traffic accounting |
 | `mixed` | Combined SOCKS + HTTP proxy | User/pass accounts |
 | `tunnel` | Transparent forwarder (xray `dokodemo-door`) | No clients |
-| `tun` | TUN interface (rendering of existing ones only) | No clients |
+| `tun` | Xray TUN interface on the server itself | No clients |
 | `mtproto` | Telegram proxy (MTProto), added in 3.3.0; handled by a separate `mtg` process, not Xray | No clients (access via secret) |
 | `amneziawg` | WireGuard with DPI-resistant obfuscation, added in 3.7.0; run by an embedded engine inside the panel process, not Xray | Clients (one enabled client = one peer) |
 | `tuic` | TUIC v5 proxy over QUIC, added in 3.8.0; as of 3.9.0 a native server inside the panel process (traffic goes through Xray routing) | Clients with a UUID and a password |
+| `masque` | MASQUE — an IP tunnel (CONNECT-IP) over HTTP/3 or HTTP/2 with mandatory TLS, added in 3.10.0 | Clients with an email and a password (HTTP Basic) |
 
-> Note on `tun`: the value is kept in the list for compatibility and **display** of previously saved inbounds, but in the current backend version creating new ones is not recommended — support is considered deprecated. There is no point in creating new inbounds of this type.
+> Note on `tun`: this is an inbound for Xray's own TUN interface on the server — no clients, no "Stream" and "Security" tabs (`streamSettings` is cleared on save). The "Protocol" tab sets "Interface name" (`name`, default `xray0`), MTU (`1500`), "Gateway", DNS, "User Level" (`userLevel`), "Auto system routes" (`autoSystemRoutingTable`) and "Auto outbounds interface" (`autoOutboundsInterface`, default `auto`); see also [11.9](#119-reverse-proxy-and-tun).
+>
+> Since 3.10.0 the TUN form has three xray-core 26.9 parameters that could not be set before (a `desc` field entered via JSON was also lost on the next save):
+>
+> | UI field | Key | Description |
+> |---|---|---|
+> | "Adapter type" | `desc` | Windows only: the tunnel type a new Wintun adapter is created with. Empty means `Wintun` |
+> | "System DNS to gateway" | `autoSystemDnsToGateway` | Linux only: points systemd-resolved at the TUN gateway so that system DNS lookups go through Xray. Requires "Gateway" to be filled in; if this cannot be set up, the TUN does not start |
+> | "Block leaks (WFP)" | `autoSystemWfpBlockLeak` | Windows only, together with "Auto system routes"; multi-select: `dns` keeps DNS inside the TUN (DNS servers required), `misconfigtun` blocks the IP version that no route sends into the TUN |
+>
+> If a parameter's condition is not met, the core refuses to build or start the TUN — which is why the field hints name the platform and the requirements.
 
 > Note on Hysteria 2: there is no separate "hysteria2" protocol. It is the `hysteria` protocol with `streamSettings.version = 2`. The `hysteria2://` share-link scheme is selected automatically when the stream version equals 2.
 
-Not all protocols support deployment to nodes. Only the following can be deployed to nodes: `vless`, `vmess`, `trojan`, `shadowsocks`, `hysteria`, `wireguard`. The protocols `http`, `mixed`, `tunnel`, `tun`, `mtproto`, `amneziawg`, `tuic` work on the local panel only.
+Not all protocols support deployment to nodes. The following can be deployed to nodes: `vless`, `vmess`, `trojan`, `shadowsocks`, `hysteria`, `wireguard`, as well as the protocols run by the node's own panel, provided that panel is recent enough: `mtproto` (v3.5.0+), `amneziawg` (v3.7.0+), `tuic` (v3.8.0+) and, since 3.10.0, `masque` (the check requires v3.9.1+, i.e. 3.10.0 among released versions). The protocols `http`, `mixed`, `tunnel`, `tun` work on the local panel only (see [12.7](#127-how-inbounds-and-clients-are-synchronized)).
 
 ### 5.2. Which Protocols Support TLS / REALITY / Transport
 
@@ -1616,12 +1672,12 @@ The ability to enable a particular security layer and transport depends on the p
 
 | Capability | Available for protocols | Allowed networks (`network`) |
 |---|---|---|
-| **TLS** | `vmess`, `vless`, `trojan`, `shadowsocks` (and always for `hysteria`) | `tcp`, `ws`, `http`, `grpc`, `httpupgrade`, `xhttp` |
+| **TLS** | `vmess`, `vless`, `trojan`, `shadowsocks` (and always for `hysteria` and `masque`; for `masque` TLS is mandatory) | `tcp`, `ws`, `http`, `grpc`, `httpupgrade`, `xhttp` |
 | **REALITY** | `vless`, `trojan` | `tcp`, `http`, `grpc`, `xhttp` |
 | **flow (`xtls-rprx-vision`)** | `vless` only | `tcp` only, with `security = tls` or `reality` |
-| **Stream / transport** (Transport tab) | `vmess`, `vless`, `trojan`, `shadowsocks`, `hysteria` | — |
+| **Stream / transport** (Transport tab) | `vmess`, `vless`, `trojan`, `shadowsocks`, `hysteria`, `masque` | — |
 
-For the protocols `http`, `mixed`, `tun`, `mtproto`, `amneziawg` and `tuic` the transport tab is unavailable — they have no Xray stream settings; for `wireguard` and `tunnel` it is reduced (only `sockopt`, plus Finalmask for WireGuard — see [5.9](#59-wireguard-inbound) and [5.7](#57-dokodemo-door--tunnel-transparent-forwarder)). `amneziawg`, `mtproto` and `tuic` also have no sniffing block: their connections are not served by Xray. `tuic` has no Xray TLS/REALITY either — its own mandatory TLS is configured on the **"Protocol"** tab (see [5.13](#513-tuic-v5)).
+For the protocols `http`, `mixed`, `tun`, `mtproto`, `amneziawg` and `tuic` the transport tab is unavailable — they have no Xray stream settings; for `wireguard` and `tunnel` it is reduced (only `sockopt`, plus Finalmask for WireGuard — see [5.9](#59-wireguard-inbound) and [5.7](#57-dokodemo-door--tunnel-transparent-forwarder)). `amneziawg`, `mtproto` and `tuic` also have no sniffing block: their connections are not served by Xray. `tuic` has no Xray TLS/REALITY either — its own mandatory TLS is configured on the **"Protocol"** tab (see [5.13](#513-tuic-v5)). For `masque` (since 3.10.0) the network choice is hidden — the transport is always `masque`: the **"Stream"** tab sets only **"Path"**, `sockopt` and Finalmask, and the **"Security"** tab offers TLS only (see [5.15](#515-masque)).
 
 ---
 
@@ -1649,9 +1705,11 @@ Purpose: the primary modern proxy protocol. Supports XTLS-Vision (`flow`), REALI
 | `xtls-rprx-vision` | XTLS-Vision — recommended mode for VLESS over TCP+TLS/REALITY |
 | `xtls-rprx-vision-udp443` | Same as Vision, but with UDP/443 (QUIC) handling |
 
-The `flow` field is available for selection only when all conditions are met: protocol `vless`, `network = tcp`, and `security` = `tls` or `reality`. The **Vision testseed** field in the form is shown only under the same conditions.
+The `flow` field is available for selection for the `vless` protocol when one of these conditions is met: `network = tcp` and `security` = `tls` or `reality` (classic XTLS-Vision), **or** VLESS encryption is enabled on the inbound (`decryption`/`encryption` other than `none`, see below) — in which case on any transport (since 3.10.0; previously only on XHTTP). The **Vision testseed** field in the form is shown under the same conditions, provided at least one client has the `xtls-rprx-vision` flow selected. How Vision relates to TLS and REALITY is covered in [7.1](#71-the-difference-tls-vs-xtls-vs-reality).
 
-> Exception for XHTTP: with VLESS over `network = xhttp` and VLESS post-quantum authentication enabled (`encryption`/`decryption`, vlessenc), flow `xtls-rprx-vision` is also allowed — regardless of the security layer, including with REALITY. In this case the panel correctly passes `xtls-rprx-vision` into share links and subscriptions (including the Clash/Mihomo format), so the client receives a configuration with Vision.
+> **Vision inside VLESS encryption — on any transport (since 3.10.0).** xray-core runs Vision inside VLESS encryption (vlessenc) regardless of the transport, so with `encryption`/`decryption` enabled the `xtls-rprx-vision` flow is allowed on any network, not only on `xhttp` as before, and with any security layer, including REALITY. The panel passes `xtls-rprx-vision` into share links and subscriptions (including the Clash/Mihomo format), so the client receives a configuration with Vision.
+>
+> **Flow is dropped where the transport cannot carry it (since 3.10.0).** If an inbound is moved to a transport where Vision is impossible (for example, from TCP+TLS to WebSocket without VLESS encryption) while its clients still have `xtls-rprx-vision`, the panel now removes the flow from the server Xray config. Previously it stayed there (only the flow-disable toggle was taken into account), so the server demanded Vision and rejected every client. The same check, which mirrors the core's rules, applies to links, subscriptions and the outbound form (where Mux availability also depends on the effective flow); the flow value in the client record is not erased.
 
 #### Decryption / Encryption (VLESS post-quantum authentication)
 
@@ -1777,7 +1835,7 @@ Fallbacks require `network = tcp` and Security = TLS or REALITY; otherwise the f
 
 ### 5.6. Shadowsocks
 
-Purpose: lightweight Shadowsocks proxy. Supports both legacy AEAD ciphers and the new SIP022 methods (`2022-blake3-*`). Can operate in single-user or multi-user mode.
+Purpose: lightweight Shadowsocks proxy. Supports both legacy AEAD ciphers and the new SIP022 methods (`2022-blake3-*`). A Shadowsocks inbound is always multi-user: access is granted through clients (see [section 8](#8-clients)). Since 3.10.0 there is no single-user mode any more — it existed only for the `2022-blake3-chacha20-poly1305` method, which has been removed from inbounds (see below).
 
 `settings` block fields:
 
@@ -1801,15 +1859,19 @@ Allowed set:
 | `xchacha20-ietf-poly1305` | Legacy AEAD |
 | `2022-blake3-aes-128-gcm` | SS 2022 (recommended) |
 | `2022-blake3-aes-256-gcm` | SS 2022 (default) |
-| `2022-blake3-chacha20-poly1305` | SS 2022, single-user |
+| `2022-blake3-chacha20-poly1305` | SS 2022 — **outbound only**; not offered in the inbound form since 3.10.0 |
 
 Panel logic by method:
-- **2022 methods** (`2022-blake3-*`) are considered «SS 2022». The method `2022-blake3-chacha20-poly1305` is **single-user** (multi-user is not supported); other 2022 methods allow multiple clients. The password field (with a generation button that adjusts key length to the method) is shown in the form specifically for 2022 methods.
+- **2022 methods** (`2022-blake3-aes-128-gcm`, `2022-blake3-aes-256-gcm`) are considered «SS 2022» and allow multiple clients. The password field (with a generation button that adjusts key length to the method) is shown in the form specifically for 2022 methods.
 - **Legacy ciphers** (`aes-*`, `chacha20-*`) work via the classic «one method + one password» scheme.
 
 > Normalisation before Xray starts: for legacy ciphers, each client must carry a `method` matching the inbound method (otherwise Xray crashes with «unsupported cipher method:»). For 2022 methods it is the opposite — the `method` field of the client must be **empty** (otherwise Xray rejects the inbound with «users must have empty method»). The panel normalises the data automatically when the method is switched.
 
 > Client key regeneration on key-size change: for Shadowsocks-2022, when switching the encryption method to one with a different key size (for example between `2022-blake3-aes-256-gcm` and `2022-blake3-aes-128-gcm`), the panel automatically regenerates client PSKs to the new length when the inbound is saved. Otherwise the old keys would remain at the previous length, and Xray would reject them. Consequence: affected clients need to re-fetch their subscription — old links will stop connecting.
+
+> **`2022-blake3-chacha20-poly1305` removed from inbounds (since 3.10.0).** xray-core builds a Shadowsocks-2022 inbound with users only for AES methods (only AES has the multi-user identity header), and a panel inbound always carries clients. So choosing chacha20 kept the whole core from starting, and links failed on the client with «multi-key is not supported». Now the form no longer offers this method, and adding or saving such an inbound (including via the API) is rejected with the error `shadowsocks inbound method … does not support multiple users, use a 2022-blake3-aes method`. On the first start of 3.10.0, saved inbounds with this method are switched automatically to `2022-blake3-aes-256-gcm`: its key length is the same (32 bytes), so all keys stay valid, but the method is part of the link — **clients need to re-fetch their subscription or link**. The method remains available for outbounds: a single-key connection to such a server works. Together with single-user mode, the related elements are gone from the inbound list as well — the separate QR code in the inbound row and the inbound-level link block in the info window.
+
+> **Server key validation (since 3.10.0).** An inbound password for a 2022 method is a key of exactly the right length: 16 bytes for `2022-blake3-aes-128-gcm` and 32 bytes for `2022-blake3-aes-256-gcm`, base64-encoded (the check uses the same parsing as the core, so a «raw» string that the core accepts is allowed too). Previously only client keys were checked, and an inbound with a key of the wrong length (for example, a 32-byte key on `aes-128` via the API) was saved, after which Xray did not start at all — every inbound went down. Now adding and saving such an inbound is rejected with an error like `shadowsocks inbound password: 2022-blake3-aes-128-gcm needs a 16-byte key, base64 encoded`. A wrong-length key that is already saved is replaced with a new random one on the first start of 3.10.0 (the log records «replaced a … server key of the wrong size; its share links changed»): such an inbound did not work anyway, but its links need to be handed out again.
 
 When to choose Shadowsocks: for simple deployments without TLS masquerading; the modern choice is the `2022-blake3-*` methods.
 
@@ -1932,7 +1994,7 @@ The WireGuard inbound row menu now contains the full "multi-client" set of actio
 
 In a WireGuard client's "Info"/QR windows there is a **collapsible configuration card**: the full `.conf` (`[Interface]` with `PrivateKey`/`Address`/`DNS`/`MTU` and `[Peer]` with `PublicKey`/`PresharedKey`/`AllowedIPs = 0.0.0.0/0, ::/0`/`Endpoint`/`PersistentKeepalive`) with **Copy**, **Download** and **QR** buttons. A `wireguard://`/`wg://` link is also supported, which the client application parses into a ready `.conf`.
 
-A client attached to several WireGuard/AmneziaWG inbounds at once is several independent peers: each inbound has its own keys, pre-shared key and client in-tunnel address, and those are what go into that inbound's configuration. The "Info" and QR windows show the configs of all such inbounds (labels and file names differ per inbound), and saving such a client's form does not overwrite the keys and addresses of all its peers with a single set of values.
+A client attached to several WireGuard/AmneziaWG inbounds at once is several independent peers: each inbound has its own keys, pre-shared key and client in-tunnel address, and those are what go into that inbound's configuration. The "Info" and QR windows show the configs of all such inbounds (labels and file names differ per inbound), and saving such a client's form does not overwrite the keys and addresses of all its peers with a single set of values. Since 3.10.0 the case of a client attached to a WireGuard and an AmneziaWG inbound at the same time is fixed (#6751): the WireGuard peer received the public key and keepalive from the AmneziaWG tunnel and could not establish a connection. Now the WireGuard peer takes the public key and keepalive from the client's record in its own WireGuard inbound; if keepalive is not set there, the WireGuard peer gets none (the AmneziaWG value is not inherited).
 
 When to choose WireGuard: when you need a WireGuard VPN tunnel specifically, not a disguised proxy.
 
@@ -1956,6 +2018,8 @@ Inbound fields (the `settings.server` block):
 | `ipv6Enabled`, `ipv6Subnet`, `ipv6ExternalInterface` | off | IPv6 inside the tunnel; the subnet is required when it is enabled (e.g. `fd86:ea04:1115::/64`). A separate interface is needed when peers' IPv6 addresses are aliased onto a different NIC |
 
 The **Listen IP** field (see [4.1](#41-common-form-fields)) is honored: the AmneziaWG UDP socket is bound to that address, so on a server with several IPs replies leave from the same address the client connected to. An empty value, `0.0.0.0` or `::` means all addresses; an address that cannot be used on this host is replaced by listening on all addresses, with a warning in the log.
+
+Since 3.10.0 the UDP replies that the embedded engine writes back into the tunnel to a peer respect the **tunnel MTU** (#6780): a datagram larger than the MTU is fragmented (for both IPv4 and IPv6) instead of going out as a single over-MTU packet as before. UDP checksums are preserved.
 
 **Obfuscation parameters** live in their own block with a **"Regenerate"** button. The defaults are **randomized per inbound**: a static set would give every installation the same DPI fingerprint.
 
@@ -2035,7 +2099,7 @@ Consequences:
 
 - The **Transport (Stream Settings) tab does not apply to this inbound**; clients, however, are now managed just like for the other protocols — bind/unbind, limits, groups, subscriptions.
 - Client changes (adding, deleting, changing a secret, enabling/disabling, ad-tag) are applied **on the fly** via the `mtg` management API, without breaking the other users' Telegram sessions; only structural inbound changes (address, domain fronting, connection cap, public IPs) restart the process.
-- An MTProto inbound runs **on the main panel only**; it is not deployed to child nodes (inbounds with a `NodeID` set are skipped).
+- Since 3.9.0 an MTProto inbound can also be deployed **on a node**: its `mtg` process is started by the node's own panel, so the node must run version **v3.5.0** or newer — an older node (or one that has not reported its version yet) rejects the save. The main panel does not run such an inbound itself (it skips inbounds with a `NodeID` set); see [12.7](#127-how-inbounds-and-clients-are-synchronized).
 
 - The **Sniffing** tab for MTProto is hidden — this protocol is handled by the `mtg` process, not Xray, so sniffing does not apply to it.
 
@@ -2092,6 +2156,10 @@ tg://proxy?server=<address>&port=<port>&secret=<secret>
 
 **Traffic path.** The inbound's public UDP port is served by the panel's built-in TUIC server; the decrypted stream goes into the Xray core over a local SOCKS5 bridge. So Xray routing, sniffing, geo-rules and chaining to any Xray outbounds apply to TUIC — unlike the former sidecar, which sent traffic out past Xray. The inbound's and each client's traffic is accounted accurately on any OS, and the inbound's **"Total Flow"** and **"Duration"** (expiry) take effect just as they do for other protocols.
 
+Since 3.10.0 sniffing on this bridge works in `routeOnly` mode (#6753): a domain recognized from HTTP/TLS/QUIC is used only for routing rules, and the destination address requested by the client is not replaced. So a TUIC client connecting to an IP address whose TLS carries a different or unresolvable SNI is no longer diverted to someone else's address.
+
+**Client speed** (since 3.10.0, #6723): the clients page shows the current speed of TUIC clients again — the built-in server passes its per-client counters to the panel every 10 seconds. The inbound's total traffic is still counted by Xray on the local bridge, and TUIC speed is not added to it a second time.
+
 **Deployment.** No separate binary needs to be installed — TUIC is built into the panel. A TUIC inbound can also be deployed **on a node** (it is run by the node's own panel; the node must be on version **v3.8.0** or newer, see [12.7](#127-how-inbounds-and-clients-are-synchronized)). The form has the **"Basics"**, **"Protocol"** and **"Advanced"** tabs, while **"Stream"**, **"Security"** and **"Sniffing"** are absent. The port is taken on UDP only, so in the port-conflict check TUIC may use the same port number as a TCP inbound (for example, VLESS on 443/TCP).
 
 **"Protocol" tab fields** (stored in `settings.server`):
@@ -2105,7 +2173,7 @@ tg://proxy?server=<address>&port=<port>&secret=<secret>
 | **ALPN** | `alpn` | `h3`, `spdy/3.1` | ALPN list, entered as tags |
 | **"UDP Relay Mode"** | `udp_relay_mode` | `native` | How the client carries UDP traffic: **Native (Recommended)** — as QUIC datagrams, **QUIC** — over QUIC streams. A client-side parameter: it goes into the link and the Clash config and has no effect on the server |
 
-The **"Set Cert from Panel"** button fills in the certificate and key paths configured for the panel's web interface (if there are none, the warning "No certificate is configured for the panel. Set one under Settings first." is shown); **"Clear"** erases both paths.
+The **"Set Cert from Panel"** button fills in the certificate and key paths configured for the panel's web interface (if there are none, the warning "No certificate is configured for the panel. Set one under Settings first." is shown); **"Clear"** erases both paths. Since 3.10.0 the buttons under the certificate paths wrap onto a new line and no longer overflow the edge of the form on a narrow screen (#6723).
 
 The collapsible **"Advanced Settings"** group:
 
@@ -2136,7 +2204,7 @@ tuic://<uuid>:<password>@<address>:<port>?congestion_control=<algorithm>&alpn=<A
 
 `sni` is added only if an SNI is set. The address is filled in according to the [share address strategy](#share-address-strategy); if [managed hosts](#managed-hosts) are bound to the inbound, a link is built for each host with its SNI and ALPN, and with `allow_insecure=1` if Allow insecure is enabled on the host. The link is shown in the **"Inbound Information"** window and served in the raw subscription; in the Clash/Mihomo subscription a TUIC inbound is delivered as a `type: tuic` proxy, and it is not included in the JSON subscription. The client's QR code window has a **"TUIC config (Clash)"** tab with ready-made YAML for Clash / Mihomo (see [8.3](#83-per-client-operations)).
 
-When to choose TUIC: when you need a QUIC proxy with fast connection setup and congestion control (for example, BBR) for lossy links, and your client apps (for example, Mihomo or sing-box) support TUIC v5. Keep in mind that traffic is counted and limited only at the inbound level.
+When to choose TUIC: when you need a QUIC proxy with fast connection setup and congestion control (for example, BBR) for lossy links, and your client apps (for example, Mihomo or sing-box) support TUIC v5. Traffic is accounted both per inbound and per client: since 3.9.0 a client's personal quota (`totalGB`) and expiry are enforced — a client that has used up its quota or expired is removed from the built-in server's user list. Only "IP Limit" does not apply.
 
 ### 5.14. Quick Protocol-Selection Reference
 
@@ -2150,6 +2218,72 @@ When to choose TUIC: when you need a QUIC proxy with fast connection setup and c
 - **tunnel** — transparent port forwarding.
 - **MTProto** — proxy for bypassing Telegram blocks (FakeTLS); separate `mtg` process.
 - **TUIC v5** — QUIC proxy with congestion control for lossy links; a native server inside the panel, with Xray routing and per-client quotas.
+- **MASQUE** (since 3.10.0) — a CONNECT-IP IP tunnel over HTTP/3 or HTTP/2 with mandatory TLS; clients get the configuration only through the JSON subscription (see [5.15](#515-masque)).
+
+### 5.15. MASQUE
+
+> Added in version **3.10.0** (supported by the bundled xray-core v26.10.10). The protocol value is `masque`.
+
+**MASQUE** carries IP packets over HTTP/3 (or HTTP/2) using the **CONNECT-IP** method: the client gets a full layer-3 tunnel that looks like ordinary HTTPS traffic from the outside. Unlike WireGuard/AmneziaWG, the inbound is served by the Xray core itself, so routing, sniffing, traffic accounting and limits apply to it just as they do to VLESS or Trojan. In the panel, MASQUE is an inbound and outbound protocol, as well as the `masque` transport of the same name that both run on (the transport is covered in [section 6](#6-transport-stream-settings), the MASQUE outbound and WARP over MASQUE in [11.4](#114-outbounds-outgoing-connections)).
+
+**Form tabs.** When the protocol is selected, the panel itself sets `network = masque`, `security = tls`, the default path and Hysteria-style TLS settings (ALPN `h3`). The network choice is hidden; the tabs are **"Basics"**, **"Protocol"**, **"Stream"**, **"Security"** (TLS only — there are no "None" or REALITY modes), **"Sniffing"** and **"Advanced"**.
+
+**"Protocol" tab fields** (stored in `settings`):
+
+| UI field | Key | Default | Description |
+|---|---|---|---|
+| **"Address pool"** (required) | `address` | `10.14.0.1/24`, `fd14::1/64` | Prefixes from which clients are given tunnel addresses — at most one IPv4 and one IPv6 (field hint: "Tunnel addresses are leased from these prefixes — at most one IPv4 and one IPv6."). Entered as tags, separated by a comma or a space. The prefix size limits how many addresses can be leased at the same time |
+| **MTU** | `mtu` | empty | Tunnel MTU, 1280–65535 (placeholder `1280`); empty means the core's default, and the key is not written to the config |
+
+**"Stream" tab:** the **"Path"** field (`streamSettings.masqueSettings.path`, default `/.well-known/masque/ip/*/*/`) — the request path the server answers on — plus `sockopt` and Finalmask. The server matches a request by its path only; host, credentials and headers are client parameters and reach the client through the JSON subscription.
+
+**TLS is mandatory** ("Security" tab, as in [7.3](#73-tls-mode)). **ALPN** determines which listeners the core brings up, and the panel uses it for the port-conflict check as well:
+
+| ALPN | Listener | Port taken |
+|---|---|---|
+| `h3` (default) or without `h2` | HTTP/3 over QUIC | UDP only |
+| `h2` | HTTP/2 | TCP only |
+| `h2` and `h3` | both | TCP and UDP |
+
+So a MASQUE inbound with the default ALPN can share a port number with a TCP inbound (for example, VLESS on 443/TCP).
+
+**Clients.** MASQUE is a multi-client protocol: clients are created, attached, bulk-added and detached just like for the other protocols (see [section 8](#8-clients)). A client logs in with HTTP Basic auth: the username is its **Email**, the password is the **"Password"** field (the client field's hint now mentions MASQUE as well). Specifics:
+
+- **A password is mandatory.** If it is empty when the client is attached to a MASQUE inbound, the panel generates one itself (32 hex characters, as for Trojan); an inbound with a password-less client is not saved (`empty client ID`) — the core would refuse to start the whole inbound. In the server config the password goes under the `pass` key that the core reads; in the panel database it is stored as `password`.
+- **Email cannot contain ":"** — it serves as the Basic auth username, and the core rejects the whole inbound (and with it the Xray start) because of a single such client. Creating, attaching, bulk operations, import and saving the inbound reject such a client with the error `MASQUE: client email "…" cannot contain ":"`.
+- **Traffic quota, expiry, enable/disable and "IP Limit"** work as for the other Xray protocols.
+- **Client edits are applied on the fly** — per user: adding a new client does not break the tunnels of clients already connected.
+
+**Nodes.** A MASQUE inbound can be deployed on a node; the check requires the node's panel to be **v3.9.1** or newer (3.10.0 among released versions), otherwise the save is rejected (see [12.7](#127-how-inbounds-and-clients-are-synchronized)).
+
+**How to share with a client.** MASQUE has no share-link format, so no link, QR code or Clash/Mihomo entry is created for such an inbound, and it is not included in the raw subscription. The client gets a ready configuration from the **JSON subscription** (see [10.4](#104-output-formats)): a `masque` outbound with the server address and port (managed hosts taken into account), `security: tls` and a transport where `user` is the client's email, `pass` its password, and `path` the server path, if one is set.
+
+**Example: the `settings` and `streamSettings` blocks of a MASQUE inbound** (as the panel stores them; in the Xray config a client's `password` goes out as `pass`):
+
+```json
+{
+  "clients": [
+    { "email": "user1", "password": "5f1c0e7a9b2d4c6e8f0a1b3c5d7e9f01", "limitIp": 0, "totalGB": 0, "expiryTime": 0, "enable": true }
+  ],
+  "address": ["10.14.0.1/24", "fd14::1/64"]
+}
+```
+
+```json
+{
+  "network": "masque",
+  "security": "tls",
+  "masqueSettings": { "path": "/.well-known/masque/ip/*/*/" },
+  "tlsSettings": {
+    "alpn": ["h3"],
+    "certificates": [
+      { "certificateFile": "/root/cert/example.com/fullchain.pem", "keyFile": "/root/cert/example.com/privkey.pem" }
+    ]
+  }
+}
+```
+
+When to choose MASQUE: when you need a full IP tunnel (like WireGuard), but disguised as HTTP/3 or HTTPS traffic and with Xray routing, limits and accounting; the client is Xray-core v26.10.10+ (configuration from the JSON subscription).
 
 ---
 
@@ -2169,10 +2303,11 @@ The network is selected from the **"Transport"** drop-down (`streamSettings.netw
 | gRPC | `grpc` | gRPC tunnel (HTTP/2) |
 | HTTPUpgrade | `httpupgrade` | HTTP Upgrade |
 | XHTTP | `xhttp` | XHTTP / SplitHTTP — a modern multiplexable transport |
+| XDRIVE | `xdrive` | A tunnel through files in shared storage: Google Drive, a local folder, or an HTTP API described by a template (see section [6.10](#610-xdrive-xdrivesettings)) |
 
 When the value is changed, the panel clears the settings block of the previous network and fills the new network's block with the default values from its schema, so every field of the sub-form always has a meaningful initial value.
 
-> **Important.** In this panel build the **HTTP/2 (`h2`) transport is absent from the list** — it was removed from the set of networks; for a bidirectional HTTP/2-like tunnel use gRPC, and for a modern HTTP-masked transport use XHTTP. The **Hysteria** transport (`hysteria`) is not selected through this list: it is rigidly tied to the Hysteria protocol and appears automatically when the inbound itself is created with the Hysteria protocol (see section 6.8).
+> **Important.** In this panel build the **HTTP/2 (`h2`) transport is absent from the list** — it was removed from the set of networks; for a bidirectional HTTP/2-like tunnel use gRPC, and for a modern HTTP-masked transport use XHTTP. The **Hysteria** transport (`hysteria`) is not selected through this list: it is rigidly tied to the Hysteria protocol and appears automatically when the inbound itself is created with the Hysteria protocol (see section 6.8). The **MASQUE** transport (`masque`) works the same way: it is not in the list and is set automatically for the MASQUE protocol (see section [6.11](#611-masque-transport-masquesettings)).
 
 Below, each network and each of its fields is examined separately.
 
@@ -2269,7 +2404,7 @@ Notes on the fields:
 - **TTI** directly affects the "latency ↔ overhead" trade-off: smaller values reduce latency but increase the volume of overhead packets.
 - **MTU** limits the size of a single mKCP packet; lowering it helps on links where large UDP packets are cut or lost.
 
-> In this build the "seed" field (the mKCP obfuscation password) and the drop-down for the **header/obfuscation type** (`none`, `srtp`, `utp`, `wechat-video`, `dtls`, `wireguard`) in the mKCP sub-form **are absent as separate fields** — transport-layer obfuscation has been moved into the common "FinalMask" mechanism (including the `mkcp-legacy` mode), described in the corresponding section. The "congestion" parameter as a separate checkbox is also not exposed; congestion control is set via `cwndMultiplier` and `maxSendingWindow`.
+> In this build the "seed" field (the mKCP obfuscation password) and the drop-down for the **header/obfuscation type** (`none`, `srtp`, `utp`, `wechat-video`, `dtls`, `wireguard`) in the mKCP sub-form **are absent as separate fields** — transport-layer obfuscation has been moved into the common "FinalMask" mechanism (including the `mkcp-legacy` mode), described in section [6.12](#612-finalmask-transport-level-obfuscation). The "congestion" parameter as a separate checkbox is also not exposed; congestion control is set via `cwndMultiplier` and `maxSendingWindow`.
 
 ---
 
@@ -2290,6 +2425,7 @@ Notes:
 - **Host** is worth setting if the inbound sits behind a CDN or domain fronting is used; otherwise it can be left empty.
 - **Heartbeat period** keeps the connection "alive" when passing through proxies/CDNs that aggressively drop inactive sessions. By default (`0`) heartbeat is off.
 - Unlike RAW, the WebSocket header table uses a "flat" `name → value` format (one value line per header).
+- **WebSocket + TLS: ALPN `http/1.1`.** The WebSocket handshake runs over HTTP/1.1, and with the default ALPN `["h2", "http/1.1"]` the server negotiated h2 and the handshake failed (#6782). So when TLS is enabled on a WebSocket inbound, and also when a TLS inbound is switched to WebSocket, the panel sets ALPN = `["http/1.1"]` (#6787; see [7.3](#73-tls-mode)). Inbounds that are already saved are not changed.
 
 **Example `streamSettings` for WebSocket behind a CDN:**
 
@@ -2533,31 +2669,199 @@ When an inbound sits behind an intermediary (a CDN such as Cloudflare, an L4 tun
 The presets are mutually exclusive: choosing one clears the other field, so a stale `trustedXForwardedFor` cannot override the PROXY-protocol-recovered IP. The raw **Proxy Protocol** switch and **Trusted X-Forwarded-For** list stay visible below the preset selector — the preset just fills them in for you, and you can edit them manually if needed. If the selected preset is not supported by the current transport (for example, the PROXY protocol on mKCP), the form shows a warning. These fields apply to the server side only and are **never sent to clients in subscriptions**.
 
 > **Use one, not both.** `acceptProxyProtocol` reads the real IP from the L4 PROXY-protocol header, while `trustedXForwardedFor` reads it from an HTTP request header; mix them by hand only if your upstream chain requires it.
-- **FinalMask** (`finalmask`) — a common transport-layer obfuscation mechanism (including legacy mKCP obfuscation) that has replaced the separate "seed"/"header type" fields inside the network sub-forms.
+- **FinalMask** (`finalmask`) — a common transport-layer obfuscation mechanism (including legacy mKCP obfuscation) that has replaced the separate "seed"/"header type" fields inside the network sub-forms. More in section [6.12](#612-finalmask-transport-level-obfuscation).
+
+---
+
+### 6.10. XDRIVE (`xdriveSettings`)
+
+**XDRIVE** (since 3.10.0, xray-core v26.10.10) carries the stream as files in a shared storage folder that both sides can reach: the server does not accept connections on its own port but polls that folder, and the client writes and reads session files in it. The storage can be Google Drive, a local folder, or any HTTP storage API described by a template. The transport is selected in the **"Transport"** list as **XDRIVE**; the same sub-form is also used in the outbound form.
+
+Both sides must use the **same** service, folder, and secrets.
+
+| Field | Key | Default | Description |
+| --- | --- | --- | --- |
+| Storage service | `service` | `Google Drive` | `Google Drive`, **Local folder** (`local`), or **Custom template** (`template`) |
+| Remote folder | `remoteFolder` | `""` (placeholder `xray-tunnel`; `/var/lib/xdrive` for a local folder) | Required. The folder holding the session files: for Google Drive, the ID of the shared folder; for `local`, a directory on disk shared by both sides |
+| Client ID / Client secret / Refresh token | `secrets[0]`, `secrets[1]`, `secrets[2]` | — | Google Drive only: the three OAuth secrets, strictly in this order, all required (Client secret and Refresh token are entered in a hidden field) |
+| Secrets | `secrets` | `[]` | Template only: values the template reads as `{secret0}`, `{secret1}`, … (comma-separated tag input) |
+| Storage template | `template` | — | Template only, required: a JSON object with the storage API operations (`auth`, `put`, `get`, `list`, `delete`). The editor accepts only a JSON object; otherwise it shows "Must be a JSON object" |
+| Front address | `streamSettings.address` | empty (placeholder `www.googleapis.com`) | An optional host or IP through which the storage API is dialed (domain fronting). Not shown for `local` |
+| Front port | `streamSettings.port` | empty (placeholder `443`) | The port for the front address (1–65535). Not shown for `local` |
+
+The front address and port are stored at the `streamSettings` level rather than inside `xdriveSettings`; when you switch from XDRIVE to another network, the panel removes them.
+
+**Tuning parameters** — optional integers ≥ 0. An empty field means the xray-core default (shown in the field as a placeholder):
+
+| Field | Key | Core value |
+| --- | --- | --- |
+| Segment size (bytes) | `segmentBytes` | `524288` (512 KiB; the core caps it at 16 MiB) |
+| Flush interval (ms) | `flushIntervalMs` | `20` |
+| Poll interval (ms) | `pollIntervalMs` | `50` |
+| Max poll interval (ms) | `maxPollIntervalMs` | `500` |
+| Eager window (ms) | `eagerWindowMs` | `2000` |
+| Missing segment timeout (ms) | `holeTimeoutMs` | `30000` |
+| Session TTL (s) | `sessionTtlSeconds` | `300` |
+| Concurrency | `concurrency` | `8` (the core caps it at 64) |
+
+**Storage check on save.** xray-core opens the XDRIVE storage only when the listener starts, so an incorrect inbound used to stop Xray together with all other inbounds. The panel now applies the core's rules when an inbound is saved (added or updated), and also to the inbounds and outbounds of the Xray template:
+
+- the service must be `local`, `Google Drive`, or `template`;
+- `local` and `Google Drive` require a **Remote folder**;
+- Google Drive requires exactly three non-empty secrets — ClientID, ClientSecret, RefreshToken;
+- the template must contain the `put`, `get`, `list`, and `delete` operations, each with its own `url`, and `list` must have a `namesRegex` regular expression that compiles and contains at least one capture group (the object name).
+
+**Security.** XDRIVE has no TLS/REALITY layer of its own: its traffic is the storage API's own HTTPS. When XDRIVE is selected on an inbound, the panel resets security to **None** (`none`) and removes `tlsSettings`/`realitySettings` — otherwise the core would read the inbound's TLS as client TLS toward the storage API. On an outbound the **TLS** mode is available and configures exactly that HTTPS connection: the storage API sees its SNI, uTLS fingerprint, and ALPN (more on the outbound form in [11.4](#114-outbounds-outgoing-connections)). FinalMask TCP masks can be applied to XDRIVE (see section [6.12](#612-finalmask-transport-level-obfuscation)).
+
+**Links and subscriptions.** XDRIVE has no link format, and a link carrying the storage secrets would end up in every QR code, so no link, QR code, or Clash entry is generated for such inbounds. The JSON subscription delivers the stream in full — **including the storage folder and secrets** — to every client.
+
+**Example `streamSettings` for XDRIVE over Google Drive with fronting:**
+
+```json
+{
+  "network": "xdrive",
+  "address": "142.250.0.1",
+  "port": 443,
+  "xdriveSettings": {
+    "service": "Google Drive",
+    "remoteFolder": "xray-tunnel",
+    "secrets": [
+      "000000000000-example.apps.googleusercontent.com",
+      "GOCSPX-example-client-secret",
+      "1//example-refresh-token"
+    ]
+  }
+}
+```
+
+The tuning parameters are not set here — the core values from the table above apply.
+
+---
+
+### 6.11. MASQUE transport (`masqueSettings`)
+
+The **MASQUE** transport (since 3.10.0, xray-core v26.10.10) — CONNECT-IP over HTTP/3 or HTTP/2 — works only together with the MASQUE protocol (the protocol itself, its clients, the address pool, and the MTU are described in [5.15](#515-masque)). Like Hysteria, it is not selected in the **"Transport"** list: when the MASQUE protocol is chosen, the panel itself sets `network = "masque"`, **TLS** security, and the default path, and when you switch away from the MASQUE protocol, the network goes back to `tcp` with **None** security.
+
+| Field | Key | Default | Description |
+| --- | --- | --- | --- |
+| Path | `path` | `/.well-known/masque/ip/*/*/` | The request path the server answers on. This value is also the core's default path, so an empty field works the same way |
+
+The server needs only the path: the host, the Basic auth credentials (`user`/`pass`), the headers, and the WARP block are client fields — they are set in the outbound form (see [11.4](#114-outbounds-outgoing-connections)), and the panel's clients receive them through the JSON subscription.
+
+**TLS is mandatory.** On the **Security** tab MASQUE has only the **TLS** mode (there are no **None** and **Reality** buttons). A new MASQUE inbound gets TLS just like Hysteria: ALPN = `["h3"]`, uTLS fingerprint — **None**. **ALPN** determines which listeners the core starts, and the panel also uses it to check for port conflicts:
+
+| ALPN | Listener |
+| --- | --- |
+| `h3` (default) or no `h2` | HTTP/3 over UDP |
+| `h2` only | HTTP/2 over TCP |
+| `h3` and `h2` | both: HTTP/3 over UDP and HTTP/2 over TCP |
+
+**Links.** MASQUE has no link format: no link, QR code, or Clash entry is generated for such inbounds; clients receive a ready-made `masque` outbound from the JSON subscription.
+
+**Example `streamSettings` for MASQUE with both listeners:**
+
+```json
+{
+  "network": "masque",
+  "masqueSettings": {
+    "path": "/.well-known/masque/ip/*/*/"
+  },
+  "security": "tls",
+  "tlsSettings": {
+    "serverName": "masque.example.com",
+    "alpn": ["h3", "h2"],
+    "certificates": [
+      {
+        "certificateFile": "/etc/ssl/certs/masque.crt",
+        "keyFile": "/etc/ssl/private/masque.key"
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 6.12. FinalMask: transport-level obfuscation
+
+**FinalMask** (`streamSettings.finalmask`) wraps the traffic **after** the transport and security. The mask editor sits at the bottom of the inbound's transport tab (it is absent for `tunnel`); the same editor is used in the outbound form, in hosts, and in the JSON subscription's Final Mask setting. Only the groups applicable to the selected network are shown:
+
+| Group | Key | Where available |
+| --- | --- | --- |
+| **TCP Masks** | `finalmask.tcp` | The `tcp`, `ws`, `grpc`, `httpupgrade`, `xhttp`, `xdrive` networks (except WireGuard) |
+| **UDP Masks** | `finalmask.udp` | Hysteria, WireGuard, mKCP; in the client-side editors (outbound, hosts, JSON subscription) also XHTTP, whose HTTP/3 dialing goes through the UDP masks |
+| **QUIC Params** | `finalmask.quicParams` | Hysteria and XHTTP |
+
+Mask types: TCP — **Fragment**, **Header Custom**, **Sudoku**, **XMC (Minecraft)**; UDP — **mKCP Legacy**, **xDNS**, **xICMP**, **Realm**, **Header Custom**, **Noise**, **Sudoku**, plus **Salamander** for WireGuard, while for Hysteria the list is limited to the **Salamander (Hysteria2)** mask. The client-side editors additionally offer **UDP Hop**. The specifics of individual masks (Salamander's Gecko mode, Realm, XMC, Fragment lists) are covered in [11.4](#114-outbounds-outgoing-connections).
+
+#### UDP Hop (`udphop`) — client-side port hopping
+
+As of xray-core 26.9.9, port hopping is performed only by the client-side UDP mask `udphop`: the core skips the `quicParams.udpHop` key, and the mask does not run on a listener ("udphop: client only"). The editor therefore distinguishes the two sides:
+
+- **Inbound (server).** There is no **UDP Hop** mask in the list. **QUIC Params** keeps the **UDP Hop** toggle with the **Hop Ports** and **Hop Interval (s)** fields — this is only the range advertised to clients (`mport` in the `hysteria2://` link and the `udphop` mask in the JSON subscription); the server itself listens only on its own port.
+- **Client side** (outbound, hosts, the JSON subscription's Final Mask). The **UDP Hop** mask is available in the list of UDP masks, including for XHTTP; there is no **UDP Hop** toggle in QUIC Params, and a previously saved `quicParams.udpHop` turns into the mask by itself when the form is opened.
+
+| Field | Key | Default | Description |
+| --- | --- | --- | --- |
+| Mode | `mode` | `intervalRemote` | Required, one or more modes (on the wire — a comma-separated string): **Rotate server port (interval)** (`intervalRemote`) — change the server port at an interval; **Random server port per connection** (`perConnRemote`) — a random server port for each connection; **Rotate local port (interval)** (`intervalLocal`) — change the local port at an interval |
+| Interval (s) | `interval` | `5-10` | A number or a `min-max` range in seconds; each value is an integer ≥ 5 |
+| Remote Ports | `remotePorts` | `""` (placeholder `20000-50000`) | The server port range |
+| Remote IPs | `remoteIPs` | empty | An optional list of server addresses that can also be switched between (tag input) |
+
+xray-core applies UDP masks in reverse order and rejects `udphop` anywhere but at the end of the list — and only at connect time (an "incorrect index" error; `xray run -test` reports "Configuration OK"), so the client simply fails to connect. Therefore, wherever the panel builds a client finalmask (the JSON subscription, the `fm=` parameter of links, link import, template outbounds when the config is built), **a single** `udphop` mask is kept — the last one specified — and it is placed at the end of the list. If the range is set in several places, the JSON subscription takes the most specific one: host → the inbound itself → the subscription's global Final Mask.
+
+The one-time migration `UDPHopClientMaskFix` converts the legacy `quicParams.udpHop` into a `udphop` mask (`intervalRemote` mode) in hosts, the JSON subscription's Final Mask, the cache of subscription outbounds, and the Xray template outbounds; it does not touch inbounds.
+
+#### Header Custom: variables, the Errors group and UDP mode
+
+In the **Header Custom** mask (TCP and UDP) each item now has a **Kind** selector — an item sets exactly one kind of content, as the core requires:
+
+| Kind | Key | Description |
+| --- | --- | --- |
+| **Bytes** | `type` + `packet`/`rand` | Plain bytes (type Array / String / Hex / Base64), as before |
+| **Reuse variable** | `reuse` | Writes the bytes previously saved under this name (the **Reuse** field, required) |
+| **Transform** | `transform` | An expression tree in JSON, for example `{"op": "concat", "args": [{"reuse": "nonce"}]}`. Only a valid JSON object goes into the config; otherwise the editor shows "Must be a JSON object" |
+
+The **Capture** field (`capture`, for any kind) saves the bytes the item writes or reads under a name that subsequent items can use. Variable names consist of Latin letters, digits, and `_` and must not start with a digit. When **Kind** is changed, the fields of the previous kind are cleared.
+
+Besides the **Clients** and **Servers** groups, the TCP mask has gained an **Errors** group (`errors`) — a response sent instead of the normal one when the corresponding client group did not match (for example, HTTP 400). The UDP mask has gained a **Mode** (`mode`): **Prefix** (`prefix`, the default) — the header is prepended to every packet; **Standalone** (`standalone`) — the header is sent as separate handshake packets before the data.
+
+#### Sudoku as a UDP mask, Reset for Noise
+
+- **Sudoku** is now also available in the **UDP Masks** list, with the same fields as the TCP variant (**Password**, **ASCII**, **Custom Table**, **Custom Tables**, **Padding Min**, **Padding Max**); it is preserved in the `fm=` parameter of links.
+- **Reset** of the **Noise** mask (`reset`) — the time in seconds before noise is sent to the same address again (`0` — once); it is now a number or a `min-max` range (for example `60-120`), integers ≥ 0, with the minimum not greater than the maximum.
+
+#### Salamander password — at least 4 bytes
+
+xray-core requires a password of at least **4 bytes** for the **Salamander** mask (and the Gecko mode), but checks this only when the socket is opened: `xray run -test` passes, then no listener comes up on the inbound and Xray does not start at all (together with all other inbounds), while on the client the connection fails. Now the editor highlights a short password right away ("Use at least 4 bytes; xray-core refuses a shorter password"), and saving with such a password is rejected everywhere a finalmask is stored: inbounds (add and update), hosts, the subscription's global Final Mask, and the Xray template's inbounds and outbounds. The length is counted in bytes, so 2 Cyrillic characters (4 bytes in UTF-8) pass, while 3 Latin characters do not.
+
+#### xDNS for Xray-core 26.10.10
+
+The format of the **xDNS** mask has changed in the core (Xray-core#7090): instead of a single `name`, the domain has a list of **Names** (`names`, tag input), and the resolver is a list of addresses, **`addrs`**, as `udp://…` or `tcp://…` URLs (placeholder `udp://8.8.8.8:53, tcp://1.1.1.1`) instead of `{type, settings:{addr}}`. **Record Types** have become optional: empty means the core default (TXT on the client, A/CNAME/TXT/AAAA on the server). The core silently ignores the old keys (the tunnel would be left without a domain and a resolver), so the one-time migration `XdnsFinalmaskNamesAddrsFix` rewrites all saved xDNS masks — both the pre-26.9.30 format and the 26.9.30 object format; the same conversion is performed on save, on config build, on link import, and when the editor is opened. The wire format has not changed, but clients on an older core cannot read the new config shape.
 
 ---
 
 ## 7. Connection Security: TLS, XTLS, and REALITY
 
-Every inbound that supports transport-stream delivery (VMess, VLESS, Trojan, Shadowsocks, Hysteria) has a **Security** tab in the editor. This tab controls how the transport channel is encrypted and disguised. Three modes are available, selected with radio buttons:
+Every inbound that supports transport-stream delivery (VMess, VLESS, Trojan, Shadowsocks, Hysteria, MASQUE) has a **Security** tab in the editor. This tab controls how the transport channel is encrypted and disguised. Three modes are available, selected with radio buttons:
 
 | Mode | UI label | When available |
 |------|----------|----------------|
-| `none` | **None** | Always (except Hysteria, where TLS is mandatory) |
-| `tls` | **TLS** | For VMess/VLESS/Trojan/Shadowsocks on `tcp`, `ws`, `http`, `grpc`, `httpupgrade`, `xhttp` networks; for Hysteria — always |
+| `none` | **None** | Always (except Hysteria and MASQUE, where TLS is mandatory); the only mode for an inbound on the XDRIVE transport |
+| `tls` | **TLS** | For VMess/VLESS/Trojan/Shadowsocks on `tcp`, `ws`, `http`, `grpc`, `httpupgrade`, `xhttp` networks; for Hysteria and MASQUE — always |
 | `reality` | **Reality** | Only for VLESS/Trojan on `tcp`, `http`, `grpc`, `xhttp` networks |
 
-The **None** button is hidden when the protocol is Hysteria (TLS is required there). The **Reality** button appears only for a valid combination of protocol and network (see the table above). TUIC v5 has no **Stream** and **Security** tabs: the server certificate and key are specified directly on the **Protocol** tab (see [5.13](#513-tuic-v5)).
+The **None** button is hidden when the protocol is Hysteria or MASQUE (TLS is required there; for the MASQUE listeners selected by ALPN, see section [6.11](#611-masque-transport-masquesettings)). Conversely, an inbound on the XDRIVE transport has only the **None** mode: when XDRIVE is selected, the panel itself resets security to `none`, because the core would read the inbound's TLS as client TLS toward the storage API (section [6.10](#610-xdrive-xdrivesettings)). The **Reality** button appears only for a valid combination of protocol and network (see the table above). TUIC v5 has no **Stream** and **Security** tabs: the server certificate and key are specified directly on the **Protocol** tab (see [5.13](#513-tuic-v5)).
 
-When the mode is switched, the panel fully rebuilds the `streamSettings` block: it removes any `tlsSettings` and `realitySettings` left by the previous mode and fills in the defaults for the selected one. When **TLS** is selected, one empty certificate entry is created and the uTLS fingerprint is set to `chrome`. When **Reality** is selected, the panel generates random `shortIds` and a SpiderX path and requests a fresh X25519 key pair (privateKey/publicKey) from the server; the **Target** (`target`) and **SNI** (`serverNames`) fields stay empty — they are filled in by the target scanner (see [7.4](#74-reality-mode)).
+When the mode is switched, the panel fully rebuilds the `streamSettings` block: it removes any `tlsSettings` and `realitySettings` left by the previous mode and fills in the defaults for the selected one. When **TLS** is selected, one empty certificate entry is created and the uTLS fingerprint is set to `chrome`; ALPN is `["h2", "http/1.1"]`, or `["http/1.1"]` on the WebSocket transport (#6787). When **Reality** is selected, the panel generates random `shortIds` and a SpiderX path and requests a fresh X25519 key pair (privateKey/publicKey) from the server; the **Target** (`target`) and **SNI** (`serverNames`) fields stay empty — they are filled in by the target scanner (see [7.4](#74-reality-mode)).
 
 ### 7.1. The Difference: TLS vs XTLS vs REALITY
 
 - **TLS** — classic transport encryption using TLS 1.2/1.3. A valid certificate (your own domain + chain) must reside on the server. Traffic looks like ordinary HTTPS, but to an active censor the TLS handshake pointing to your domain is recognizable; if blocked by SNI or if there is no trusted certificate, the connection is blocked or returns an error.
 
-- **XTLS (Vision)** — this is not a separate option in the Security list, but a *flow* mechanism on top of TLS **or** Reality. It is enabled on the client side of an inbound via the **Flow** field = `xtls-rprx-vision` (or `xtls-rprx-vision-udp443`). Vision is available for VLESS on the `tcp` network with `security = tls` or `security = reality`, and also for VLESS over the `xhttp` transport with VLESS encryption enabled (vlessenc / ML-KEM) — in that case the **Flow** field can also be set to `xtls-rprx-vision`, and the value is correctly placed in the `vless://` link (`flow=xtls-rprx-vision`). Vision reduces "double encryption" (TLS-in-TLS) by delivering the payload directly after the handshake, which speeds up transfer and improves disguise. For this reason the combination **VLESS + Reality + Flow `xtls-rprx-vision`** is considered the recommended modern configuration.
+- **XTLS (Vision)** — this is not a separate option in the Security list, but a *flow* mechanism on top of TLS **or** Reality. It is enabled on the client side of an inbound via the **Flow** field = `xtls-rprx-vision` (or `xtls-rprx-vision-udp443`). Vision is available for VLESS on the `tcp` network with `security = tls` or `security = reality`, and also for VLESS on **any** transport with VLESS encryption enabled (vlessenc / ML-KEM): xray-core runs Vision inside VLESS encryption regardless of the transport, so as of 3.10.0 this is no longer limited to `xhttp`. In that case the **Flow** field can also be set to `xtls-rprx-vision`, and the value is correctly placed in the `vless://` link (`flow=xtls-rprx-vision`). If the inbound's transport cannot carry Vision (for example, the inbound was switched from `tcp` + TLS to WebSocket without VLESS encryption), the panel does not pass the clients' flow into the Xray config — previously the server in this situation demanded Vision and rejected every client. The same rule applies to links, subscriptions, and the outbound form. Vision reduces "double encryption" (TLS-in-TLS) by delivering the payload directly after the handshake, which speeds up transfer and improves disguise. For this reason the combination **VLESS + Reality + Flow `xtls-rprx-vision`** is considered the recommended modern configuration.
 
-> **Automatic Vision flow restoration.** If encryption (ML-KEM, the decryption/encryption fields) is enabled on a VLESS/XHTTP inbound after clients have already been added, the inbound becomes flow-eligible. In this situation the panel automatically restores `flow = xtls-rprx-vision` for those clients who should have it but whose **Flow** field was empty. Previously, in this scenario Vision would silently disappear from configs, share links, and subscriptions (especially noticeable on hub inbounds). No manual action is required: the fix is applied automatically when the inbound is saved and once during a panel update. The behavior is conservative — the panel does not invent a flow value and does not overwrite a value that the client has explicitly set.
+> **Automatic Vision flow restoration.** If encryption (ML-KEM, the decryption/encryption fields) is enabled on a VLESS inbound (on any transport) after clients have already been added, the inbound becomes flow-eligible. In this situation the panel automatically restores `flow = xtls-rprx-vision` for those clients who should have it but whose **Flow** field was empty. Previously, in this scenario Vision would silently disappear from configs, share links, and subscriptions (especially noticeable on hub inbounds). No manual action is required: the fix is applied automatically when the inbound is saved and once during a panel update. The behavior is conservative — the panel does not invent a flow value and does not overwrite a value that the client has explicitly set.
 
 - **REALITY** — a disguise mechanism that needs no certificate of its own. The server "borrows" the TLS handshake of a real third-party site (`target`/`serverNames`), so to an observer the connection is indistinguishable from a visit to that site, and no certificate is needed at all. Authentication is built on an X25519 key pair and a set of `shortIds`. REALITY is resistant to active probing and SNI blocking because the SNI points to a genuine external domain. The trade-off is stricter setup requirements (a correct `target` with a port, key synchronization with the client).
 
@@ -2609,8 +2913,8 @@ Fields of the `tlsSettings` block. Default values are taken from the panel schem
 | **SNI** (`serverName`) | `""` (empty) | Server Name Indication — the domain name presented in the TLS handshake. Must match the domain of the certificate. Placeholder hint: "Server Name Indication". |
 | **Cipher Suites** (`cipherSuites`) | `""` → **Auto** | List of allowed cipher suites. Empty by default — the choice is left to Xray/Go (the **Auto** option). Change only when you need to explicitly restrict ciphers. |
 | **Min/Max Version** (`minMaxVersion`) | min = `1.2`, max = `1.3` | Minimum and maximum TLS versions. Available values: `1.0`, `1.1`, `1.2`, `1.3`. It is recommended to leave `1.2`–`1.3`; lowering the minimum to 1.0/1.1 is undesirable (outdated, insecure versions). |
-| **uTLS** (`settings.fingerprint`) | `chrome` when TLS is enabled; **None** (`""`) for a new Hysteria inbound | Simulated TLS fingerprint for the client hello (uTLS fingerprint), so the handshake looks like that of a popular browser. See the list below. In TLS mode the first item in the list is **None** (`""`), which disables fingerprint simulation; Hysteria does not accept uTLS fingerprints, so None is selected for it by default. As of 3.8.0 a selected **None** is preserved — previously it silently reverted to `chrome` on every save; if the field is missing from a saved inbound (for example, one created through the API), it is also read as **None**. |
-| **ALPN** (`alpn`) | `["h2", "http/1.1"]` | List of application-layer protocols negotiated in TLS (multi-select). Allowed values: `h3`, `h2`, `http/1.1`. By default `h2` and `http/1.1` are offered. |
+| **uTLS** (`settings.fingerprint`) | `chrome` when TLS is enabled; **None** (`""`) for a new Hysteria or MASQUE inbound | Simulated TLS fingerprint for the client hello (uTLS fingerprint), so the handshake looks like that of a popular browser. See the list below. In TLS mode the first item in the list is **None** (`""`), which disables fingerprint simulation; Hysteria does not accept uTLS fingerprints, so None is selected for it by default. As of 3.8.0 a selected **None** is preserved — previously it silently reverted to `chrome` on every save; if the field is missing from a saved inbound (for example, one created through the API), it is also read as **None**. |
+| **ALPN** (`alpn`) | `["h2", "http/1.1"]`; `["http/1.1"]` on WebSocket; `["h3"]` for Hysteria and MASQUE | List of application-layer protocols negotiated in TLS (multi-select). Allowed values: `h3`, `h2`, `http/1.1`. By default `h2` and `http/1.1` are offered. For WebSocket the panel sets `http/1.1` — both when TLS is enabled and when a TLS inbound is switched to WebSocket (#6787): the WebSocket handshake runs over HTTP/1.1, and with `h2` in the list the server negotiated h2, after which the handshake failed (#6782). For MASQUE, ALPN determines the listeners: `h3` — HTTP/3 over UDP, `h2` — HTTP/2 over TCP (section [6.11](#611-masque-transport-masquesettings)). |
 
 Possible **uTLS fingerprint** values (identical for TLS and REALITY): `chrome`, `firefox`, `safari`, `ios`, `android`, `edge`, `360`, `qq`, `random`, `randomized`, `randomizednoalpn`, `unsafe`. In TLS mode an additional empty **None** option is also available (fingerprint simulation is not applied).
 
@@ -2831,7 +3135,7 @@ The client form is split into two tabs: **General** (email, inbound binding, lim
 |-------|----------|---------|-------------|
 | Email | `email` | — (required) | Unique client identifier |
 | UUID | `id` | generated | Identifier for VMess/VLESS/TUIC |
-| Password | `password` | generated | Password for Trojan/Shadowsocks/TUIC |
+| Password | `password` | generated | Password for Trojan/Shadowsocks/TUIC/MASQUE |
 | Authorization | `auth` | generated | Password for Hysteria |
 | Flow | `flow` | empty | Flow control (XTLS), VLESS only |
 | VMess Security | `security` | `auto` | VMess encryption method |
@@ -2857,7 +3161,9 @@ The client form is split into two tabs: **General** (email, inbound binding, lim
 
 **Renewal on a calendar day.** The **"Renew on day"** field (`resetDay`, 1–31) switches the client from "every N days" to the calendar: the renewal fires on that day of every month, at midnight in the panel's time zone. A month too short for the chosen day (the 31st in April) renews on its last day. `0` keeps the interval mode (`reset`). An expiry set to exactly 23:59:59 on the eve of the renewal day (an "up to and including the end of the month" entry) is moved by the panel to midnight of that day without spending a renewal — so the first counted renewal is a full month, and the **"Max renewals"** limit is not spent on the alignment.
 
-**Auto-renewal mode (3.9.0).** Instead of separate fields there is now a single **"Auto-renewal"** selector with the modes: **"Disabled"**, **"At a fixed interval (days)"** (the `reset` field, days), **"Calendar — by weekday"** (new), and **"Calendar — by day of month"** (the `resetDay` field, 1–31). The weekly mode is set by the **"Renewal weekday"** field — the client field **`resetWeekday`** (1 = Monday … 7 = Sunday). Like the monthly one, the weekly renewal fires at midnight in the panel's time zone and **resets the client's traffic**. Next to it a **renewal schedule preview** is shown: the next renewal date, the validity until then, the validity after renewal, and the number of periods to be charged; if no expiry is set yet, the preview offers a button to set the first cutoff. The mode is determined by the filled field (`resetDay` → monthly, otherwise `resetWeekday` → weekly, otherwise `reset` → interval). **The weekly mode requires every node to be updated:** old nodes ignore `resetWeekday` (#6524).
+**Auto-renewal mode (3.9.0).** Instead of separate fields there is now a single **"Auto-renewal"** selector with the modes: **"Disabled"**, **"At a fixed interval (days)"** (the `reset` field, days), **"Calendar — by weekday"** (new), and **"Calendar — by day of month"** (the `resetDay` field, 1–31). The weekly mode is set by the **"Renewal weekday"** field — the client field **`resetWeekday`** (1 = Monday … 7 = Sunday). Like the monthly one, the weekly renewal fires at midnight in the panel's time zone and **resets the client's traffic**. Next to it a **renewal schedule preview** is shown: the next renewal date, the validity until then, the validity after renewal, and the number of renewals that will be used up; if no expiry is set yet, the preview offers a button to set the first cutoff. The mode is determined by the filled field (`resetDay` → monthly, otherwise `resetWeekday` → weekly, otherwise `reset` → interval). **The weekly mode requires every node to be updated:** old nodes ignore `resetWeekday` (#6524).
+
+**Form layout and preview (3.10.0).** In the single-client form the **"Auto-renewal"** selector, the field of the selected mode (the interval in days, **"Renew on weekday"**, or **"Renew on day"**), and **"Max renewals"** sit in one row (stacked on a phone), while the explanation and the preview take the full width below them; in the bulk-add form the fields are still laid out in a column. The explanation depends on the mode: for the interval — "Adds the configured number of 24-hour days to the previous cutoff after expiry and resets the client's traffic…", for the weekly mode — about midnight in the panel's time zone and the traffic reset, while the note about day 1 and the end of the month is shown only in the monthly mode. The "0 = disabled" mentions have been removed from the field hints — auto-renewal is turned off with the "Disabled" mode (#6672). The preview is titled "Renewal preview (panel time zone: <zone>)" — with the `Local` time zone, "Server local time" is shown instead of the name — and comes with the caption "Dates use the panel time zone. Previewing does not renew the client." Dates are shown in a readable `YYYY-MM-DD HH:MM:SS UTC±HH:MM` form: the server's wall-clock time with an explicit offset that accounts for daylight saving time separately for each date. The "Estimated renewals used: N" counter is an estimate of how many renewals from the limit will be spent on the next cutoff, not the number of renewals already performed. Only the display has changed: the renewal calculation and the saved values are the same as before (#6662).
 
 **A cap on auto-renewals.** The **"Max renewals"** field (`resetMax`) limits how many times auto-renew may fire before the client is left to expire; `0` means no limit. When the panel catches up several missed periods at once, each period spends one renewal. A **"Renewals used"** counter is shown next to it.
 
@@ -2873,7 +3179,9 @@ The **"Links"** tab itself — third-party share links and external subscription
 
 The **Email** field is the primary and mandatory client identifier. Despite the name, it does not have to be an email address: any text label (username, number) will work. The value must be **unique** within the panel; attempting to create a second client with an already-used email is rejected (`email already in use`), unless the `subId` also matches (which is interpreted as binding the same client).
 
-Email **cannot be left empty** (`client email is required`) and it **cannot contain spaces, `/`, `\`, or control characters** ("Email cannot contain spaces, '/', '\\', or control characters"). Email is used for traffic accounting, IP logging, the online list, and operation names — changing it retroactively is not recommended.
+Email **cannot be left empty** (`client email is required`) and it **cannot contain spaces, `/`, `\`, or control characters** ("Email cannot contain spaces, '/', '\\', or control characters").
+
+**Colon and MASQUE (3.10.0).** A client of a MASQUE inbound logs in via Basic auth, where the username is its email, so the Xray core does not accept an email containing `:` and rejects the **whole** inbound — and with it the Xray start. The panel rejects such an email on any write of a client into a MASQUE inbound — creating, attaching, bulk operations, import, and editing the inbound — with the error `MASQUE: client email "…" cannot contain ":"`. For other protocols `:` in an email is still allowed. About the protocol itself — [5.15](#515-masque). Email is used for traffic accounting, IP logging, the online list, and operation names — changing it retroactively is not recommended.
 
 #### UUID / Password / Authorization (credentials)
 
@@ -2882,6 +3190,7 @@ The specific credential field depends on the protocol of the inbound the client 
 - **UUID** (field `id`) — for **VMess** and **VLESS** protocols. If not set, a random UUID v4 is generated.
 - **Password** (field `password`) — for **Trojan** and **Shadowsocks**. For Trojan a UUID without hyphens is generated by default. For Shadowsocks a Base64 key of the required length is generated depending on the inbound encryption method: 16 bytes for `2022-blake3-aes-128-gcm`, 32 bytes for `2022-blake3-aes-256-gcm` and `2022-blake3-chacha20-poly1305`; for other methods — a UUID without hyphens. If a manually entered key does not match a 2022-blake3 method, it will be replaced by a generated one.
 - **Authorization** (field `auth`) — password for **Hysteria**. A UUID without hyphens by default.
+- **Password** (field `password`) together with the email — for **MASQUE**: the client logs in via Basic auth, where the username is the email and the password is the `password` value; an empty password is filled with a UUID without hyphens, as for Trojan. For the restriction on the `:` character in the email, see "Email" above.
 - **UUID** and **Password** together — for **TUIC** v5: the client authenticates with a UUID + password pair. Empty fields are filled in automatically (a UUID v4 and a UUID without hyphens). More about the protocol — [5.13](#513-tuic-v5).
 
 Since one client can be bound to inbounds of different protocols, a client record may simultaneously have a UUID, a password, and auth — each protocol uses its own field.
@@ -2948,7 +3257,7 @@ In the client list the **Traffic** column shows a colored usage bar: the amount 
 
 #### Auto-renewal (client traffic reset period)
 
-The **Auto-renewal** field (field `reset`) is the automatic renewal/reset period in days. Tooltip: "Auto-renewal after expiry. (0 = disabled) (unit: day)".
+The **Auto-renewal** field (field `reset`) is the automatic renewal/reset period in days. Tooltip: "Auto-renewal after expiration. (unit: day)" (before 3.10.0 it also said "0 = disabled": in the form the interval field accepts values from 1, and auto-renewal is turned off with the "Disabled" mode of the **"Auto-renewal"** selector; in the API `reset: 0` still means "off").
 
 - `0` — auto-renewal **disabled** (default). When the expiry is reached the client simply becomes depleted.
 - `> 0` — the background job, upon expiry, **resets the traffic counters to zero** (`up = down = 0`), **advances the expiry** by `reset` days (by as many periods as needed until the new expiry is in the future), and if necessary **re-enables** the client. If the client belongs to several inbounds, the new expiry and re-enabling are applied to all of those inbounds at once, and the renewal is counted only once. This implements a recurring subscription (e.g., monthly). Auto-renewal **is not applied to inbounds on node servers** (`node_id IS NOT NULL`).
@@ -3002,6 +3311,8 @@ Operations on a client with several bindings — create, bind, update, unbind, a
 
 Above the inbound selection list (in the client form, in the bulk-add form, and in the bulk attach/detach windows) there are **Select all** and **Clear** buttons. In these lists each inbound is labeled with its remark if one is set, otherwise with the inbound tag.
 
+As of 3.10.0 the **Attach clients from "…"** and **Detach clients of "…"** windows, opened from an inbound's menu on the Inbounds page, show that inbound's clients on the very first open (in the attach window they are all checked right away). Previously, on the first open after the page loaded, the table stayed empty until the window was closed and opened again (#6736).
+
 ### 8.3. Per-client operations
 
 For an individual client (via the **Client info** card or the **Actions** context menu) the following operations are available:
@@ -3015,6 +3326,8 @@ Fetching a client via the API (`GET /panel/api/clients/get/:email`) returns, alo
 - **Subscription link** — the subscription URL by `subId` (`GET /subLinks/:subId`). Available only if the client has a `subId` and the subscription service is enabled in **Panel settings → Subscription** (otherwise "Subscription service is disabled."). A **JSON subscription URL** is also provided.
 
 The **QR code** window is made up of collapsible panels: **"Subscription info"** (the subscription link) and its JSON variant, if the JSON subscription is enabled; share links per inbound; **"WireGuard config"** / **"AmneziaWG config"** — one panel per tunnel inbound of the client; **"TUIC config (Clash)"**. Each panel has a **"Copy"** button.
+
+**When a QR code is not shown.** A QR code is not built only for share links with a post-quantum key that is too large to scan: with a non-empty `pqv` parameter (the REALITY ML-DSA-65 verification key) or with VLESS encryption whose authentication key is ML-KEM-768; such a link can only be copied. As of 3.10.0 the QR code is back for REALITY links with the `support-x25519mlkem768` hint, for VLESS encryption with an X25519 key (its value starts with `mlkem768x25519plus`), and for links where `mlkem768`/`mldsa65` appears only in the name or address: the previous check searched for these substrings across the whole link and removed the QR code everywhere — in the **"QR Code"** and **"Client Information"** windows, in the inbound's QR code, and on the subscription page (#6730).
 
 - **"TUIC config (Clash)"** — a ready-made `proxies:` YAML snippet for Clash / Mihomo / Clash Verge (server, port, `uuid`, `password`, ALPN, SNI, congestion control, UDP relay mode, `reduce-rtt`) with a QR code and a download of the `<email>.yaml` file. It is built from the client's first TUIC inbound, provided the client has both a UUID and a password (see [5.13](#513-tuic-v5)).
 - **Happ encrypted link.** The subscription panel has a **"Standard"** / **"Happ Encrypted Link"** switch. The second option turns the client's subscription link into a `happ://crypt5/…` link that only the Happ app opens. The link is generated locally on the panel server: the subscription URL is encrypted with Happ's built-in public key (RSA-4096 + ChaCha20-Poly1305), without contacting external services and without storing the result — every time the option is selected, and on the **"Regenerate"** button, a new link is produced. This disguises the URL; it does not protect it: the window warns that "*anyone with this link may be able to recover or share the subscription URL*". The option is locked by default: until the **"Encrypted subscription links"** toggle (`happLinkEnable`) is turned on in **Panel settings → Subscription → Happ → Subscription Links**, the QR code is replaced by "Happ encrypted link generation is not enabled" with a **"Go to Settings"** button (see [10.2](#102-subscription-server-settings)). The subscription URL must be an absolute `http(s)` URL of no more than 8192 UTF-8 bytes; a finished link longer than 2953 bytes does not fit into a QR code — the QR code is hidden, but **"Copy"** still gives the full link. On failure the window offers **"Retry"** or a look at **Overview → Logs** (lines with `component=happ_link`). API: `POST /panel/api/clients/happLink/:id` (numeric client id) returns `{"encryptedLink": "happ://crypt5/…"}`.
@@ -3635,7 +3948,7 @@ Each host (group) has:
 
 - **Remark** and **"Description"** (up to 64 characters; as of 3.8.0 it is passed to the Happ client as the server caption, see [10.7](#107-happ-client-integration)), binding to **Inbounds** (multi-select with search; at least one), an **Enable** toggle, and assignment to **Nodes**.
 - **Address** — as of 3.5.0 this is a **list of addresses** (tag input; separators — comma, semicolon, space; placeholder `cdn.example.com, cdn2.example.com:443`). Each entry may carry its own inline `:port` (including IPv6 in brackets `[::1]:443`); the drop-down suggests addresses already used by other hosts. An empty list — the inbound's own address is inherited (shown in the list as an orange **Inherits** label). **Port** (`0` — inherits the inbound port) serves as the default port for entries without an inline port; **Tags** (applied only in the RAW subscription).
-- A **Security** tab — `same` / `tls` / `none` / `reality` with SNI, fingerprint, ALPN, **cipher suites** (`cipherSuites`, as of 3.9.0 a multi-select with tag input; for the JSON subscription they replace the inbound's suites, an empty field inherits them), pinned-cert, `allowInsecure`, and ECH. The SNI and Fingerprint fields, as well as ALPN, the pinned SHA-256, "Verify peer cert by name", "Allow insecure", and ECH, are also shown with `same` — so that previously set overrides can be cleared; the Fingerprint list has a "None" option (no uTLS). If a host switches a REALITY inbound to `tls` or `none`, the REALITY parameters (`pbk`, `sid`, `spx`, `pqv`, plus the `sni` and `fp` of the REALITY target) are removed from the link, and the host's own SNI and fingerprint are applied afresh.
+- A **Security** tab — `same` / `tls` / `none` / `reality` with SNI, fingerprint, ALPN, **cipher suites** (`cipherSuites`, as of 3.9.0 a multi-select with tag input; for the JSON subscription they replace the inbound's suites, an empty field inherits them), pinned-cert, `allowInsecure`, and ECH. The SNI and Fingerprint fields, as well as ALPN, the pinned SHA-256, "Verify peer cert by name", "Allow insecure", and ECH, are also shown with `same` — so that previously set overrides can be cleared; the Fingerprint list has a "None" option (no uTLS). If a host switches a REALITY inbound to `tls` or `none`, the REALITY parameters (`pbk`, `sid`, `spx`, `pqv`, plus the `sni` and `fp` of the REALITY target) are removed from the link, and the host's own SNI and fingerprint are applied afresh. As of 3.10.0, in the **JSON subscription** the host's ECH (`echConfigList`), "Verify peer cert by name" (`verifyPeerCertByName`), and pinned SHA-256 (`pinnedPeerCertSha256`, as a comma-separated string) are output at the top level of `tlsSettings`, where Xray reads them — previously they stayed inside the nested internal `settings` block, the core did not see them, and connections through such a host did not work (#6743). As with the inbound itself, `allowInsecure` is not emitted in JSON (Xray has removed it); the Clash/Mihomo output has not changed.
 - An **Advanced** tab — Host header, Path, VLESS flow, Mux, Sockopt, Final Mask, and exclusion of the host from individual subscription formats (raw / json / clash). As of 3.5.0 the **host's Final Mask is also included in raw links** (`fm=`; previously — JSON/Clash only): the host's TCP/UDP masks are added to the inbound's masks, and the host's QUIC parameters are taken only if the inbound has none. The **Allow insecure** toggle now also applies to **Hysteria/Hysteria2** (`insecure=1` in the link, `skip-cert-verify: true` in Clash). As of 3.9.0 **WireGuard, AmneziaWG, and TUIC** configs in every output (raw, the downloadable `.conf`, the links API, export, QR, and the client and inbound cards) advertise the addresses from the bound enabled **hosts**, not the panel's own address; with several hosts the client gets one config per host.
 - A **Clash (mihomo)** tab — IP version, Mihomo X25519, shuffle host.
 
@@ -3647,7 +3960,7 @@ In the list, the **Endpoint** column shows the addresses as chips (the first one
 
 #### Regular links (SUB) — Base64 / plain text
 
-The base format, endpoint `subPath` (a random path on a new installation, see [10.2](#102-subscription-server-settings)). Always enabled (when subscriptions are enabled overall). Returns a list of share links, one per line: `vless://`, `vmess://`, `trojan://`, `ss://`, `hysteria2://`, `wireguard://`, `vpn://` for AmneziaWG, `tg://proxy` for MTProto, and `tuic://` for TUIC (as of 3.8.0; see [5.13](#513-tuic-v5)). When the "Encode" option (`subEncrypt`) is enabled, the entire list is Base64-encoded; when disabled it is returned as plain text. This format is understood by virtually all clients (v2rayNG, V2RayTun, Sing-box, NekoBox, Streisand, Shadowrocket, Happ, etc.).
+The base format, endpoint `subPath` (a random path on a new installation, see [10.2](#102-subscription-server-settings)). Always enabled (when subscriptions are enabled overall). Returns a list of share links, one per line: `vless://`, `vmess://`, `trojan://`, `ss://`, `hysteria2://`, `wireguard://`, `vpn://` for AmneziaWG, `tg://proxy` for MTProto, and `tuic://` for TUIC (as of 3.8.0; see [5.13](#513-tuic-v5)). Inbounds with the XDRIVE transport and MASQUE protocol inbounds have no share links and are not included in this format — see "XDRIVE and MASQUE — JSON subscription only" below. When the "Encode" option (`subEncrypt`) is enabled, the entire list is Base64-encoded; when disabled it is returned as plain text. This format is understood by virtually all clients (v2rayNG, V2RayTun, Sing-box, NekoBox, Streisand, Shadowrocket, Happ, etc.).
 
 **Example: response body with "Encode" disabled.** With `subEncrypt = false` the `subPath` endpoint returns plain text — one link per line:
 
@@ -3666,7 +3979,7 @@ Endpoint `subJsonPath` (a random path on a new installation; usually `/json/` on
 |---|---|---|---|
 | JSON subscription | `subJsonEnable` | `false` | "Enable/disable the JSON subscription endpoint independently." |
 
-Returns a complete Xray client configuration (Xray JSON) — a separate document for each configuration in the subscription; this format is understood by clients built on the Xray core. The skeleton includes local SOCKS (port `10808`) and HTTP (`10809`) inbounds, the `direct` and `block` outbounds, DNS, and routing. As of 3.8.0 the local inbounds are bound to `127.0.0.1` (previously, a client that ran the profile as-is opened a password-less proxy on all interfaces, and iOS clients received no traffic through it), and for compatibility the SOCKS inbound is declared with the `socks` protocol again (`mixed` in 3.7.0). As of 3.5.0 clients of **native WireGuard inbounds** are also included in the JSON subscription (`secretKey`, `address`, `peers[]` with `publicKey`/`endpoint`/`preSharedKey`/`keepAlive`/`allowedIPs`, `mtu`) — previously they were silently skipped. **AmneziaWG** and **TUIC** configurations are not delivered in JSON — use the regular subscription or Clash/Mihomo for them. Additional format parameters:
+Returns a complete Xray client configuration (Xray JSON) — a separate document for each configuration in the subscription; this format is understood by clients built on the Xray core. The skeleton includes local SOCKS (port `10808`) and HTTP (`10809`) inbounds, the `direct` and `block` outbounds, DNS, and routing. As of 3.8.0 the local inbounds are bound to `127.0.0.1` (previously, a client that ran the profile as-is opened a password-less proxy on all interfaces, and iOS clients received no traffic through it), and for compatibility the SOCKS inbound is declared with the `socks` protocol again (`mixed` in 3.7.0). As of 3.5.0 clients of **native WireGuard inbounds** are also included in the JSON subscription (`secretKey`, `address`, `peers[]` with `publicKey`/`endpoint`/`preSharedKey`/`keepAlive`/`allowedIPs`, `mtu`) — previously they were silently skipped. **AmneziaWG** and **TUIC** configurations are not delivered in JSON — use the regular subscription or Clash/Mihomo for them. As of 3.10.0 a VLESS inbound whose settings do not store the `encryption` field (created by an old panel version, or via the API with only `"decryption": "none"`) is delivered with `"encryption": "none"`: previously an empty string went into the JSON, and Xray refused to load such a config; in this case the `vless://` link also gets `encryption=none` instead of omitting the parameter (#6781). For a Hysteria inbound with port hopping (the legacy `quicParams.udpHop`, which is delivered as a `udphop` mask) and several hosts, as of 3.10.0 the `udphop` mask goes into the config of **every** host — previously only the first one got it, and the rest were delivered without port hopping. Additional format parameters:
 
 - **Mux** (`subJsonMux`, empty by default) — JSON multiplexing (Mux) settings that are injected into each stream outbound in the JSON subscription. "Transmission of multiple independent data streams over a single connection." TCP multiplexing is incompatible with VLESS clients that use a flow (`xtls-rprx-vision`), so `concurrency` is forced to `-1` in their outbounds: mux.cool is off for TCP, while the XUDP parameters are kept.
 - **Final Mask** (`subJsonFinalMask`, empty by default) — "xray finalmask (TCP/UDP) masks and QUIC settings added to every JSON subscription stream. Requires a recent version of xray on the client." Configured via sub-fields: "Packets" (`packets`), "Length" (`length`), "Interval" (`interval`), "Max split" (`maxSplit`), "Noises" (`noises`: "Type"/`type`, "Packet"/`packet`, "Delay (ms)"/`delayMs`, "Apply to"/`applyTo`, "+ Noise" button), as well as "Concurrency" (`concurrency`), "xudp concurrency" (`xudpConcurrency`), and "xudp UDP 443" (`xudpUdp443`).
@@ -3697,13 +4010,19 @@ The format of generated links and YAML is kept up to date for modern clients: Sh
 
 > Note: this build supports exactly three formats — regular links (Base64/text), JSON (Xray JSON), and Clash/Mihomo (YAML, including the `/mihomo/` and `/clash-legacy/` aliases). There is no separate Outline format in the subscription server.
 
+#### XDRIVE and MASQUE — JSON subscription only (3.10.0)
+
+An inbound with the **XDRIVE** transport (`network: "xdrive"` with any protocol, see [6.10](#610-xdrive-xdrivesettings)) and a **MASQUE** protocol inbound (see [5.15](#515-masque) and [6.11](#611-masque-transport-masquesettings)) have no share-link format: the link generators of the subscription server (`GetLink`) and of the panel (`genLink`) return an empty value for them. Therefore such inbounds are not included in the regular subscription (Base64/text), in the **"QR Code"** and **"Client Information"** windows, or in the configuration list on the subscription page; the Clash/Mihomo output skips them as well. Clients get the config **only from the JSON subscription**: for MASQUE — a `masque` outbound with `security: "tls"` and `masqueSettings`, where `user` is the client's email, `pass` is its password, and `path` is taken from the inbound; for XDRIVE — the inbound's `streamSettings` together with the `xdriveSettings` block. Without the JSON subscription enabled (`subJsonEnable`), there is no way to deliver a config to such clients through the subscription.
+
+> ⚠️ **The JSON subscription hands out the XDRIVE storage secrets.** Both ends of XDRIVE work with the same storage and the same credentials, so the `xdriveSettings` block goes into the JSON subscription in full — with `secrets` (for Google Drive these are the Client ID, Client secret, and Refresh token), `remoteFolder`, and the storage template. **Every client of such an inbound receives these credentials**, and with them access to the storage within the limits of their permissions. Create a separate account/project with minimal permissions for XDRIVE, give the subscription only to trusted users, and in case of a leak revoke and reissue the token.
+
 ### 10.5. Subscription info page and QR codes
 
 If **any of the three subscription links** — raw, JSON or Clash — is opened in a browser (or the `?html=1` or `?view=html` query parameter is explicitly appended, or the `Accept: text/html` header is sent), the server returns a visual **subscription info page** ("Subscription Info") instead of a raw response. Before 3.5.0 only the main `/sub/` link worked this way, while `/json/` and `/clash/` returned raw JSON/YAML to the browser. VPN clients still receive the machine-readable response because they do not request HTML.
 
 To download the JSON or YAML itself from a browser, append `?view=raw` to the JSON or Clash subscription address: the response arrives as a `subscription.json` / `subscription.yaml` attachment. As of 3.8.0 such a request goes through the device limit (HWID) check just like a VPN client's request.
 
-As of 3.8.5 the subscription page has been rebuilt: at the top is a ring usage indicator with a percentage (or "∞" for unlimited subscriptions) and either the remaining or the used traffic, next to a grid of brief stats (days left, expiry, status, downloaded/uploaded/limit, last online). The rest of the content is split into **"Subscription"**, **"Apps"** and **"Configs"** tabs. The footer of the "Subscription" tab holds the support link (`subSupportUrl`, if set) and the client's auto-refresh interval (`subUpdates`, see [10.2](#102-subscription-server-settings)). For the `fa-IR` and `ar-EG` languages the page renders right-to-left; addresses, identifiers and data volumes stay left-to-right.
+As of 3.8.5 the subscription page has been rebuilt: at the top is a ring usage indicator with a percentage (or "∞" for unlimited subscriptions) and either the remaining or the used traffic, next to a grid of brief stats (days left, expiry, status, downloaded/uploaded/limit, last online). The rest of the content is split into **"Subscription"**, **"Apps"** and **"Configs"** tabs. The footer of the "Subscription" tab holds the support link (`subSupportUrl`, if set) and the client's auto-refresh interval (`subUpdates`, see [10.2](#102-subscription-server-settings)). For the `fa-IR` and `ar-EG` languages the page renders right-to-left; addresses, identifiers and data volumes stay left-to-right. As of 3.10.0 the page is styled with the panel's own theme: the same background and card colors for the Light, Dark, and Ultra Dark themes, and the panel's blue accent instead of its own purple-and-teal palette with an animated background, a grid, and a "glass" card; the content and tabs are unchanged.
 
 The page (a single-page application built with Vite) shows:
 
@@ -3716,7 +4035,7 @@ The page (a single-page application built with Vite) shows:
   - remaining traffic and the time of last online activity.
   - Dates are displayed in the Gregorian or Jalali calendar depending on the panel's "Calendar Type" setting (`datepicker`, default `gregorian`).
 - **Subscription links**: for each enabled format — a separate row with a colored tag (green **SUB**, purple **JSON**, gold **CLASH**), a copy button, and a **QR code** button (popup, 240 px). The JSON and CLASH rows appear only if the corresponding format is enabled in settings.
-- **Individual links** ("Copy link"): a full list of individual configurations included in the subscription, each with its own protocol tag, copy button, and QR code (QR codes are not generated for post-quantum links).
+- **Individual links** ("Copy link"): a full list of individual configurations included in the subscription, each with its own protocol tag, copy button, and QR code (a QR code is not generated only for links with a post-quantum key — `pqv` or an ML-KEM-768 VLESS encryption key, see [8.3](#83-per-client-operations)).
 
 - **"Copy all configurations" button** (above the individual links list): copies all configuration links to the clipboard at once (each on its own line) without requiring them to be copied one by one; a "All configurations copied" notification is shown on completion.
 - **Quick-import buttons for apps** (the "Apps" tab, an Android/iOS platform switch — the visitor's platform by `User-Agent` by default): each app has a single "Add" button. On Android it opens the deep link of v2box, v2rayNG (`v2rayng://install-config?url=…`), Sing-box (`sing-box://import-remote-profile?url=…`), V2RayTun (`v2raytun://import/…`), Happ (`happ://add/…`) or Incy (`incy://add/…`); on iOS — Shadowrocket (the `flag=shadowrocket` parameter), v2box (`v2box://install-sub?url=…&name=…`), Streisand (`streisand://import/…`), V2RayTun, Happ or Incy. As of 3.8.5 Sing-box and V2RayTun on Android and V2RayTun on iOS also open the app (previously they only copied the link), and NPV Tunnel is removed from both platforms' lists.
@@ -3898,7 +4217,7 @@ The **"Happ"** tab of the subscription settings gathers what the panel passes to
 | Android Per-App Proxy Mode | `subHappPerAppMode` | `Per-App-Proxy-Mode` | "Off" (`off`, default; no header is sent), "On (Proxy Only Listed Apps)" — `on`, "Bypass (Exclude Listed Apps)" — `bypass`. |
 | Android Package Names | `subHappPerAppList` | `Per-App-Proxy-List` | Comma-separated package names, for example `org.telegram.messenger`; sent only when the mode is not "Off". |
 
-The server caption in the Happ list is set by the **"Description"** field of a managed host (see [10.4](#104-output-formats)): in VLESS, Trojan, and Shadowsocks links it is appended to the name as `#Name?serverDescription=<base64>`, and in VMess it goes into the `serverDescription` field. This caption does not depend on auto-detection.
+The server caption in the Happ list is set by the **"Description"** field of a managed host (see [10.4](#104-output-formats)): in VLESS, Trojan, Shadowsocks, and (as of 3.10.0) Hysteria/Hysteria2 links it is appended to the name as `#Name?serverDescription=<base64>`, and in VMess it goes into the `serverDescription` field. Before 3.10.0 the Hysteria servers of such a host were shown in Happ with a default caption like "Hysteria | hysteria | TLS" (#6740); the description is not yet added to `tuic://` links. This caption does not depend on auto-detection.
 
 ---
 
@@ -3960,6 +4279,10 @@ A separate Happy Eyeballs also exists in the **dial (sockopt) settings of an ind
 
 `routing.domainStrategy` determines how IP routing rules are matched against domain queries: `AsIs` (domain rules only, no resolution), `IPIfNonMatch` (if the domain doesn't match any rule — resolve and check IP rules), `IPOnDemand` (resolve immediately when an IP rule is encountered). For IP rules (e.g., `geoip:*`) to fire on domain queries, `IPIfNonMatch` is typically required (see [11.2](#112-general-settings)).
 
+#### Routing script (since 3.10.0)
+
+Right below "Overall Routing Strategy" is the **Routing Script** field (`routing.script`, placeholder `routing.lua`): the path to a Lua file with a `HandleRoute` function. While the field is filled in, Xray **ignores all routing rules**, including the panel's service `api` rule; clearing the field removes the key from the template. Details in [11.14](#1114-lua-scripts-for-routing-and-dns).
+
 #### Outbound Test URL
 
 | Field | Label | Description | Default |
@@ -4005,6 +4328,8 @@ Here the connection is closed after just 120 seconds of idle time (instead of th
 ### 11.3. Routing Rules (routing)
 
 The list of `routing.rules`. **Order is critical** (*"The priority of each rule is important!"*): rules are evaluated top to bottom, and the first match wins. Tooltip: *"Drag to change order"*. Order-control buttons: **First**, **Last**, **Move Up**, **Move Down**.
+
+> If a **Routing Script** is set in the **Basics** section (as of 3.10.0, see [11.14](#1114-lua-scripts-for-routing-and-dns)), a warning is shown above the rules: *"A routing script is set under Basics, so Xray ignores these rules."* The rules stay in the template, but the core does not apply them.
 
 Each rule has `type: "field"`. Buttons: **Create Rule**, **Edit Rule**. Tooltip for list fields: *"Comma-separated items"*.
 
@@ -4122,6 +4447,7 @@ Protocols supported by the form:
 - **`wireguard`** — `settings.peers[]` with `endpoint`, plus keys and **Remote DNS** (see [11.8](#118-wireguard--warp--nordvpn)).
 - **`amneziawg`** — an AmneziaWG client: the panel brings up the tunnel itself, and the outbound reaches Xray as a local SOCKS proxy (see [AmneziaWG outbound](#amneziawg-outbound) below).
 - **`hysteria`** — `settings.address`/`settings.port` (UDP transport).
+- **`masque`** (as of 3.10.0) — a MASQUE client (see [5.15](#515-masque)): `settings.address`/`settings.port` and the **Remote DNS** field (`settings.remoteDNS`, a comma- or space-separated list, placeholder `1.1.1.1, 2606:4700:4700::1111`). The transport is always `masque` with TLS security — the form sets both itself when the protocol is selected; the transport parameters and credentials are covered in [6.11](#611-masque-transport-masquesettings). A ready-made outbound to Cloudflare WARP is created by a button in the WARP window (see [11.8](#118-wireguard--warp--nordvpn)). When tested, such an outbound counts as UDP and is always checked in HTTP mode if the TLS ALPN contains `h3` or does not contain `h2`; with an ALPN of `h2` only (HTTP/2 over TCP) it is tested like a regular TCP outbound.
 - **`dns`** — intercepts DNS queries: **Rewrite network**, **Rewrite address**, **Rewrite port**, **User Level** and a **Rules** list (each rule has an **Action** — `direct`/`drop`/`return`/`hijack` — plus **QType**, **Domain Name** and **RCode**). On upgrade to 3.8.0 the legacy `nonIPQuery`/`blockTypes` keys are converted into rules (see [11.11](#1111-saving-restart-and-automatic-transformations)).
 
 **3.8.5:** the core reads a saved `qType: 0` on a DNS-outbound rule as "type unset", so such a rule matched any DNS query through the outbound — blocking, rejecting or hijacking all DNS instead of a single query type. Fixed: `0` is now written as the string `"0"`. The one-time `DNSOutboundQTypeZeroFix` migration repairs already-saved templates — relevant if the upgrade to 3.8.0 turned an old `blockTypes: [0]` into such a `qType: 0`; a template with unreadable JSON is skipped by the migration, which only writes a warning to the log without interrupting the panel's startup.
@@ -4130,7 +4456,7 @@ The panel reads the protocol identifier (`protocol`) and the transport name (`st
 
 For the **loopback** outbound type, a **Sniffing** block is available with the same parameters as an inbound: enable, **destOverride**, **Metadata Only**, **Route Only**, and the **excluded domains** list.
 
-In the **UDP** mask (FinalMask) for **Hysteria2**, additional modes are available. The **Salamander** mask has a **Mode** selector with **Salamander** and **Gecko** values: Gecko mode adds random packet padding with **Min**/**Max** size fields (`packetSize`, range 1–2048, default 512–1200) — this protects against fingerprinting by packet length. The **Realm** mask (UDP hole-punching) has gained an optional **TLS Config** block with fields **Server Name** (SNI), **ALPN** (`h3`/`h2`/`http/1.1`), **Fingerprint** (uTLS), and an **Allow Insecure** toggle. **Realm** also has **IP Mode** (`ipMode`: Dual, IPv4 or IPv6; empty means dual) and a **Port Mapping (UPnP / NAT-PMP)** toggle (`portMapping.enabled`) with **Mapping Timeout (s)** (default 10) and **Mapping Lifetime (s)** (default 600) fields. The QUIC parameters have **Disable Chrome Parrot**, **Disable GSO** and **Disable Stateless Reset** toggles, plus **Brutal Disable Loss Comp** when the congestion control is `brutal`/`force-brutal`. The **UDP Hop** toggle in the QUIC parameters no longer does anything on an outbound: as of xray-core 26.9.9, port hopping is configured with a separate `udphop` UDP mask, and the core skips the `quicParams.udpHop` key (on an inbound it still sets the `mport` range for share links).
+In the **UDP** mask (FinalMask) for **Hysteria2**, additional modes are available. The **Salamander** mask has a **Mode** selector with **Salamander** and **Gecko** values: Gecko mode adds random packet padding with **Min**/**Max** size fields (`packetSize`, range 1–2048, default 512–1200) — this protects against fingerprinting by packet length. The **Realm** mask (UDP hole-punching) has gained an optional **TLS Config** block with fields **Server Name** (SNI), **ALPN** (`h3`/`h2`/`http/1.1`), **Fingerprint** (uTLS), and an **Allow Insecure** toggle. **Realm** also has **IP Mode** (`ipMode`: Dual, IPv4 or IPv6; empty means dual) and a **Port Mapping (UPnP / NAT-PMP)** toggle (`portMapping.enabled`) with **Mapping Timeout (s)** (default 10) and **Mapping Lifetime (s)** (default 600) fields. The QUIC parameters have **Disable Chrome Parrot**, **Disable GSO** and **Disable Stateless Reset** toggles, plus **Brutal Disable Loss Comp** when the congestion control is `brutal`/`force-brutal`. As of xray-core 26.9.9 the client hops ports only through the `udphop` UDP mask, and the core skips the `quicParams.udpHop` key. That is why, as of 3.10.0, the outbound's QUIC parameters no longer have a **UDP Hop** toggle: instead, the outbound's list of UDP masks (for Hysteria2, and also for XHTTP, whose HTTP/3 dialing also goes through UDP masks) offers a **UDP Hop** type (`udphop`) with the fields **Mode** (multi-select, at least one required: *Rotate server port (interval)* — `intervalRemote`, *Random server port per connection* — `perConnRemote`, *Rotate local port (interval)* — `intervalLocal`), **Interval (s)** (seconds, at least 5: `30` or `5-10`; default `5-10`), **Remote Ports** (e.g. `20000-50000`) and **Remote IPs**. If an outbound still has an old `quicParams.udpHop`, the form converts it into a `udphop` mask in `intervalRemote` mode when the outbound is opened. On an inbound the **UDP Hop** toggle remains: it only advertises a range to clients (`mport` in the share link, a `udphop` mask in the JSON subscription), while the server itself listens on its own port. The `udphop` mask must be the **only one and the last** in the UDP mask list: the core reverses the list and, when dialing, rejects a mask that opens its own socket if it is out of place (`incorrect index`) — yet `xray run -test` reports "Configuration OK", and the client simply fails to connect. Therefore, when building the configuration (template outbounds), importing links with `fm=` and serving subscriptions, the panel keeps only the last `udphop` mask given and moves it to the end of the list; in the JSON subscription, when the range comes from several sources, the most specific one wins: the host, then the inbound itself, then the global subscription mask.
 
 As of 3.5.0 a new **TCP mask** type has been added — **XMC (Minecraft)** (`xmc`): the stream is disguised as the Minecraft protocol. Fields: **Hostname** (optional; "the server address simulated in the handshake"), **Usernames** (an optional list; "player names offered to probers; by default the core uses Dream"), and a required **Password** (16 characters, auto-generated with a ↻ button; "obfuscation password"). Important: **combining a TCP Finalmask with REALITY is rejected on save** — it crashed Xray-core on the first connection (error: "Finalmask is not supported with REALITY security…"; see Xray-core#6453). A UDP mask with REALITY is allowed; previously saved invalid combinations are automatically "healed" (the mask is dropped) when the config is built.
 
@@ -4159,7 +4485,7 @@ A routing rule with `outboundTag: "chained"` will then route traffic to the inte
 
 #### Importing an outbound from a share link
 
-An outbound can be imported from a share link (`vless://`, `vmess://`, etc.). On import, **xmux** (XHTTP) multiplexer settings passed in the `extra=` block of the link are also preserved: after import their values are populated into the **XMUX** sub-form of the created outbound. A `hysteria2://` link with an `mport` port range becomes a `udphop` UDP mask (`mode: "intervalremote"`, `interval: "5-10"`, `remotePorts` — the range from the link); a mask passed in `fm=` takes precedence. Outbound subscription links are parsed the same way (see [11.12](#1112-subscription-outbounds-with-auto-update)). `udphop` is not in the mask dropdown — it is a client-only mask — but an imported one is kept when the outbound is edited. Hysteria2 outbounds imported earlier (with `quicParams.udpHop`) are not migrated automatically and no longer hop ports with xray-core 26.9.9 — import the link again (subscription outbounds get the mask on the next subscription refresh).
+An outbound can be imported from a share link (`vless://`, `vmess://`, etc.). On import, **xmux** (XHTTP) multiplexer settings passed in the `extra=` block of the link are also preserved: after import their values are populated into the **XMUX** sub-form of the created outbound. A `hysteria2://` link with an `mport` port range becomes a `udphop` UDP mask (`mode: "intervalremote"`, `interval: "5-10"`, `remotePorts` — the range from the link); a mask passed in `fm=` takes precedence. Outbound subscription links are parsed the same way (see [11.12](#1112-subscription-outbounds-with-auto-update)). As of 3.10.0 a `udphop` mask can also be added manually in the outbound form (see above), and an old `quicParams.udpHop` in the link's `fm=` parameter is also converted into the mask on import. Outbounds saved earlier with `quicParams.udpHop` (in the template and in the subscription-outbound cache) are converted into the mask by the one-time `UDPHopClientMaskFix` migration and are additionally fixed when the configuration is built (see [11.11](#1111-saving-restart-and-automatic-transformations)) — there is no longer any need to import them again.
 
 #### Mux fields (multiplexing)
 
@@ -4189,6 +4515,8 @@ In the **fragment** mask (the fragment type in FinalMask, for TCP), the single L
 - **UDP over TCP** and **UoT Version** — for shadowsocks-like protocols.
 - **No gRPC Header**, **Uplink Chunk Size** — gRPC transport parameters.
 - TLS/uTLS fields: **Verify Peer Name**, **Pinned SHA256**, **Short ID**, **Vision testpre**, placeholder "server name".
+- **Use system CA** (`tlsSettings.useSystemCA`, as of 3.10.0). Starting with Xray-core 26.10.10 the core verifies the server certificate against Mozilla's bundled set of root certificates rather than the OS system store. Enable the toggle on an outbound to a server whose certificate is signed by a CA installed into the system manually (a private or corporate CA).
+- **TLS for XDRIVE** (as of 3.10.0). `vmess`/`vless`/`trojan`/`shadowsocks` outbounds on the XDRIVE transport (see [6.10](#610-xdrive-xdrivesettings)) can now select **TLS** security: its SNI, uTLS fingerprint and ALPN shape the HTTPS connection to the storage API — this is the TLS handshake the API sees. Previously TLS was not offered for XDRIVE, and switching a TLS outbound to XDRIVE silently reset the security to `none`. TLS is still unavailable for inbounds on XDRIVE.
 
 #### Testing outbounds
 
@@ -4249,7 +4577,9 @@ When the template is saved, the panel validates AmneziaWG outbounds itself (the 
 
 The list of `routing.balancers`. Buttons: **Create Balancer**, **Edit Balancer**.
 
-The Balancers tab has live-state columns: **Live Target** shows the current active target of the balancer in the running Xray, and **Override** lets you manually override the target selection (**Auto (strategy)** returns selection to the strategy). The state is refreshed with a dedicated button. If the balancer is not yet active in the running Xray, the panel will suggest saving changes or starting Xray first.
+The Balancers tab has live-state columns: **Live Target** shows the current active target of the balancer in the running Xray, and **Override** lets you manually pin the target selection (**Auto (strategy)** returns selection to the strategy). The state is refreshed with a dedicated button (tooltip "Refresh live balancer state"). If the balancer is not yet active in the running Xray, the panel will suggest saving changes or starting Xray first.
+
+As of 3.10.0 an override **survives a hot-apply of routing** (#6779). Previously it lived only inside the running core and was silently lost on any Xray settings save that touched rules or balancers, and also when a node was checked through **Connection outbound** (see [12.2](#122-adding-and-editing-a-node)). Now the panel remembers the overrides that were set and restores them after its own routing reloads. Only an outbound present in the running configuration can be chosen as the target, otherwise the request is rejected (`override target is not an outbound in the running config`): the core would accept any tag but would drop every connection sent to a nonexistent one. If the target outbound is deleted, the override is cleared and the balancer returns to strategy-based selection instead of turning into a "black hole". Restarting Xray, as before, resets all overrides.
 
 | Field | Label | Description |
 |---|---|---|
@@ -4376,6 +4706,7 @@ The `dns` section. Enable with: **Enable DNS** (tooltip: *"Enable the built-in D
 | `disableFallbackIfMatch` | **Disable Fallback DNS on Match** | `dns.disableFallbackIfMatch` | *"Disables fallback DNS queries when the DNS server's domain list matches"*. |
 | `enableParallelQuery` | **Enable Parallel Queries** | — | *"Enable parallel DNS queries to multiple servers for faster resolution"*. |
 | `useSystemHosts` | **Use System Hosts** | `dns.useSystemHosts` | *"Use the hosts file from the installed system"*. |
+| `script` | **Lua Script** | `dns.script` | As of 3.10.0. *"Path to a .lua file defining HandleDNSQuery, absolute or relative to the Xray bin folder…"* Placeholder `dns.lua`; an empty field removes the key. See [11.14](#1114-lua-scripts-for-routing-and-dns). |
 
 **Example `dns` block.** Queries for Google domains are resolved via Cloudflare's DoH server, everything else via `1.1.1.1`; for Google queries, only non-private IPs are accepted. At the top level of the config:
 
@@ -4421,6 +4752,7 @@ DNS server fields:
 | `skipFallback` | **Skip Fallback** | Do not use this server as a fallback. |
 | `finalQuery` | **Final Query** | Marks the server as final in the chain. |
 | `timeoutMs` | **Timeout (ms)** | Query timeout for this server. |
+| `id` | **ID** | As of 3.10.0. *"The name a Lua DNS script uses to pick this server"* (see [11.14](#1114-lua-scripts-for-routing-and-dns)). An empty field is not written to the config. |
 
 #### Hosts (static records)
 
@@ -4473,7 +4805,7 @@ Additionally, sniffing must be enabled on the inbound with `destOverride: ["fake
 
 #### Cloudflare WARP (`warp`)
 
-The integration uses the API `https://api.cloudflareclient.com/v0a4005` (client-version `a-6.30-3596`). Controller actions (`/xray/warp/:action`): `config`, `reg`, `license`, `data`, `del`.
+The integration uses the API `https://api.cloudflareclient.com/v0a4005` (client-version `a-6.30-3596`). Controller actions (`/xray/warp/:action`): `config`, `reg`, `license`, `data`, `del`, and as of 3.10.0 `regMasque` (see "WARP over MASQUE" below).
 
 Step by step:
 
@@ -4482,6 +4814,30 @@ Step by step:
 3. **Account information**: **Device Name**, **Device Model**, **Device Enabled**, **Account Type**, **Role**, **WARP+ data**, **Quota**, **Usage**.
 4. **Add outbound** — creates a WireGuard outbound with the obtained keys and Cloudflare endpoint.
 5. **Delete account** → `del`: clears saved WARP data.
+
+#### WARP over MASQUE (since 3.10.0)
+
+At the bottom of the **Cloudflare WARP** window, under the **MASQUE** divider, there is an **"Add WARP over MASQUE outbound"** button with the note *"Registers a separate WARP device enrolled for MASQUE; the WireGuard registration above is not affected."* The button is always available — it does not need a WARP WireGuard account.
+
+When it is clicked (`POST /panel/api/xray/warp/regMasque`), the panel registers a **separate** WARP device with Cloudflare, generates an ECDSA P-256 (secp256r1) key for it and enrolls that key in the MASQUE tunnel. Enrolling a MASQUE key replaces the device's WireGuard key, so MASQUE always gets its own device, and the saved WireGuard registration (the `warp` setting) is left unchanged. An outbound is built from Cloudflare's response:
+
+```json
+{
+  "tag": "warp-masque",
+  "protocol": "masque",
+  "settings": { "address": "<Cloudflare endpoint>", "port": 443 },
+  "streamSettings": {
+    "network": "masque",
+    "security": "tls",
+    "tlsSettings": { "serverName": "consumer-masque.cloudflareclient.com", "alpn": ["h3"] },
+    "masqueSettings": {
+      "warp": { "privateKey": "<PEM key>", "publicKey": "<endpoint key>", "address": ["<IPv4>", "<IPv6>"] }
+    }
+  }
+}
+```
+
+If an outbound tagged `warp-masque` already exists, it is updated in place (new device and keys); otherwise a new one is added. As with **Add outbound**, the change goes into the template and takes effect after **Save**. The panel does not store the data of this registration separately — it exists only in the outbound itself, so **Delete account** and IP rotation (see [11.13](#1113-ip-rotation-in-warp)) do not affect it. The MASQUE protocol itself is described in [5.15](#515-masque), and its transport in [6.11](#611-masque-transport-masquesettings).
 
 #### NordVPN (`nord` / `nordvpn`)
 
@@ -4587,6 +4943,15 @@ When saving Xray settings, the panel performs (in this order):
 
 > Due to point 3, do not try to remove or move the `api → api` rule — the panel will put it back in place on the next save. This is service infrastructure for statistics, not a user route.
 
+#### One-time template conversions on upgrade to 3.10.0
+
+3.10.0 ships with Xray-core 26.10.10, which changed the format of some masks once again. On the first start of 3.10.0 the panel performs two conversions once (each is recorded in `history_of_seeders` and is never repeated):
+
+1. **XDNS masks → `names`/`addrs` format** (`XdnsFinalmaskNamesAddrsFix`). The mask's domain is now given as a `names` list instead of a single `name`, and the resolver as an `addrs` list of URLs like `udp://…` or `tcp://…` instead of a `{type, settings: {addr}}` object. The new core does not reject the old keys but silently skips them: the mask would load with no domain and no resolver, and the tunnel would carry nothing. Masks are rewritten in inbounds, hosts, the subscription-outbound cache, the template (`xrayTemplateConfig`) and the JSON subscription mask (`subJsonFinalMask`); both the pre-3.9.0 string lists and the 3.9.0 objects are accepted, and entries the old loader rejected are dropped. This conversion replaced `XdnsFinalmaskObjectsFix` from 3.9.0, so when upgrading straight from 3.8.x the masks go directly to the new format. The wire format has not changed, but clients on a core older than 26.10.10 cannot read the new configuration form.
+2. **`quicParams.udpHop` → `udphop` mask** (`UDPHopClientMaskFix`). As of xray-core 26.9.9 the client hops ports only through the `udphop` mask, while the panel kept writing the old key — Hysteria/XHTTP outbounds and JSON-subscription clients silently stopped changing ports. The range is moved into a `udphop` mask in `intervalRemote` mode in template outbounds, the subscription-outbound cache, hosts and the JSON subscription mask. Inbounds are not affected: for them `udpHop` is the range advertised in share links, and a `udphop` mask does not work on a listener.
+
+The panel also applies the same fixes to template outbounds every time it builds the Xray configuration, so a template in the old format that is pasted or restored later works too. In the XDNS mask editor, domains (`names`) and resolvers (`addrs`) are entered as tag lists, and record types are no longer required: by default the core uses TXT on the client and A/CNAME/TXT/AAAA on the server. **Back up the database before upgrading.**
+
 #### One-time template conversions on upgrade to 3.9.0
 
 Xray-core 26.9.30 changed yet another set of keys, so on the first start of 3.9.0 the panel rewrites the saved template (`xrayTemplateConfig`) once; each conversion is recorded in `history_of_seeders` and is never repeated:
@@ -4605,7 +4970,7 @@ xray-core 26.9.8–26.9.9 stopped accepting some keys and deprecated others, so 
 3. **DNS outbound: `nonIPQuery`/`blockTypes` → `rules`.** The keys are replaced with the three rules the core used to build from them on its own (the mode is the `nonIPQuery` value, `reject` by default): `drop` for the `qType`s listed in `blockTypes` (`return` with `rCode: 5` in `reject` mode), then `hijack` for `qType` `1,28` (A and AAAA), then a rule for all other queries: `direct` for `skip`, `drop` for `drop`, and `return` with `rCode: 5` for `reject` and any other value. If the outbound already has `rules`, the old keys are simply removed.
 4. **Freedom with a protocol name not in lowercase.** If the protocol is written as, say, `"Freedom"`, the earlier `finalRules` fixes (including the ban on egress to private networks), which used to skip such an outbound, are applied to it again.
 
-A manually added `proxySettings` now fails validation when the template is saved — the message comes from the core. Hysteria2 port hopping (`quicParams.udpHop`) is not migrated — see importing an outbound from a share link in [11.4](#114-outbounds-outgoing-connections).
+A manually added `proxySettings` now fails validation when the template is saved — the message comes from the core. Hysteria2 port hopping (`quicParams.udpHop`) was not migrated in 3.8.0 — it is moved by the `UDPHopClientMaskFix` conversion on upgrade to 3.10.0 (see above).
 
 ### 11.12. Subscription outbounds (with auto-update)
 
@@ -4731,6 +5096,24 @@ Use case for WARP: if the server cannot directly reach `api.cloudflareclient.com
 - Manually "refresh" the IP if the current Cloudflare address has been blacklisted or is performing poorly.
 - Servers that have no direct access to the Cloudflare WARP API: routing requests through `panelProxy` makes registration and rotation functional.
 
+### 11.14. Lua scripts for routing and DNS
+
+As of 3.10.0 (Xray-core 26.10.10), routing and DNS can be handed over to Lua scripts. The panel does not edit the scripts themselves — it only sets the path to the `.lua` file, which must be present on the server. There are three fields for this:
+
+| Where | Field | JSON | What it sets |
+|---|---|---|---|
+| **Basics** — under "Overall Routing Strategy" (see [11.2](#112-general-settings)) | **Routing Script** | `routing.script` | A file with a `HandleRoute` function. Placeholder `routing.lua`. |
+| **DNS** — general parameters, visible when DNS is enabled (see [11.6](#116-dns)) | **Lua Script** | `dns.script` | A file with a `HandleDNSQuery` function. Placeholder `dns.lua`. |
+| **DNS** — the DNS server window | **ID** | `dns.servers[].id` | The name by which the DNS script picks this server. |
+
+The path is absolute or relative to the Xray `bin` folder. An empty field removes the key from the template: the core rejects an empty path.
+
+- **The routing script picks every route, and Xray ignores all routing rules** — including the service `api → api` rule that the panel keeps first (see [11.11](#1111-saving-restart-and-automatic-transformations)). Field tooltip: *"…send the api inbound to the api outbound or traffic stats and live client changes stop."* While a script is set, a warning is shown above the rules on the "Routing" page (see [11.3](#113-routing-rules-routing)).
+- **The DNS script answers every query itself** and reaches the DNS servers only from its own code — picking them by **ID**.
+- **Xray will not start** if the file is missing or contains errors — check the path before saving.
+- **The script is loaded when the core starts.** Changing the path in the field triggers a full Xray restart on save, and after editing the `.lua` file itself, restart Xray manually. Hot-applying routing rules does not affect the script.
+- The `dns.script` and `routing.script` keys and the `id` of DNS servers, when entered into the JSON by hand, used to be lost on the next save from the Xray page; now they are preserved.
+
 ---
 
 ## 12. Nodes (multi-panel, master/slave)
@@ -4775,6 +5158,11 @@ When clicking "Save" (both when adding and editing), the panel **first checks no
 #### Obtaining and regenerating the token on the node side
 
 The token is obtained on the remote panel in the **Settings → API Token** section. It can also be reissued there: the **Regenerate token** button with a warning: "Regenerating will invalidate the current token. Any master panel using it will lose access until updated. Continue?". After regeneration, the old token in the master panel will stop working — it must be updated in the node form.
+
+**Node token scope.** A node accepts a token with the `admin` scope (the default, including the one from `x-ui setting -getApiToken`) or `node-sync` (see [13.9](#139-administrator-account-and-api-tokens)). As of 3.10.0 both work equally fully:
+
+- The master marks each of its requests to a node with the `X-3x-Master-Push` header, and the node applies the pushed clients and the inbound's enable flag the same way it does with a `node-sync` token. In 3.9.0 a node with an `admin` token took such a push for a save of a stale form and kept the previous clients: clients attached on the master ("Attach Existing Clients…", bulk attach, a catch-up push to a "dirty" node) never reached the node, even though the push was recorded as successful and was not retried. The header is read by the node, so **update your nodes to 3.10.0**. The form in the browser does not send it, so the stale-form protection for ordinary edits is unchanged.
+- A `node-sync` token (and a master connected over mTLS) is allowed every endpoint the master calls. Previously the inbound order in the subscription (`/inbounds/:id/subSortIndex`) and the bulk traffic reset of several clients (`/clients/bulkResetTraffic`) did not reach the node, and without `/clients/activeInbounds` online attribution silently fell back to matching by email only. Updating the node's panel (`/server/updatePanel`) is still closed to `node-sync`.
 
 #### Connection outbound
 
@@ -4946,7 +5334,7 @@ Up to 60 data points are returned. An invalid metric or bucket is rejected ("inv
 
 ### 12.7. How inbounds and clients are synchronized
 
-An inbound "belongs" to a node through the `node_id` field (the node is selected in the inbound editor). As of 3.9.0 **AmneziaWG, TUIC, and MTProto** can also be deployed on nodes (#6306) — the protocol is run by the node's own panel, with its own engine/server. A node version threshold therefore applies: **MTProto — v3.5.0+, AmneziaWG — v3.7.0+, TUIC — v3.8.0+**. A node below the threshold (or one that has not yet reported its version) rejects the save with an error of the form "node … runs panel …; … inbounds need … or newer". The protocols that remain panel-local are `http`, `mixed`, `tunnel`/`dokodemo`, and `tun`: choosing one of them clears the node in the form, and saving it with a node assigned is rejected. On an MTProto node the loopback port is allocated by the node's own panel, and AmneziaWG forwarded ports are checked against the node's inbounds, not the master's.
+An inbound "belongs" to a node through the `node_id` field (the node is selected in the inbound editor). As of 3.9.0 **AmneziaWG, TUIC, and MTProto** can also be deployed on nodes (#6306) — the protocol is run by the node's own panel, with its own engine/server. A node version threshold therefore applies: **MTProto — v3.5.0+, AmneziaWG — v3.7.0+, TUIC — v3.8.0+**. As of 3.10.0 a **MASQUE** inbound can also be placed on a node (see [5.15](#515-masque)); the threshold in the code is node v3.9.1+, but no such release was published, so in practice the node must be at least 3.10.0. A node below the threshold (or one that has not yet reported its version) rejects the save with an error of the form "node … runs panel …; … inbounds need … or newer". The protocols that remain panel-local are `http`, `mixed`, `tunnel`/`dokodemo`, and `tun`: choosing one of them clears the node in the form, and saving it with a node assigned is rejected. On an MTProto node the loopback port is allocated by the node's own panel, and AmneziaWG forwarded ports are checked against the node's inbounds, not the master's.
 
 **Example: token in the node form.** The token is obtained on the child panel (Settings → API Token) and pasted into the master's **API Token** field. On each poll, the master sends it in the header:
 
@@ -4960,6 +5348,10 @@ If the child panel has a **base path** (web base path) set, e.g. `/secret/`, the
 1. **Configuration deployment (reconcile).** Whenever an inbound/client linked to a node is modified, the node is marked "dirty". A background task, for each enabled node **with `online` status**, deploys the node's inbounds (by `node_id`) when there are pending changes, then clears the "dirty" flag. A node that is disabled, offline, or "dirty" is considered "pending" — deployment to it is deferred until connectivity is restored.
 
    In addition, the master immediately pushes client operations (creating, editing, deleting, detaching, resetting traffic, bulk changes) to all nodes that host the client, and does so **in parallel** rather than one node at a time: the duration of an operation is no longer the sum of every node's delay. Each node gets 4 seconds to respond; a node that does not respond in time does not hold up the request — it stays "dirty", and the background task (which runs every 5 seconds) delivers the changes to it later. If an operation fails on some of the inbounds, it is still applied to the others: the error lists the inbounds where it failed, and Xray is restarted so that the part already applied takes effect.
+
+   As of 3.10.0 a node applies a pushed inbound **in place** if only its clients (`settings.clients`) changed, for the `vless`, `vmess`, `trojan`, `hysteria` and `masque` protocols: it removes dropped clients and adds new and changed ones through the Xray API one by one, without recreating the handler — the listener and the open connections of the other clients on that port are not dropped (#6795). If nothing changed for the core, the node does nothing; any other change, or a failed per-client operation, still leads to the inbound being recreated. AmneziaWG, like MTProto and TUIC, is reconfigured in place without bringing the tunnel down. Previously every such push — and the master sends the whole inbound on a client's auto-disable, renewal or reset, and re-sends all inbounds after its own restart — dropped every connection on the port. Nodes on older versions recreate the inbound until they are updated; nothing needs to change on the master. A client removal pushed by the master does not restart Xray on the node according to the node's own "Restart Xray After Client Disable" setting: on auto-disable, the master itself restarts the nodes according to its own setting of the same name.
+
+   If an inbound was deleted directly on the node, the master **creates it again** on the next catch-up push — previously it endlessly sent updates to the saved id of an inbound that no longer existed.
 2. **Traffic collection.** The same task requests a traffic snapshot from the node and merges it into local statistics. Based on the merged traffic, limit/expiry checks are performed and clients are disabled if necessary; the "exhausted" counter for the node reflects exactly this. If the node is unreachable, its online clients are cleared.
 
    For a client linked to multiple panels, the master in the same task additionally distributes to the nodes the **total across all panels** traffic consumed by that client (in a separate table on the node, keyed by the master's GUID; overwritten on each send, so a reset on the master side also propagates). On the node, the larger of the two values — local or received — is displayed in the client's traffic, and when the total quota is exceeded, the client is disconnected **locally on the node itself** (via the same Xray restart mechanism used during auto-disconnect, which terminates already established connections). This eliminates the situation where a node only saw its share of traffic, underestimated usage, and continued serving a client who had already exhausted the total limit. When traffic is reset, auto-renewed, or the client is deleted, the sent counters are cleared.
@@ -4972,6 +5364,9 @@ If the child panel has a **base path** (web base path) set, e.g. `/secret/`, the
    - **A node cannot "claim" a client that belongs elsewhere.** A client's email is unique in the panel, so a client from a node snapshot is not accepted if, on the master, a client with that email is attached only to inbounds outside that node (local ones or another node's): otherwise the master would overwrite its UUID, and the real user would lose access. A warning containing `rename one side to remove the duplicate email` is written to the log once — rename the client on one of the sides.
    - **Editing a client hosted on several nodes.** Before the edit is sent out, all nodes hosting the client are marked "dirty", and a snapshot arriving mid-operation is skipped: a rename does not leave a copy of the client under the old email, and a changed expiry is not rolled back. This narrows the window for such a discrepancy but does not close it completely.
    - **Adopted inbounds with a different name.** If a node's inbound was adopted under the master's tag, that link is preserved when the identifier cache is refreshed, and the master does not create a duplicate inbound on the node on the same port. The tag reported by the node itself still takes precedence over the saved link, so operations are not sent to a different inbound on the node that has since received the old name.
+   - **An empty snapshot does not delete clients** (#6734). A node that has just been deleted, reset or restarted, or that answered before loading its configuration, may report an inbound with no clients at all. Previously the master trusted such a snapshot: it detached all of the inbound's clients and, after a grace period, deleted them entirely — deleting a single node could wipe out the clients of the whole panel. Now a snapshot with zero clients for an inbound that has clients on the master is not treated as authoritative: the master's inbound settings are not overwritten, client links and traffic baselines are left untouched, the node is marked "dirty", and the master re-sends its clients to it. As a consequence, delete an inbound's last client from the master — a deletion made directly on the node is undone by the master's re-push (deleting one of several clients on a node is still picked up).
+   - **Statistics of detached clients are ignored** (#6724). When a client is detached on the master, the node keeps the client's traffic row and keeps reporting it under that inbound. Previously the master accepted this stale data: it carried the old usage over, disabled the client because of it, and the previous quota came back every 5 seconds. Now only the clients listed in the inbound's settings are taken from the snapshot (if the settings cannot be parsed — all of them, as before), and no new traffic row is created for an email that no longer exists on the master.
+   - **Traffic history is preserved when an inbound is replaced** (#6749). If a node reports an inbound under a tag that matches neither the master's tag nor any known alias, the master accepts it as new and deletes the old one. Previously the traffic rows of its clients were deleted along with the old inbound and recreated with zeros on the next tick — quota accounting lost all usage. Now the rows of clients the node still reports are moved to the new inbound; only the rows of those the node no longer reports at all are deleted. A node inbound created from the master and not yet matched by tag is recognized as the same inbound, not replaced, when it is renamed on the first sync.
 3. **Heartbeat.** A separate background task periodically polls all **enabled** nodes (with a concurrency limit) via `panel/api/server/status`, updates status/metrics/versions, and, when web clients are connected, broadcasts the updated node tree over WebSocket.
 
 ### 12.8. Node chains (sub-nodes / transitive nodes)
@@ -5261,7 +5656,7 @@ proxy_set_header X-Forwarded-Host $host;
 
 - **Key:** `tgRunTime`
 - **Default:** `@daily` (once per day).
-- **Format:** the value is assembled by the schedule builder (see "[Schedule builder](#schedule-builder)" in 14.5): an `@every N` interval with the unit **Seconds**, **Minutes** or **Hours**, the presets `@hourly`, `@daily`, `@weekly`, `@monthly`, or **Custom (crontab)** — an expression of **6 fields**, the first of which is seconds: this is the panel's built-in scheduler, not the system cron with its five fields where the lowest one is minutes. Hint: "How often the Telegram bot sends periodic reports. Pick a preset interval, or choose Custom to enter a raw crontab expression." Controls the bot's periodic reports. The same builder is used for the Discord bot's **Notification Time** field (`discordRunTime`, see [14.8](#148-discord-bot)).
+- **Format:** the value is assembled by the schedule builder (see "[Schedule builder](#schedule-builder)" in 14.5): an `@every N` interval with the unit **Seconds**, **Minutes** or **Hours**, the presets `@hourly`, `@daily`, `@weekly`, `@monthly`, or **Custom (crontab)** — an expression of **6 fields**, the first of which is seconds, or (as of 3.10.0) a familiar system-cron expression of **5 fields**, where the lowest one is minutes (seconds are then 0). As of 3.10.0 an unrecognized schedule is not saved: the settings are rejected with the error `tgRunTime: cron schedule <…> is not valid` (`discordRunTime` and the LDAP sync schedule `ldapSyncCron` are validated the same way, see [2.7](#27-ldap-synchronization-and-authentication)). Hint: "How often the Telegram bot sends periodic reports. Pick a preset interval, or choose Custom to enter a raw crontab expression." Controls the bot's periodic reports. The same builder is used for the Discord bot's **Notification Time** field (`discordRunTime`, see [14.8](#148-discord-bot)).
 
 **Field value examples.**
 
@@ -5272,6 +5667,7 @@ proxy_set_header X-Forwarded-Host $host;
 | `@every 6h` | every 6 hours |
 | `0 0 9 * * *` | daily at 09:00 |
 | `0 30 8 * * 1` | every Monday at 08:30 |
+| `30 8 * * 1` | the same in 5-field format (as of 3.10.0) |
 
 The time is interpreted in the zone from the "Time Zone" setting (section 13.6).
 
@@ -5347,7 +5743,7 @@ Details on 2FA, passwords, LDAP synchronization, and subscription formats (JSON/
 |---|---|
 | `admin` | Everything, as before. The default; every previously issued token stayed `admin` |
 | `monitor` | Read-only, and status only: `GET /panel/api/server/status`, the metric histories (`/server/history/…`, `/server/cpuHistory/…`, `/server/xrayMetrics…`, `/server/xrayObservatory…`), `getXrayVersion`, `getPanelUpdateInfo`, a node's metric history |
-| `node-sync` | Exactly what a central panel needs: list/add/update/delete inbounds, add/update/delete/detach clients, restart Xray, `GET /server/status` |
+| `node-sync` | Exactly what a central panel needs: list/add/update/delete inbounds and their order in the subscription (`subSortIndex`), add/update/delete/detach clients, bulk client traffic reset (`bulkResetTraffic`), the clients' active inbounds (`activeInbounds`, as of 3.10.0), restart Xray, `GET /server/status`. Such a token cannot update the node's panel (`/server/updatePanel`) |
 
 A request outside its scope gets **HTTP 403** with `this API token is not permitted to access this endpoint`. A token also has an optional **expiry** (`expiresAt`): past it, the token stops authenticating. Apps that manage the panel (the mobile manager among them) need an `admin` token — `monitor` cannot change anything.
 
@@ -5691,7 +6087,7 @@ Both thresholds are set via inline fields next to the "CPU high (%)" and "Memory
 
 #### Periodic report (scheduled)
 
-Scheduled by the cron expression from the **Notification Frequency** field (`tgRunTime`, default `@daily`). If the value is empty, `@daily` is used; an expression the scheduler does not accept (for example, a 5-field crontab) is not validated on save — the report is simply not scheduled, and the warning `failed to schedule runtime` appears in the panel log. The report includes:
+Scheduled by the cron expression from the **Notification Frequency** field (`tgRunTime`, default `@daily`). If the value is empty, `@daily` is used. As of 3.10.0 the schedule is validated when the settings are saved: an unrecognized expression is rejected with the error `tgRunTime: cron schedule <…> is not valid`. If an old value that cannot be parsed remains in the database, the report is no longer lost: it runs on the default schedule (`@daily`), and the warning `Telegram notify: cron schedule <…> is not valid: …; using default @daily` appears in the panel log. (Before 3.10.0 such an expression, for example a 5-field crontab, was saved without an error, but the report was silently left unscheduled.) The report includes:
 
 #### Schedule builder
 
@@ -5699,7 +6095,7 @@ The **Bot Notification Frequency for Admins** field is set not by typing a strin
 
 - **`@every` — repeat at interval** — a number field and unit selector appear (**Seconds** / **Minutes** / **Hours**); the result is assembled into an expression like `@every 6h`.
 - **`@hourly` — every hour**, **`@daily` — every day at 00:00**, **`@weekly` — every week**, **`@monthly` — every month** — ready presets that are saved as the corresponding macro (`@hourly`, `@daily`, `@weekly`, `@monthly`).
-- **Custom (crontab)** — a field for your own crontab expression. The panel's scheduler operates with seconds enabled, so a custom expression consists of **6 fields**: second, minute, hour, day of month, month, day of week (e.g., `0 30 8 * * *` — every day at 08:30:00). When switching to this mode the field is pre-filled with the crontab equivalent of the current selection, giving you a starting point.
+- **Custom (crontab)** — a field for your own crontab expression. A custom expression consists of **6 fields**: second, minute, hour, day of month, month, day of week (e.g., `0 30 8 * * *` — every day at 08:30:00). As of 3.10.0 the seconds are optional — a standard 5-field crontab is accepted too (`30 8 * * *` means the same). When switching to this mode the field is pre-filled with the crontab equivalent of the current selection, giving you a starting point.
 
 **Example: values of the "Notification Frequency" field (`tgRunTime`).** Both ready-made shortcuts and full crontab format are supported:
 
@@ -5711,8 +6107,9 @@ The **Bot Notification Frequency for Admins** field is set not by typing a strin
 | `0 0 9 * * *` | every day at 09:00 |
 | `0 0 9 * * 1` | every Monday at 09:00 |
 | `0 0 */12 * * *` | every 12 hours (at 00:00 and 12:00) |
+| `0 9 * * *` | every day at 09:00 (5 fields, as of 3.10.0) |
 
-Field order: second, minute, hour, day of month, month, day of week. Reports are scheduled not by the system cron but by the panel's built-in scheduler (the Go library `robfig/cron`, run with seconds support), so it does not accept the familiar 5-field expression whose lowest field is minutes: the report simply will not be scheduled, and `failed to schedule runtime` will appear in the panel log.
+Field order in a 6-field expression: second, minute, hour, day of month, month, day of week. Reports are scheduled not by the system cron but by the panel's built-in scheduler (the Go library `robfig/cron`, run with seconds support). Before 3.10.0 it did not accept the familiar 5-field expression whose lowest field is minutes: such an expression was saved without an error, but the report was not scheduled. As of 3.10.0 administrator-entered schedules (Telegram and Discord reports, LDAP sync) are parsed with an optional seconds column: 5 fields — minute, hour, day of month, month, day of week; 6 fields — with seconds in front; the `@every`/`@daily` and similar macros work as before.
 
 1. The line "🕰 Scheduled reports: <schedule>" and current date/time.
 2. **Server status** (see below).
@@ -5776,7 +6173,7 @@ All parameters are set under **Settings → Discord Bot** (a summary of the keys
 | Channel ID | `discordChannelId` | (empty) | The channel for notifications, reports and command replies. The bot reads commands only in this channel; direct messages and other channels are ignored. |
 | Admin User IDs | `discordAdminIds` | (empty) | Comma-separated Discord user IDs allowed to run commands. Hint: "…Messages from anyone else are ignored, and an empty list turns commands off." Does not affect notifications or reports. |
 | Discord Bot Language | `discordLang` | `en-US` | Language of the test message, notifications, reports and command replies. |
-| Notification Time | `discordRunTime` | `@daily` | Report schedule. Set with the same [schedule builder](#schedule-builder) as for the Telegram bot: a custom crontab has 6 fields, the first being seconds. |
+| Notification Time | `discordRunTime` | `@daily` | Report schedule. Set with the same [schedule builder](#schedule-builder) as for the Telegram bot: a custom crontab has 6 fields (the first being seconds) or, as of 3.10.0, 5 fields without seconds; an unrecognized value is not saved, and an unparseable old one is replaced with `@daily` with a warning in the log. |
 | Database Backup | `discordBotBackup` | `false` | Attach the database file and `config.json` to the scheduled report and to the `!report` reply. |
 | Discord Notifications | `discordEnabledEvents` | `login.attempt,cpu.high` | Event selection — the same grouped cards as for Telegram (see [14.5](#145-notifications-and-reports)). |
 | CPU and memory thresholds (in the **System** group) | `discordCpu`, `discordMemory` | `80`, `80` | Threshold in percent (0–100) for the `cpu.high` and `memory.high` events; a value of 0 disables the event. |
@@ -6326,7 +6723,11 @@ Starting an update — `POST /panel/api/server/updatePanel`. Confirmation dialog
 
 After starting — a popup message "Panel update started"; if the version check fails — "Panel update check failed".
 
-**What happens on the server:** self-update is supported **only on Linux** (on other operating systems the error "panel web update is supported only on Linux installations" is returned). The panel downloads the official `update.sh` script from GitHub (`raw.githubusercontent.com/MHSanaei/3x-ui/main/update.sh`) and runs it in a separate process: preferably via `systemd-run` in a dedicated unit (`x-ui-web-update-<timestamp>`), or as a detached process if systemd is not available. When finished, the script updates the components and restarts the panel service. `bash` is required to run it. Before extracting, `update.sh` checks the archive's SHA-256 against the published `.sha256` file: a mismatch or a failed checksum download aborts the update before the panel is even stopped, while for old releases without a checksum file only a warning is printed (details in [1.3](#13-installation-methods)). The `x-ui.sh` menu script, `x-ui.rc`, and the service units are taken from the tag of the release being installed (for the dev channel — from `main`); if a required file is missing for that tag, the update is cancelled and the current installation is left untouched. The `mtg` (MTProto) process is stopped before the files are replaced — the panel starts it again once it is back up (as of 3.9.0 TUIC is built into the panel, with no separate process).
+**What happens on the server:** self-update is supported **only on Linux** (on other operating systems the error "panel web update is supported only on Linux installations" is returned). The panel downloads the official `update.sh` script from GitHub (`raw.githubusercontent.com/MHSanaei/3x-ui/main/update.sh`) and runs it in a separate process: preferably via `systemd-run` in a dedicated unit (`x-ui-web-update-<timestamp>`), or as a detached process if systemd is not available. When finished, the script updates the components and restarts the panel service. `bash` is required to run it. Before extracting, `update.sh` checks the archive's SHA-256 against the published `.sha256` file: a mismatch or a failed checksum download aborts the update before the panel is even stopped, while for old releases without a checksum file only a warning is printed (details in [1.3](#13-installation-methods)). The `x-ui.sh` menu script, `x-ui.rc`, and the service units are taken from the tag of the release being installed (for the dev channel — from `main`); if a required file is missing for that tag, the update is cancelled and the current installation is left untouched. The `mtg` (MTProto) process is stopped before the files are replaced — the panel starts it again once it is back up (as of 3.9.0 TUIC is built into the panel, with no separate process). The fallback path (a separate process without `systemd-run`) cannot work inside the service sandbox (as of 3.10.0, see below): the child process inherits its restrictions. Therefore `update.sh` checks write access to the installation directory and `/usr/bin` in advance and, if it is denied, stops right away with the message "ERROR: <directory> is not writable for this process …", advising you to update from the web interface (via `systemd-run`) or with the `x-ui update` command in the console.
+
+**Database migration before the service starts (as of 3.10.0).** `update.sh` runs `x-ui migrate` (message "Migrating database...") **before** starting the service — on both systemd and OpenRC (#6729). Previously the service started, and at the same time the script's commands (`x-ui setting -show`, `x-ui migrate`) ran the same schema migrations on the same database; on an update with new columns or tables one of the processes failed — for example, when moving from 3.8.5 to 3.9.0 the service stopped with the error "duplicate column name: exclude_from_sub" and came back only 5 seconds later thanks to `Restart=on-failure`.
+
+**The update does not touch TLS (as of 3.10.0).** Previously, on a panel without a certificate, `update.sh` opened the SSL menu. During a web update there is nobody to answer its questions: an empty answer chose issuing a Let's Encrypt certificate for the IP, the panel was stopped, and on failure `/root/cert/ip` and the acme.sh state — which other services might also be using — were deleted; if the public IP could not be detected, the script waited forever for it to be entered. Now the update only updates the panel: SSL setup has been removed from `update.sh`, the IP for the final link is detected without prompts, and "Access URL" shows the real scheme — `https://` only when a certificate is configured. Without a certificate it prints "No SSL certificate is configured; the panel is served over HTTP." with a hint to set one up via `x-ui` → "SSL Certificate Management". TLS is still configured from the `x-ui` menu (item 20) and during installation.
 
 If during an update the script generates a new random Web Base Path for the panel, the `x-ui` service is restarted automatically so the new path takes effect immediately. (Without a restart, the server would keep serving the old path while the interface showed the new one, making the new address unreachable until a manual restart.)
 
@@ -6339,6 +6740,19 @@ In addition to a regular stable-release update, there is an optional **"Dev"** c
 On dev builds the panel shows its version as `dev+<short-commit>` instead of a misleading stable number — in the sidebar badge, on the "Dashboard" card, in the update window, in the Telegram bot status report, and in the `x-ui -v` command output. On stable releases the version display is unchanged.
 
 > On nodes, the same 3x-ui panel is updated centrally via `POST /panel/api/nodes/updatePanel` — see the nodes section.
+
+#### systemd service sandbox (since 3.10.0)
+
+The shipped `x-ui.service` units (variants for Debian/Ubuntu, RHEL and Arch) used to run the panel as root with no restrictions at all (`systemd-analyze security` rated them 9.6 UNSAFE). As of 3.10.0 the panel still runs as root, but in a sandbox (#6718); its child processes — Xray, `mtg` and everything they launch — inherit the same restrictions. Nothing changes on Alpine (OpenRC), in Docker or on Windows. What this means in practice:
+
+- **Writing to the file system.** `ProtectSystem=full` makes `/usr`, `/boot`, `/efi` and `/etc` read-only, and `ProtectHome=read-only` does the same for home directories (`/root`, `/home`); the panel can still read certificates from `/root/cert`. The exceptions (`ReadWritePaths`) are the panel's directories: by default `/etc/x-ui`, `/usr/local/x-ui` and `/var/log/x-ui`. Everything else (`/var`, `/tmp`, `/srv`, separate disks) is writable as before; `PrivateTmp` is intentionally not enabled. If the Xray log or another file written by the panel or its child process lives in `/etc`, `/usr`, `/root` or `/home`, writing there will stop working — move the file or add the path in your own drop-in.
+- **Relocated storage.** `install.sh` and `update.sh` write the directories from `XUI_DB_FOLDER`, `XUI_LOG_FOLDER`, `XUI_BIN_FOLDER` (and `XUI_MAIN_FOLDER`) in the service environment file into the drop-in `/etc/systemd/system/x-ui.service.d/10-xui-sandbox.conf` and regenerate it on every install and update. If you change such a variable later, run `x-ui update` or reinstall, otherwise the new directory in a protected tree stays read-only. A directory with spaces in its name is not added to the list (the script warns about this), and a `%` in the name is escaped.
+- **Keep your own changes** in a separate drop-in, for example `/etc/systemd/system/x-ui.service.d/20-x-ui-local.conf`: the unit itself and `10-xui-sandbox.conf` are overwritten on every update, and manual edits to them are lost.
+- **Root privileges are limited.** `CapabilityBoundingSet` keeps only `CAP_NET_ADMIN`, `CAP_NET_BIND_SERVICE`, `CAP_NET_RAW` and `CAP_DAC_OVERRIDE` (the last one to read other owners' private TLS keys, for example those issued by Caddy or acme.sh); `NoNewPrivileges=yes` prevents privilege escalation through setuid programs (for example, `sudo` from a child process); `RestrictAddressFamilies` allows only `AF_INET`, `AF_INET6`, `AF_UNIX` and `AF_NETLINK` sockets. Protection of kernel tunables and modules, the kernel log, the clock and the hostname is also enabled, along with `RestrictNamespaces`, `RestrictSUIDSGID`, `LockPersonality` and `RestrictRealtime`.
+- **`/proc/sys` is read-only, except `/proc/sys/net`.** A WireGuard outbound in kernel TUN mode uses it when Xray starts to disable `rp_filter`; without this exception the core failed to start with the error "failed to disable ipv4 rp_filter for all: … read-only file system" (#6796). If a kernel TUN still cannot be created (no `/dev/net/tun`, or `/proc/sys/net` closed by your drop-in), the panel switches WireGuard outbounds to the userspace TUN (`noKernelTun`) instead of crashing Xray.
+- **`UMask=0077`**: new panel and Xray files (logs, configuration, database) are accessible only to their owner (root). A third-party agent that read, for example, the access log as another user will lose that access.
+- **The system call filter** `SystemCallFilter=@system-service` is written to the drop-in only with systemd 239 or newer — on an older systemd the panel would not start with it. Directives unknown to your systemd are skipped; in that case the installer and `update.sh` print "Note: systemd <version> ignores part of the hardening in x-ui.service; the panel still starts." with a list of the protections not applied (on systemd older than 231, e.g. CentOS 7, write access to the panel's directories is provided by `ReadWriteDirectories=`).
+- **Uninstalling** the panel (`x-ui uninstall`) removes the whole `x-ui.service.d` directory, together with your drop-ins.
 
 #### Automatic fail2ban installation
 
@@ -6499,11 +6913,11 @@ The command cannot show a token that has already been issued: API tokens are sto
 Uninstall is performed from the CLI — menu item **6 (Uninstall)** or the command `x-ui uninstall`. A confirmation is requested before uninstalling (default answer is "no"): "Are you sure you want to uninstall the panel? xray will also uninstalled!".
 
 On confirmation, the script:
-1. Stops the service and disables its autostart (`systemctl stop/disable x-ui`, or on Alpine — `rc-service`/`rc-update`), removes the service unit file and reloads the systemd configuration.
+1. Stops the service and disables its autostart (`systemctl stop/disable x-ui`, or on Alpine — `rc-service`/`rc-update`), removes the service unit file and (as of 3.10.0) its drop-in directory `x-ui.service.d` — together with your own drop-ins — then reloads the systemd configuration.
 2. Removes the data and application directories (`/etc/x-ui/`, the installation directory) and the service env file (`/etc/default/x-ui`, `/etc/conf.d/x-ui`, or `/etc/sysconfig/x-ui` — depending on the distribution).
 3. Removes the `x-ui` script itself and prints "Uninstalled Successfully." along with the command for reinstallation.
 
-If the panel was using PostgreSQL (`XUI_DB_TYPE=postgres` in the env file), after removing the panel files the script additionally asks whether the PostgreSQL server itself should be removed along with all its databases: "Also purge PostgreSQL and delete all of its data?". This requires an explicit confirmation (default is to decline) and is accompanied by the warning that the removal will affect **ALL** PostgreSQL databases on the machine, including those belonging to other applications, and is irreversible. If declined, PostgreSQL and its data are left untouched.
+If the panel was using PostgreSQL (`XUI_DB_TYPE=postgres` in the env file), after removing the panel files the script additionally asks whether the PostgreSQL server itself should be removed along with all its databases: "Also purge PostgreSQL and delete all of its data?". This requires an explicit confirmation (default is to decline) and is accompanied by the warning that the removal will affect **ALL** PostgreSQL databases on the machine, including those belonging to other applications, and is irreversible. If declined, PostgreSQL and its data are left untouched. As of 3.10.0, on the RHEL family the PostgreSQL 18 packages from the PGDG repository (`postgresql18*`) are removed too.
 
 > Uninstall is irreversible: Xray and all data (including the database) are removed together with the panel. If you may need the data, export the database first (section 16.1).
 
